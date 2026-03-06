@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍕 PizzaControl - Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 30%, #0f3460 60%, #e94560 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 12s ease infinite;
+            overflow: hidden;
+            position: relative;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Floating pizza decorations */
+        .floating-pizzas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 0; overflow: hidden;
+        }
+        .pizza-float {
+            position: absolute; font-size: 2.5rem; opacity: 0.08;
+            animation: floatUp linear infinite;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(110vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.08; }
+            90% { opacity: 0.08; }
+            100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* Glowing orbs */
+        .orb {
+            position: fixed; border-radius: 50%; filter: blur(80px);
+            pointer-events: none; z-index: 0;
+        }
+        .orb-1 { width: 300px; height: 300px; background: rgba(233,69,96,0.2); top: -100px; right: -50px; animation: orbMove1 8s ease-in-out infinite; }
+        .orb-2 { width: 250px; height: 250px; background: rgba(15,52,96,0.3); bottom: -80px; left: -50px; animation: orbMove2 10s ease-in-out infinite; }
+        .orb-3 { width: 200px; height: 200px; background: rgba(255,152,0,0.15); top: 50%; left: 50%; animation: orbMove3 12s ease-in-out infinite; }
+
+        @keyframes orbMove1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-50px,50px); } }
+        @keyframes orbMove2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(40px,-40px); } }
+        @keyframes orbMove3 { 0%,100% { transform: translate(-50%,-50%) scale(1); } 50% { transform: translate(-50%,-50%) scale(1.3); } }
+
+        .login-container {
+            position: relative; z-index: 10; width: 100%; max-width: 440px;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: rgba(255,255,255,0.07);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.12);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.4), 0 0 80px rgba(233,69,96,0.1);
+            padding: 45px 40px;
+            animation: cardAppear 0.8s ease-out;
+        }
+
+        @keyframes cardAppear {
+            from { opacity: 0; transform: translateY(30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .logo-section {
+            text-align: center; margin-bottom: 35px;
+        }
+        .logo-icon {
+            font-size: 3.5rem; margin-bottom: 8px;
+            animation: logoPulse 2s ease-in-out infinite;
+        }
+        @keyframes logoPulse {
+            0%,100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+        .logo-text {
+            font-size: 1.8rem; font-weight: 800; color: white;
+            letter-spacing: -0.5px;
+        }
+        .logo-text span { color: #ff9800; }
+        .logo-subtitle {
+            color: rgba(255,255,255,0.5); font-size: 0.85rem;
+            margin-top: 4px; font-weight: 300;
+        }
+
+        .input-group {
+            position: relative; margin-bottom: 20px;
+        }
+        .input-icon {
+            position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+            font-size: 1.1rem; color: rgba(255,255,255,0.35);
+            transition: color 0.3s;
+        }
+        .input-group input {
+            width: 100%; padding: 16px 16px 16px 48px;
+            background: rgba(255,255,255,0.06);
+            border: 2px solid rgba(255,255,255,0.08);
+            border-radius: 14px; color: white; font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s ease;
+        }
+        .input-group input::placeholder { color: rgba(255,255,255,0.3); }
+        .input-group input:focus {
+            outline: none;
+            border-color: rgba(233,69,96,0.6);
+            background: rgba(255,255,255,0.1);
+            box-shadow: 0 0 20px rgba(233,69,96,0.15);
+        }
+        .input-group input:focus + .input-icon,
+        .input-group input:focus ~ .input-icon { color: #e94560; }
+
+        .toggle-password {
+            position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; color: rgba(255,255,255,0.35);
+            cursor: pointer; font-size: 1.1rem; transition: color 0.3s;
+        }
+        .toggle-password:hover { color: white; }
+
+        .options-row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 25px;
+        }
+        .remember-me {
+            display: flex; align-items: center; gap: 8px;
+            color: rgba(255,255,255,0.6); font-size: 0.85rem; cursor: pointer;
+        }
+        .remember-me input[type="checkbox"] {
+            width: 18px; height: 18px; accent-color: #e94560; cursor: pointer;
+        }
+
+        .btn-login {
+            width: 100%; padding: 16px; border: none; border-radius: 14px;
+            background: linear-gradient(135deg, #e94560, #c0392b);
+            color: white; font-size: 1.05rem; font-weight: 700;
+            font-family: 'Inter', sans-serif; cursor: pointer;
+            transition: all 0.3s ease; position: relative; overflow: hidden;
+        }
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(233,69,96,0.4);
+        }
+        .btn-login:active { transform: translateY(0); }
+        .btn-login.loading {
+            pointer-events: none; color: transparent;
+        }
+        .btn-login.loading::after {
+            content: ''; position: absolute;
+            width: 24px; height: 24px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white; border-radius: 50%;
+            top: 50%; left: 50%; margin: -12px 0 0 -12px;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .error-msg {
+            background: rgba(231,76,60,0.15);
+            border: 1px solid rgba(231,76,60,0.3);
+            border-radius: 10px; padding: 12px 16px;
+            color: #ff6b6b; font-size: 0.85rem; text-align: center;
+            margin-bottom: 20px; display: none;
+            animation: shake 0.4s ease;
+        }
+        @keyframes shake {
+            0%,100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+        .error-msg.show { display: block; }
+
+        .footer-text {
+            text-align: center; color: rgba(255,255,255,0.25);
+            font-size: 0.75rem; margin-top: 25px;
+        }
+
+        @media (max-width: 480px) {
+            .login-card { padding: 35px 25px; }
+            .logo-text { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="floating-pizzas" id="floatingPizzas"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <div class="login-container">
+        <div class="login-card">
+            <div class="logo-section">
+                <div class="logo-icon">🍕</div>
+                <div class="logo-text">Pizza<span>Control</span></div>
+                <div class="logo-subtitle">Sistema de Gestão de Fichas Técnicas</div>
+            </div>
+
+            <div class="error-msg" id="errorMsg">⚠️ Usuário ou senha incorretos!</div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="input-group">
+                    <input type="text" id="username" placeholder="Usuário" autocomplete="username" required>
+                    <span class="input-icon">👤</span>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="password" placeholder="Senha" autocomplete="current-password" required>
+                    <span class="input-icon">🔒</span>
+                    <button type="button" class="toggle-password" onclick="togglePass()">👁️</button>
+                </div>
+                <div class="options-row">
+                    <label class="remember-me">
+                        <input type="checkbox" id="rememberMe"> Lembrar-me
+                    </label>
+                </div>
+                <button type="submit" class="btn-login" id="btnLogin">🚀 Entrar</button>
+            </form>
+
+            <div class="footer-text">
+                Credenciais padrão: <strong>admin</strong> / <strong>1234</strong><br>
+                Altere nas Configurações após o login.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Floating pizzas
+        const emojis = ['🍕','🧀','🍅','🫒','🌶️','🥓','🧄','🍄'];
+        const container = document.getElementById('floatingPizzas');
+        for (let i = 0; i < 15; i++) {
+            const el = document.createElement('div');
+            el.className = 'pizza-float';
+            el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            el.style.left = Math.random() * 100 + '%';
+            el.style.animationDuration = (12 + Math.random() * 18) + 's';
+            el.style.animationDelay = (Math.random() * 15) + 's';
+            el.style.fontSize = (1.5 + Math.random() * 2) + 'rem';
+            container.appendChild(el);
+        }
+
+        // Check if already logged in
+        document.addEventListener('DOMContentLoaded', () => {
+            const session = localStorage.getItem('pizzaControlSession');
+            if (session) {
+                try {
+                    const s = JSON.parse(session);
+                    if (s.logged && s.remember) {
+                        window.location.href = 'app.html';
+                    }
+                } catch(e) {}
+            }
+        });
+
+        function getCredentials() {
+            const saved = localStorage.getItem('pizzaControlCredentials');
+            if (saved) {
+                try { return JSON.parse(saved); } catch(e) {}
+            }
+            return { user: 'admin', pass: '1234' };
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const user = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value;
+            const remember = document.getElementById('rememberMe').checked;
+            const btn = document.getElementById('btnLogin');
+            const error = document.getElementById('errorMsg');
+
+            error.classList.remove('show');
+            btn.classList.add('loading');
+
+            setTimeout(() => {
+                const creds = getCredentials();
+                if (user === creds.user && pass === creds.pass) {
+                    localStorage.setItem('pizzaControlSession', JSON.stringify({
+                        logged: true, remember: remember, user: user, loginTime: Date.now()
+                    }));
+                    window.location.href = 'app.html';
+                } else {
+                    btn.classList.remove('loading');
+                    error.classList.add('show');
+                    document.getElementById('password').value = '';
+                    document.getElementById('password').focus();
+                }
+            }, 1200);
+        }
+
+        function togglePass() {
+            const inp = document.getElementById('password');
+            const btn = document.querySelector('.toggle-password');
+            if (inp.type === 'password') {
+                inp.type = 'text'; btn.textContent = '🙈';
+            } else {
+                inp.type = 'password'; btn.textContent = '👁️';
+            }
+        }
+    </script>
+</body>
+</html>
