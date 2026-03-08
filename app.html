@@ -1056,6 +1056,136 @@
             color: var(--dark)
         }
 
+        /* ===== SALGADOS ===== */
+        .salgado-card {
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: transform 0.3s;
+            border-top: 5px solid #FF6B35
+        }
+
+        .salgado-card:hover {
+            transform: translateY(-5px)
+        }
+
+        .salgado-header {
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start
+        }
+
+        .salgado-header h3 {
+            font-size: 1.1em;
+            margin-bottom: 5px
+        }
+
+        .salgado-header small {
+            color: #777
+        }
+
+        .badge-salgado {
+            background: #FF6B35;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: bold
+        }
+
+        .salgado-body {
+            padding: 0 15px 15px
+        }
+
+        .salgado-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            background: var(--light);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px
+        }
+
+        .salgado-stat {
+            text-align: center
+        }
+
+        .salgado-stat small {
+            color: #777;
+            font-size: 0.7em;
+            display: block
+        }
+
+        .salgado-stat .val {
+            font-weight: bold
+        }
+
+        .salgado-stat .val.red {
+            color: var(--danger)
+        }
+
+        .salgado-stat .val.green {
+            color: var(--success)
+        }
+
+        .salgado-stat .val.blue {
+            color: var(--info)
+        }
+
+        .salgado-stat .val.orange {
+            color: #FF6B35
+        }
+
+        .salgado-details {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: #fafafa;
+            border-radius: 5px
+        }
+
+        .salgado-actions {
+            display: flex;
+            gap: 5px
+        }
+
+        .salgado-actions .btn {
+            flex: 1;
+            justify-content: center;
+            font-size: 0.85em
+        }
+
+        .salgados-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px
+        }
+
+        .counter.SAL {
+            border-color: #FF6B35
+        }
+
+        .counter.SAL .num {
+            color: #FF6B35
+        }
+
+        .card-header.orange {
+            background: linear-gradient(135deg, #FF6B35, #e55a2b)
+        }
+
+        .btn-orange {
+            background: #FF6B35;
+            color: white
+        }
+
+        .btn-orange:hover {
+            background: #e55a2b
+        }
+
         @media(max-width:768px) {
             .header {
                 flex-direction: column;
@@ -1107,6 +1237,9 @@
             <div class="stat-box"><small>Fichas</small>
                 <div class="valor" id="hdrFichas">0</div>
             </div>
+            <div class="stat-box"><small>Salgados</small>
+                <div class="valor" id="hdrSalgados">0</div>
+            </div>
             <div class="stat-box"><small>Custo Fixo</small>
                 <div class="valor" id="hdrCustoFixo">R$0</div>
             </div>
@@ -1121,6 +1254,8 @@
         <button class="nav-tab" data-page="massa">🥖 Massa</button>
         <button class="nav-tab" data-page="custos">💼 Custos Fixos</button>
         <button class="nav-tab" data-page="precificar">💰 Precificar</button>
+        <button class="nav-tab" data-page="salgados">🥟 Salgados</button>
+        <button class="nav-tab" data-page="novo-salgado">➕ Novo Salgado</button>
         <button class="nav-tab" data-page="config">⚙️ Config</button>
     </nav>
     <div class="main-container">
@@ -1141,6 +1276,9 @@
                         </div>
                         <div class="counter GG">
                             <div class="num" id="cntGG">0</div><small>Gigantes</small>
+                        </div>
+                        <div class="counter SAL">
+                            <div class="num" id="cntSAL">0</div><small>Salgados</small>
                         </div>
                     </div>
                     <div class="resumo-box">
@@ -1434,6 +1572,9 @@
                     <div class="form-group"><label style="font-size:1.1em">🍕 Quantas pizzas você vende por
                             mês?</label><input type="number" class="form-control large" id="cfPizzas" value="300"
                             oninput="calcCustos()"></div>
+                    <div class="form-group"><label style="font-size:1.1em">🥟 Quantos salgados você vende por
+                            mês?</label><input type="number" class="form-control large" id="cfSalgados" value="500"
+                            oninput="calcCustos()"></div>
                     <div class="total-box">
                         <h4 style="text-align:center;margin-bottom:20px">📊 Resultado</h4>
                         <div class="total-grid">
@@ -1445,6 +1586,10 @@
                                 <div class="label">Custo por Pizza</div>
                                 <div class="value highlight" id="cfPorPizza">R$ 0</div>
                             </div>
+                            <div class="total-item">
+                                <div class="label">Custo por Salgado</div>
+                                <div class="value" id="cfPorSalgado" style="color:#FF6B35">R$ 0</div>
+                            </div>
                         </div>
                     </div>
                     <button class="btn btn-success btn-block" style="margin-top:20px" onclick="salvarCustos()">💾 Salvar
@@ -1455,7 +1600,8 @@
         <!-- PRECIFICAR -->
         <div class="page" id="page-precificar">
             <div class="alert alert-info">💰 Use as calculadoras para encontrar o preço ideal. CMV recomendado:
-                <strong>25% a 35%</strong></div>
+                <strong>25% a 35%</strong>
+            </div>
             <div class="calc-grid">
                 <div class="card">
                     <div class="card-header warning">📊 Calcular por CMV</div>
@@ -1512,6 +1658,90 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+        <!-- SALGADOS -->
+        <div class="page" id="page-salgados">
+            <div class="card">
+                <div class="card-header orange">🥟 Fichas de Salgados</div>
+                <div class="card-body">
+                    <div class="search-row"><input type="text" class="form-control" placeholder="🔍 Buscar salgado..."
+                            id="buscaSalg" oninput="filtrarSalgados()"></div>
+                    <div style="display:flex;gap:10px;margin-bottom:20px;align-items:center;flex-wrap:wrap">
+                        <span style="font-weight:bold;color:#FF6B35" id="salgadosCount">0 salgados cadastrados</span>
+                    </div>
+                    <div class="salgados-grid" id="salgadosGrid"></div>
+                </div>
+            </div>
+        </div>
+        <!-- NOVO SALGADO -->
+        <div class="page" id="page-novo-salgado">
+            <div class="card">
+                <div class="card-header orange" id="salgadoHeader">➕ Nova Ficha de Salgado</div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group"><label>Nome do Salgado <span class="required">*</span></label><input
+                                type="text" class="form-control" id="salgNome" placeholder="Ex: Coxinha de Frango">
+                        </div>
+                        <div class="form-group"><label>Categoria</label><select class="form-control" id="salgCat">
+                                <option>Frito</option>
+                                <option>Assado</option>
+                                <option>Especial</option>
+                                <option>Festa</option>
+                                <option>Outro</option>
+                            </select></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Rendimento (quantas unidades) <span
+                                    class="required">*</span></label><input type="number" class="form-control"
+                                id="salgRendimento" placeholder="Ex: 50" oninput="calcSalgado()"><small
+                                style="color:#777">Quantos salgados essa receita rende</small></div>
+                        <div class="form-group"><label>Preço de Venda por Unidade (R$) <span
+                                    class="required">*</span></label><input type="number" class="form-control"
+                                id="salgPreco" placeholder="3.50" step="0.01" oninput="calcSalgado()"></div>
+                    </div>
+                    <h4 style="margin:20px 0 10px">🧀 Ingredientes da Receita</h4>
+                    <div class="ingredientes-list" id="salgIngLista"></div>
+                    <button class="btn btn-orange" onclick="addIngSalgado()">+ Ingrediente</button>
+                    <div class="resumo-box" style="background:linear-gradient(135deg, #3d1e00, #5a2d0c)">
+                        <h4 style="text-align:center;margin-bottom:15px">📊 Resumo do Salgado</h4>
+                        <div class="resumo-grid">
+                            <div class="resumo-item"><small>Custo da Receita</small>
+                                <div class="val red" id="resSalgReceita">R$ 0</div>
+                            </div>
+                            <div class="resumo-item"><small>Rendimento</small>
+                                <div class="val" id="resSalgRend" style="color:#FF6B35">0 un</div>
+                            </div>
+                            <div class="resumo-item"><small>Custo por Unidade</small>
+                                <div class="val red" id="resSalgCustoUn">R$ 0</div>
+                            </div>
+                            <div class="resumo-item"><small>Custo Fixo/Un</small>
+                                <div class="val red" id="resSalgCF">R$ 0</div>
+                            </div>
+                            <div class="resumo-item"><small>CUSTO TOTAL/Un</small>
+                                <div class="val red" id="resSalgTotal">R$ 0</div>
+                            </div>
+                            <div class="resumo-item"><small>Preço Venda</small>
+                                <div class="val blue" id="resSalgVenda">R$ 0</div>
+                            </div>
+                            <div class="resumo-item"><small>LUCRO/Un</small>
+                                <div class="val green" id="resSalgLucro">R$ 0</div>
+                            </div>
+                            <div class="resumo-item"><small>CMV</small>
+                                <div class="val" id="resSalgCMV">0%</div>
+                                <div class="cmv-bar">
+                                    <div class="cmv-fill good" id="salgCmvBar"></div>
+                                </div>
+                            </div>
+                            <div class="resumo-item"><small>Margem</small>
+                                <div class="val green" id="resSalgMargem">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:15px;margin-top:20px"><button class="btn btn-success btn-block"
+                            onclick="salvarSalgado()">💾 Salvar Salgado</button><button class="btn btn-secondary"
+                            onclick="limparSalgado()">🗑️ Limpar</button></div>
                 </div>
             </div>
         </div>
