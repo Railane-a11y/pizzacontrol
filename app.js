@@ -218,7 +218,7 @@ function iniciarListenerInsumos() {
             DB.config = docSnap.data();
             document.getElementById('configNome').value = DB.config.nomePizzaria || '';
             document.getElementById('configMeta').value = DB.config.meta || 15000;
-            if(DB.config.nomePizzaria) document.querySelector('.logo').innerHTML = `🍕 ${DB.config.nomePizzaria}`;
+            // Removed: if(DB.config.nomePizzaria) document.querySelector('.logo').innerHTML = `🍕 ${DB.config.nomePizzaria}`;
         }
         renderDashboard();
     });
