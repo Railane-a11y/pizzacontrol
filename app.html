@@ -161,7 +161,6 @@
             max-width: 1400px;
             margin: 20px auto;
             padding: 0 15px;
-            padding-bottom: 80px; /* Space for mobile nav */
         }
 
         .page {
@@ -1060,36 +1059,58 @@
         @media(max-width:768px) {
             .header {
                 flex-direction: column;
-                text-align: center
+                text-align: center;
+                padding-top: 50px; /* Space for hamburger fixed button */
+            }
+
+            /* Hamburger Menu Styles */
+            .menu-toggle {
+                display: block;
             }
 
             .nav-tabs {
                 position: fixed;
-                bottom: 0;
-                top: auto;
-                left: 0;
-                right: 0;
-                box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.1);
+                top: 0;
+                left: -280px;
+                width: 280px;
+                height: 100vh;
+                background: white;
+                flex-direction: column;
                 justify-content: flex-start;
-                padding-bottom: env(safe-area-inset-bottom, 5px);
+                box-shadow: 2px 0 15px rgba(0,0,0,0.2);
+                padding-top: 60px;
+                padding-bottom: 20px;
+                transition: left 0.3s ease;
+                z-index: 999;
+                overflow-y: auto;
+            }
+
+            .nav-tabs.open {
+                left: 0;
             }
 
             .nav-tab {
-                padding: 12px 14px;
-                font-size: 0.75em;
-                border-bottom: none;
-                border-top: 3px solid transparent;
+                padding: 15px 20px;
+                font-size: 1.1em;
+                border-bottom: 1px solid #eee;
+                border-top: none;
                 display: flex;
-                flex-direction: column;
+                flex-direction: row;
                 align-items: center;
-                gap: 5px;
-                min-height: 56px;
-                justify-content: center;
+                justify-content: flex-start;
+                gap: 15px;
+                min-height: 50px;
+                text-align: left;
             }
 
             .nav-tab.active {
-                border-bottom: none;
-                border-top-color: var(--primary);
+                border-top: none;
+                border-left: 4px solid var(--primary);
+                background: #ffebee;
+            }
+
+            .nav-tab br {
+                display: none;
             }
 
             .btn, .form-control, .size-tab, .nav-tab {
@@ -1148,11 +1169,52 @@
                 width: 100%
             }
         }
+
+        .menu-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 998;
+            display: none;
+        }
+        .menu-overlay.show {
+            display: block;
+        }
+
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1000;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 1.5em;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        @media(max-width:768px) {
+            .menu-toggle { display: block; }
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+            .card-body {
+                padding: 15px 10px; /* slightly less padding on mobile */
+            }
+        }
     </style>
 </head>
 
 <body>
     <div class="status-bar" id="statusBar"></div>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+    <div class="menu-overlay" id="menuOverlay" onclick="toggleMenu()"></div>
     <header class="header">
         <div class="logo">🍕 Pizza<span>Control</span></div>
         <div class="header-stats">
@@ -1168,15 +1230,15 @@
             <button class="btn-logout" id="btnLogout" onclick="fazerLogout()">🚪 Sair</button>
         </div>
     </header>
-    <nav class="nav-tabs">
-        <button class="nav-tab active" data-page="dashboard">📊<br>Início</button>
-        <button class="nav-tab" data-page="insumos">📦<br>Insumos</button>
-        <button class="nav-tab" data-page="fichas">📋<br>Fichas</button>
-        <button class="nav-tab" data-page="nova-ficha">➕<br>Criar</button>
-        <button class="nav-tab" data-page="massa">🥖<br>Massa</button>
-        <button class="nav-tab" data-page="custos">💼<br>Custos</button>
-        <button class="nav-tab" data-page="precificar">💰<br>Cálculo</button>
-        <button class="nav-tab" data-page="config">⚙️<br>Config</button>
+    <nav class="nav-tabs" id="navTabs">
+        <button class="nav-tab active" data-page="dashboard">📊 Dashboard</button>
+        <button class="nav-tab" data-page="insumos">📦 Insumos</button>
+        <button class="nav-tab" data-page="fichas">📋 Fichas</button>
+        <button class="nav-tab" data-page="nova-ficha">➕ Criar Ficha</button>
+        <button class="nav-tab" data-page="massa">🥖 Massa</button>
+        <button class="nav-tab" data-page="custos">💼 Custos Fixos</button>
+        <button class="nav-tab" data-page="precificar">💰 Gerar Preço</button>
+        <button class="nav-tab" data-page="config">⚙️ Configurações</button>
     </nav>
     <div class="main-container">
         <!-- DASHBOARD -->

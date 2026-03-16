@@ -39,6 +39,19 @@ document.addEventListener('DOMContentLoaded', () => {
     carregarDados(); setupNav(); renderAll(); loadMassaUI(); loadCustosUI(); addIngFicha();
 });
 
+// ===== HAMBURGER MENU =====
+function toggleMenu() {
+    const nav = document.getElementById('navTabs');
+    const overlay = document.getElementById('menuOverlay');
+    if (nav.classList.contains('open')) {
+        nav.classList.remove('open');
+        overlay.classList.remove('show');
+    } else {
+        nav.classList.add('open');
+        overlay.classList.add('show');
+    }
+}
+
 function setupNav() {
     document.querySelectorAll('.nav-tab').forEach(tab => {
         tab.addEventListener('click', () => {
@@ -51,6 +64,12 @@ function setupNav() {
             if (tab.dataset.page === 'precificar') loadFichasSelect();
             if (tab.dataset.page === 'fichas') renderFichas();
             if (tab.dataset.page === 'dashboard') renderDashboard();
+            
+            // Auto-close menu on mobile after selection
+            if (window.innerWidth <= 768) {
+                document.getElementById('navTabs').classList.remove('open');
+                document.getElementById('menuOverlay').classList.remove('show');
+            }
         });
     });
 }
@@ -615,7 +634,7 @@ function renderDashboard() {
 
     if (DB.fichas.length > 0) {
         const top = [...DB.fichas].sort((a,b) => b.lucro-a.lucro).slice(0,5);
-        document.getElementById('topLista').innerHTML = `<table><thead><tr><th>#</th><th>Pizza</th><th>Tam</th><th>Custo</th><th>Venda</th><th>Lucro</th></tr></thead><tbody>${top.map((f,i) => `<tr><td>${i+1}º</td><td><strong>${f.nome}</strong></td><td><span class="badge-size ${f.tamanho}" style="padding:2px 8px;font-size:0.75em">${f.tamanho}</span></td><td>R$ ${f.custoTotal.toFixed(2)}</td><td>R$ ${f.precoVenda.toFixed(2)}</td><td style="color:var(--success);font-weight:bold">R$ ${f.lucro.toFixed(2)}</td></tr>`).join('')}</tbody></table>`;
+        document.getElementById('topLista').innerHTML = `<table><thead><tr><th>🍕 Pizza</th><th>$$ Venda</th><th>📈 Lucro</th></tr></thead><tbody>${top.map((f,i) => `<tr><td><strong>${f.nome}</strong><br><small style="color:#777">Custo: R$ ${f.custoTotal.toFixed(2)}</small></td><td>R$ ${f.precoVenda.toFixed(2)}</td><td style="color:var(--success);font-weight:bold">R$ ${f.lucro.toFixed(2)}</td></tr>`).join('')}</tbody></table>`;
     } else { document.getElementById('topLista').innerHTML = '<div class="empty">Cadastre fichas</div>'; }
 }
 
