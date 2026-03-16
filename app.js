@@ -2,21 +2,10 @@
 // PIZZACONTROL - SISTEMA COMPLETO
 // ==========================================
 
-// Auth check - redirect to login if not logged in
-(function checkAuth() {
-    const session = localStorage.getItem('pizzaControlSession');
-    if (!session) { window.location.href = 'index.html'; return; }
-    try {
-        const s = JSON.parse(session);
-        if (!s.logged) { window.location.href = 'index.html'; return; }
-    } catch(e) { window.location.href = 'index.html'; return; }
-})();
+
 
 function fazerLogout() {
-    if (confirm('Deseja realmente sair?')) {
-        localStorage.removeItem('pizzaControlSession');
-        window.location.href = 'index.html';
-    }
+    window.dispatchEvent(new Event('logoutFirebase'));
 }
 
 function alterarSenha() {
@@ -40,7 +29,8 @@ function gerarId() {
 let DB = {
     insumos: [], fichas: [],
     custos: { aluguel:0,energia:0,gas:0,agua:0,internet:0,func:0,gasolina:0,emb:0,mkt:0,contador:0,outros:0,pizzas:300 },
-    massa: { ingredientes:[],pesoTotal:3000,pesoP:200,pesoM:300,pesoG:400,pesoGG:500 }
+    massa: { ingredientes:[],pesoTotal:3000,pesoP:200,pesoM:300,pesoG:400,pesoGG:500 },
+    config: { nomePizzaria:'', meta:15000 }
 };
 let editandoFichaId = null;
 let filtroTam = 'all';
@@ -66,8 +56,8 @@ function setupNav() {
 }
 
 function salvarDados() {
-    try { localStorage.setItem('pizzaControlFinal', JSON.stringify(DB)); status('💾 Salvo!'); renderAll(); }
-    catch(e) { status('❌ Erro ao salvar!', true); }
+    // Only used for fallback or local items, as main modules use Firestore now.
+    status('💾 Sincronizado via Firestore!');
 }
 
 function carregarDados() {
@@ -112,7 +102,7 @@ function renderAll() { renderHeader(); renderInsumos(); renderFichas(); renderDa
 function renderHeader() {
     document.getElementById('hdrInsumos').textContent = DB.insumos.length;
     document.getElementById('hdrFichas').textContent = DB.fichas.length;
-    document.getElementById('hdrCustoFixo').textContent = 'R$ ' + getCustoFixo().toFixed(2);
+    document.getElementById('hdrCustoFixo').textContent = 'R$ ' + calcularCustoFixoPorPizza().toFixed(2);
 }
 
 // ===== INSUMOS =====
@@ -148,17 +138,37 @@ function salvarInsumo() {
     const editId = document.getElementById('insId').value;
     if (!nome || !qtd || !preco) { alert('⚠️ Preencha todos os campos!'); return; }
     const custoUn = preco / qtd;
+
+    if (!window.currentUser) { alert('Sessão expirada!'); window.location.href='index.html'; return; }
+
+    const insumoData = {
+        userId: window.currentUser.uid,
+        nome,
+        categoria: cat,
+        unidade: un,
+        qtdEmb: qtd,
+        precoEmb: preco,
+        custoUn: custoUn
+    };
+
     if (editId) {
-        const idx = DB.insumos.findIndex(i => i.id == editId);
-        if (idx >= 0) DB.insumos[idx] = { ...DB.insumos[idx], nome, categoria:cat, unidade:un, qtdEmb:qtd, precoEmb:preco, custoUn };
+        window.fbUpdateDoc(window.fbDoc(window.fbDb, 'ingredientes', editId), insumoData)
+            .then(() => { status('💾 Atualizado!'); fecharModal('modalIns'); })
+            .catch((err) => { status('❌ Erro ao atualizar!', true); console.error(err); });
     } else {
-        DB.insumos.push({ id:gerarId(), nome, categoria:cat, unidade:un, qtdEmb:qtd, precoEmb:preco, custoUn });
+        window.fbAddDoc(window.fbCollection(window.fbDb, 'ingredientes'), insumoData)
+            .then(() => { status('💾 Salvo!'); fecharModal('modalIns'); })
+            .catch((err) => { status('❌ Erro ao salvar!', true); console.error(err); });
     }
-    salvarDados(); fecharModal('modalIns'); renderInsumos();
 }
 
 function excluirInsumo(id) {
-    if (confirm('Excluir insumo?')) { DB.insumos = DB.insumos.filter(i => i.id !== id); salvarDados(); renderInsumos(); }
+    if (!window.currentUser) { alert('Sessão expirada!'); window.location.href='index.html'; return; }
+    if (confirm('Excluir insumo?')) {
+        window.fbDeleteDoc(window.fbDoc(window.fbDb, 'ingredientes', id))
+            .then(() => status('🗑️ Excluído!'))
+            .catch((err) => { status('❌ Erro ao excluir!', true); console.error(err); });
+    }
 }
 
 function renderInsumos() {
@@ -166,6 +176,65 @@ function renderInsumos() {
     if (DB.insumos.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="empty"><div class="icon">📦</div>Nenhum insumo</td></tr>'; return; }
     tbody.innerHTML = DB.insumos.map(i => `<tr><td><strong>${i.nome}</strong></td><td><span class="badge badge-info">${i.categoria}</span></td><td>${i.unidade}</td><td>${i.qtdEmb}</td><td>R$ ${(i.precoEmb||0).toFixed(2)}</td><td><strong style="color:var(--primary)">R$ ${(i.custoUn||0).toFixed(4)}</strong></td><td class="actions"><button class="btn btn-info btn-sm" onclick="abrirModalInsumo('${i.id}')">✏️</button><button class="btn btn-danger btn-sm" onclick="excluirInsumo('${i.id}')">🗑️</button></td></tr>`).join('');
 }
+
+function iniciarListenerInsumos() {
+    if (!window.currentUser) { alert('Sessão expirada!'); window.location.href='index.html'; return; }
+    const q = window.fbQuery(window.fbCollection(window.fbDb, 'ingredientes'), window.fbWhere('userId', '==', window.currentUser.uid));
+    window.fbOnSnapshot(q, (snapshot) => {
+        DB.insumos = [];
+        snapshot.forEach((docSnap) => {
+            DB.insumos.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        renderInsumos();
+        if (typeof renderHeader === 'function') renderHeader();
+        if (typeof refreshIngSelects === 'function') refreshIngSelects();
+        if (typeof refreshMassaSelects === 'function') refreshMassaSelects();
+        if (typeof renderFichas === 'function') renderFichas();
+        if (typeof renderDashboard === 'function') renderDashboard();
+    });
+
+    const docRefConfig = window.fbDoc(window.fbDb, 'config', window.currentUser.uid);
+    window.fbOnSnapshot(docRefConfig, (docSnap) => {
+        if (docSnap.exists()) {
+            DB.config = docSnap.data();
+            document.getElementById('configNome').value = DB.config.nomePizzaria || '';
+            document.getElementById('configMeta').value = DB.config.meta || 15000;
+            if(DB.config.nomePizzaria) document.querySelector('.logo').innerHTML = `🍕 ${DB.config.nomePizzaria}`;
+        }
+        renderDashboard();
+    });
+
+    const docRefCustos = window.fbDoc(window.fbDb, 'custos_fixos', window.currentUser.uid);
+    window.fbOnSnapshot(docRefCustos, (docSnap) => {
+        if (docSnap.exists()) {
+            DB.custos = docSnap.data();
+        }
+        loadCustosUI();
+        if (typeof renderAll === 'function') renderAll();
+    });
+
+    const docRefMassa = window.fbDoc(window.fbDb, 'massa', window.currentUser.uid);
+    window.fbOnSnapshot(docRefMassa, (docSnap) => {
+        if (docSnap.exists()) {
+            DB.massa = docSnap.data();
+        }
+        loadMassaUI();
+        if (typeof renderAll === 'function') renderAll();
+    });
+
+    const qFichas = window.fbQuery(window.fbCollection(window.fbDb, 'fichas'), window.fbWhere('userId', '==', window.currentUser.uid));
+    window.fbOnSnapshot(qFichas, (snapshot) => {
+        DB.fichas = [];
+        snapshot.forEach((docSnap) => {
+            DB.fichas.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        renderFichas();
+        renderDashboard();
+        if (typeof renderHeader === 'function') renderHeader();
+        if (typeof loadFichasSelect === 'function') loadFichasSelect();
+    });
+}
+window.addEventListener('firebaseUserLoaded', iniciarListenerInsumos);
 
 function filtrarInsumos() {
     const busca = document.getElementById('buscaIns').value.toLowerCase();
@@ -201,22 +270,48 @@ function loadCustosUI() {
 }
 
 function calcCustos() {
-    const vals = { aluguel:parseFloat(document.getElementById('cfAluguel').value)||0, energia:parseFloat(document.getElementById('cfEnergia').value)||0, gas:parseFloat(document.getElementById('cfGas').value)||0, agua:parseFloat(document.getElementById('cfAgua').value)||0, internet:parseFloat(document.getElementById('cfInternet').value)||0, func:parseFloat(document.getElementById('cfFunc').value)||0, gasolina:parseFloat(document.getElementById('cfGasolina').value)||0, emb:parseFloat(document.getElementById('cfEmb').value)||0, mkt:parseFloat(document.getElementById('cfMkt').value)||0, contador:parseFloat(document.getElementById('cfContador').value)||0, outros:parseFloat(document.getElementById('cfOutros').value)||0 };
-    const total = Object.values(vals).reduce((a,b) => a+b, 0);
-    const pizzas = parseFloat(document.getElementById('cfPizzas').value) || 1;
+    const c = DB.custos;
+    const vals = { aluguel:parseFloat(document.getElementById('cfAluguel').value)||0, energia:parseFloat(document.getElementById('cfEnergia').value)||0, gas:parseFloat(document.getElementById('cfGas').value)||0, agua:parseFloat(document.getElementById('cfAgua').value)||0, internet:parseFloat(document.getElementById('cfInternet').value)||0, func:parseFloat(document.getElementById('cfFunc').value)||0, gasolina:parseFloat(document.getElementById('cfGasolina').value)||0, emb:parseFloat(document.getElementById('cfEmb').value)||0, mkt:parseFloat(document.getElementById('cfMkt').value)||0, contador:parseFloat(document.getElementById('cfContador').value)||0, outros:parseFloat(document.getElementById('cfOutros').value)||0, pizzas:parseFloat(document.getElementById('cfPizzas').value)||1 };
+    const total = Object.values(vals).reduce((a,b) => a+b, 0) - vals.pizzas; // subtrai pizzas da soma monetaria
+    
+    // Atualiza DB.custos localmente para o preview em tempo real no app todo
+    Object.assign(DB.custos, vals);
+    
     document.getElementById('cfTotal').textContent = 'R$ ' + total.toFixed(2);
-    document.getElementById('cfPorPizza').textContent = 'R$ ' + (total/pizzas).toFixed(2);
+    document.getElementById('cfPorPizza').textContent = 'R$ ' + calcularCustoFixoPorPizza().toFixed(2);
+    
+    // Re-renderiza o painel para refletir o novo custo fixo global nas Fichas e Dash
+    if (typeof renderFichas === 'function') renderFichas();
+    if (typeof renderDashboard === 'function') renderDashboard();
 }
 
 function salvarCustos() {
-    DB.custos = { aluguel:parseFloat(document.getElementById('cfAluguel').value)||0, energia:parseFloat(document.getElementById('cfEnergia').value)||0, gas:parseFloat(document.getElementById('cfGas').value)||0, agua:parseFloat(document.getElementById('cfAgua').value)||0, internet:parseFloat(document.getElementById('cfInternet').value)||0, func:parseFloat(document.getElementById('cfFunc').value)||0, gasolina:parseFloat(document.getElementById('cfGasolina').value)||0, emb:parseFloat(document.getElementById('cfEmb').value)||0, mkt:parseFloat(document.getElementById('cfMkt').value)||0, contador:parseFloat(document.getElementById('cfContador').value)||0, outros:parseFloat(document.getElementById('cfOutros').value)||0, pizzas:parseFloat(document.getElementById('cfPizzas').value)||300 };
-    salvarDados(); alert('✅ Custos salvos!');
+    if (!window.currentUser) { alert('Sessão expirada!'); window.location.href='index.html'; return; }
+    const custosData = { userId: window.currentUser.uid, aluguel:parseFloat(document.getElementById('cfAluguel').value)||0, energia:parseFloat(document.getElementById('cfEnergia').value)||0, gas:parseFloat(document.getElementById('cfGas').value)||0, agua:parseFloat(document.getElementById('cfAgua').value)||0, internet:parseFloat(document.getElementById('cfInternet').value)||0, func:parseFloat(document.getElementById('cfFunc').value)||0, gasolina:parseFloat(document.getElementById('cfGasolina').value)||0, emb:parseFloat(document.getElementById('cfEmb').value)||0, mkt:parseFloat(document.getElementById('cfMkt').value)||0, contador:parseFloat(document.getElementById('cfContador').value)||0, outros:parseFloat(document.getElementById('cfOutros').value)||0, pizzas:parseFloat(document.getElementById('cfPizzas').value)||300 };
+    window.fbSetDoc(window.fbDoc(window.fbDb, 'custos_fixos', window.currentUser.uid), custosData)
+        .then(() => status('✅ Custos salvos!'))
+        .catch((err) => { status('❌ Erro!', true); console.error(err); });
 }
 
-function getCustoFixo() {
+function calcularCustoFixoPorPizza() {
     const c = DB.custos;
     const total = (c.aluguel||0)+(c.energia||0)+(c.gas||0)+(c.agua||0)+(c.internet||0)+(c.func||0)+(c.gasolina||0)+(c.emb||0)+(c.mkt||0)+(c.contador||0)+(c.outros||0);
-    return total / (c.pizzas||1);
+    
+    // A fórmula correta é dividir o total de custos pela quantidade de pizzas vendidas no mês.
+    // A quantidade de pizzas vem da aba de "Custos Fixos" (input cfPizzas) ou DB.custos.pizzas.
+    let quantidadePizzasMensal = c.pizzas || 1;
+    // Se a pessoa estiver digitando agora, o fallback de 1 evita divisão por zero.
+    
+    if (quantidadePizzasMensal <= 0) {
+        quantidadePizzasMensal = 1;
+        if (total > 0 && typeof window.metaAlertShown === 'undefined') {
+            window.metaAlertShown = true;
+            status('⚠️ Atenção: Configure a quantidade de pizzas mensais na aba Custos Fixos!', true);
+        }
+    }
+    
+    const custoPorPizza = total / quantidadePizzasMensal;
+    return custoPorPizza;
 }
 
 // ===== MASSA =====
@@ -277,13 +372,16 @@ function calcMassa() {
 }
 
 function salvarMassa() {
+    if (!window.currentUser) { alert('Sessão expirada!'); window.location.href='index.html'; return; }
     const ingredientes = [];
     document.querySelectorAll('#massaIngLista .massa-item').forEach(item => {
         const id = item.querySelector('select').value; const qtd = parseFloat(item.querySelector('input').value)||0;
         if (id && qtd > 0) ingredientes.push({ insumoId:id, quantidade:qtd });
     });
-    DB.massa = { ingredientes, pesoTotal:parseFloat(document.getElementById('massaPesoTotal').value)||3000, pesoP:parseFloat(document.getElementById('pesoP').value)||200, pesoM:parseFloat(document.getElementById('pesoM').value)||300, pesoG:parseFloat(document.getElementById('pesoG').value)||400, pesoGG:parseFloat(document.getElementById('pesoGG').value)||500 };
-    salvarDados(); alert('✅ Massa salva!');
+    const massaData = { userId: window.currentUser.uid, ingredientes, pesoTotal:parseFloat(document.getElementById('massaPesoTotal').value)||3000, pesoP:parseFloat(document.getElementById('pesoP').value)||200, pesoM:parseFloat(document.getElementById('pesoM').value)||300, pesoG:parseFloat(document.getElementById('pesoG').value)||400, pesoGG:parseFloat(document.getElementById('pesoGG').value)||500 };
+    window.fbSetDoc(window.fbDoc(window.fbDb, 'massa', window.currentUser.uid), massaData)
+        .then(() => status('✅ Massa salva!'))
+        .catch((err) => { status('❌ Erro!', true); console.error(err); });
 }
 
 function getCustoMassa(tamanho) {
@@ -324,7 +422,7 @@ function calcFicha() {
     const tam = document.getElementById('ficTam').value;
     const incMassa = document.getElementById('ficMassa').value === '1';
     const custoMassa = incMassa ? getCustoMassa(tam) : 0;
-    const custoFixo = getCustoFixo();
+    const custoFixo = calcularCustoFixoPorPizza();
     const custoTotal = custoIng + custoMassa + custoFixo;
     const venda = parseFloat(document.getElementById('ficPreco').value)||0;
     const lucro = venda - custoTotal;
@@ -344,7 +442,20 @@ function calcFicha() {
     bar.className = 'cmv-fill '+(cmv<=30?'good':cmv<=35?'medium':'bad');
 }
 
+function limparFichaPosSalvar() {
+    limparFicha();
+    filtroTam = 'all';
+    document.querySelectorAll('.size-tab').forEach(t => t.classList.remove('active'));
+    const allTab = document.querySelector('.size-tab.all'); if (allTab) allTab.classList.add('active');
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelector('[data-page="fichas"]').classList.add('active');
+    document.getElementById('page-fichas').classList.add('active');
+    // renderFichas() will be called automatically by onSnapshot
+}
+
 function salvarFicha() {
+    if (!window.currentUser) { alert('Sessão expirada!'); window.location.href='index.html'; return; }
     const nome = document.getElementById('ficNome').value.trim();
     const cat = document.getElementById('ficCat').value;
     const tam = document.getElementById('ficTam').value;
@@ -358,23 +469,19 @@ function salvarFicha() {
     });
     if (ingredientes.length === 0) { alert('⚠️ Adicione ingredientes!'); return; }
     const custoMassa = incMassa ? getCustoMassa(tam) : 0;
-    const custoFixo = getCustoFixo();
+    const custoFixo = calcularCustoFixoPorPizza();
     const custoTotal = custoIng + custoMassa + custoFixo;
-    const ficha = { nome, categoria:cat, tamanho:tam, precoVenda:preco, incMassa, ingredientes, custoIng, custoMassa, custoFixo, custoTotal, lucro:preco-custoTotal, cmv:(custoTotal/preco)*100 };
+    const fichaData = { userId: window.currentUser.uid, nome, categoria:cat, tamanho:tam, precoVenda:preco, incMassa, ingredientes, custoIng, custoMassa, custoFixo, custoTotal, lucro:preco-custoTotal, cmv:(custoTotal/preco)*100 };
+    
     if (editandoFichaId) {
-        const idx = DB.fichas.findIndex(f => f.id === editandoFichaId);
-        if (idx >= 0) DB.fichas[idx] = { ...DB.fichas[idx], ...ficha };
-        editandoFichaId = null;
-    } else { ficha.id = gerarId(); DB.fichas.push(ficha); }
-    salvarDados(); limparFicha();
-    filtroTam = 'all';
-    document.querySelectorAll('.size-tab').forEach(t => t.classList.remove('active'));
-    const allTab = document.querySelector('.size-tab.all'); if (allTab) allTab.classList.add('active');
-    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelector('[data-page="fichas"]').classList.add('active');
-    document.getElementById('page-fichas').classList.add('active');
-    renderFichas();
+        window.fbUpdateDoc(window.fbDoc(window.fbDb, 'fichas', editandoFichaId), fichaData)
+            .then(() => { status('💾 Ficha Atualizada!'); limparFichaPosSalvar(); })
+            .catch(err => { status('❌ Erro!', true); console.error(err); });
+    } else { 
+        window.fbAddDoc(window.fbCollection(window.fbDb, 'fichas'), fichaData)
+            .then(() => { status('💾 Ficha Salva!'); limparFichaPosSalvar(); })
+            .catch(err => { status('❌ Erro!', true); console.error(err); });
+    }
 }
 
 function limparFicha() {
@@ -410,15 +517,49 @@ function editarFicha(id) {
     refreshIngSelects(); window.scrollTo(0,0);
 }
 
-function excluirFicha(id) { if (confirm('Excluir?')) { DB.fichas = DB.fichas.filter(f => f.id !== id); salvarDados(); renderFichas(); } }
+function excluirFicha(id) { 
+    if (!window.currentUser) { alert('Sessão expirada!'); window.location.href='index.html'; return; }
+    if (confirm('Excluir?')) { 
+        window.fbDeleteDoc(window.fbDoc(window.fbDb, 'fichas', id)).then(() => status('🗑️ Excluída!')); 
+    } 
+}
 
 function duplicarFicha(id) {
+    if (!window.currentUser) { alert('Sessão expirada!'); window.location.href='index.html'; return; }
     const f = DB.fichas.find(x => x.id === id);
-    if (f) { DB.fichas.push({ ...f, id:gerarId(), nome:f.nome+' (Cópia)' }); salvarDados(); renderFichas(); }
+    if (f) {
+        let copy = {...f};
+        delete copy.id;
+        copy.userId = window.currentUser.uid;
+        copy.nome = copy.nome + ' (Cópia)';
+        window.fbAddDoc(window.fbCollection(window.fbDb, 'fichas'), copy)
+            .then(() => status('📋 Duplicada!'));
+    }
+}
+
+function atualizarCustosDaFicha(f) {
+    if (f.ingredientes) {
+        let custoIng = 0;
+        f.ingredientes.forEach(ing => {
+            const ins = DB.insumos.find(i => i.id == ing.insumoId);
+            if (ins && typeof ins.custoUn !== 'undefined') {
+                ing.custo = ins.custoUn * ing.quantidade;
+                custoIng += ing.custo;
+            } else {
+                custoIng += (ing.custo || 0); // fallback se deletado
+            }
+        });
+        f.custoIng = custoIng;
+    }
+    f.custoMassa = f.incMassa !== false ? getCustoMassa(f.tamanho) : 0;
+    f.custoFixo = calcularCustoFixoPorPizza();
+    f.custoTotal = (f.custoIng || 0) + f.custoMassa + f.custoFixo;
+    f.lucro = f.precoVenda - f.custoTotal;
+    f.cmv = f.precoVenda > 0 ? (f.custoTotal / f.precoVenda) * 100 : 0;
 }
 
 function renderFichas() {
-    DB.fichas.forEach(f => { f.custoMassa = f.incMassa!==false ? getCustoMassa(f.tamanho) : 0; f.custoFixo = getCustoFixo(); f.custoTotal = (f.custoIng||0)+f.custoMassa+f.custoFixo; f.lucro = f.precoVenda-f.custoTotal; f.cmv = f.precoVenda>0?(f.custoTotal/f.precoVenda)*100:0; });
+    DB.fichas.forEach(f => atualizarCustosDaFicha(f));
     const cnt = { P:0, M:0, G:0, GG:0 };
     DB.fichas.forEach(f => { if (cnt[f.tamanho] !== undefined) cnt[f.tamanho]++; });
     document.getElementById('cntAll').textContent = DB.fichas.length;
@@ -441,7 +582,7 @@ function filtrarFichas() {
 
 // ===== DASHBOARD =====
 function renderDashboard() {
-    DB.fichas.forEach(f => { f.custoMassa = f.incMassa!==false ? getCustoMassa(f.tamanho) : 0; f.custoFixo = getCustoFixo(); f.custoTotal = (f.custoIng||0)+f.custoMassa+f.custoFixo; f.lucro = f.precoVenda-f.custoTotal; });
+    DB.fichas.forEach(f => atualizarCustosDaFicha(f));
     const cnt = { P:0, M:0, G:0, GG:0 };
     DB.fichas.forEach(f => { if (cnt[f.tamanho] !== undefined) cnt[f.tamanho]++; });
     document.getElementById('cntP').textContent = cnt.P;
@@ -450,9 +591,28 @@ function renderDashboard() {
     document.getElementById('cntGG').textContent = cnt.GG;
     document.getElementById('dashIns').textContent = DB.insumos.length;
     document.getElementById('dashFic').textContent = DB.fichas.length;
-    document.getElementById('dashCF').textContent = 'R$ '+getCustoFixo().toFixed(2);
+    
+    // Real-time calculation helpers for new UI
+    document.getElementById('dashCF').textContent = 'R$ '+calcularCustoFixoPorPizza().toFixed(2);
     document.getElementById('dashMassaM').textContent = 'R$ '+getCustoMassa('M').toFixed(2);
     document.getElementById('dashMassaG').textContent = 'R$ '+getCustoMassa('G').toFixed(2);
+    
+    const fatCat = DB.fichas.reduce((acc, f) => acc + (f.precoVenda || 0), 0);
+    const dashFatElem = document.getElementById('dashFat');
+    if (dashFatElem) dashFatElem.textContent = 'R$ ' + fatCat.toFixed(2);
+
+    let maiorMargemTxt = '-';
+    if(DB.fichas.length > 0) {
+        const topMargem = [...DB.fichas].sort((a,b) => {
+            const margemA = a.precoVenda > 0 ? (a.lucro/a.precoVenda)*100 : 0;
+            const margemB = b.precoVenda > 0 ? (b.lucro/b.precoVenda)*100 : 0;
+            return margemB - margemA;
+        });
+        if(topMargem[0] && topMargem[0].precoVenda > 0) maiorMargemTxt = topMargem[0].nome + ' (' + ((topMargem[0].lucro/topMargem[0].precoVenda)*100).toFixed(1) + '%)';
+    }
+    const dashMargemElem = document.getElementById('dashMaiorMargem');
+    if (dashMargemElem) dashMargemElem.textContent = maiorMargemTxt;
+
     if (DB.fichas.length > 0) {
         const top = [...DB.fichas].sort((a,b) => b.lucro-a.lucro).slice(0,5);
         document.getElementById('topLista').innerHTML = `<table><thead><tr><th>#</th><th>Pizza</th><th>Tam</th><th>Custo</th><th>Venda</th><th>Lucro</th></tr></thead><tbody>${top.map((f,i) => `<tr><td>${i+1}º</td><td><strong>${f.nome}</strong></td><td><span class="badge-size ${f.tamanho}" style="padding:2px 8px;font-size:0.75em">${f.tamanho}</span></td><td>R$ ${f.custoTotal.toFixed(2)}</td><td>R$ ${f.precoVenda.toFixed(2)}</td><td style="color:var(--success);font-weight:bold">R$ ${f.lucro.toFixed(2)}</td></tr>`).join('')}</tbody></table>`;
@@ -480,9 +640,10 @@ function calcComFicha() {
     const res = document.getElementById('calcFichaRes');
     if (!id) { res.style.display = 'none'; return; }
     const f = DB.fichas.find(x => x.id==id); if (!f) return;
-    const custoMassa = f.incMassa!==false ? getCustoMassa(f.tamanho) : 0;
-    const custoFixo = getCustoFixo();
-    const custoTotal = (f.custoIng||0)+custoMassa+custoFixo;
+    atualizarCustosDaFicha(f); // atualiza custos com DB.insumos recente
+    const custoMassa = f.custoMassa;
+    const custoFixo = f.custoFixo;
+    const custoTotal = f.custoTotal;
     res.style.display = 'block';
     document.getElementById('cfIng').textContent = 'R$ '+(f.custoIng||0).toFixed(2);
     document.getElementById('cfMassaVal').textContent = 'R$ '+custoMassa.toFixed(2);
@@ -530,3 +691,37 @@ function limparTudo() {
 // ===== MODAIS =====
 document.querySelectorAll('.modal-bg').forEach(m => { m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('show'); }); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.modal-bg.show').forEach(m => m.classList.remove('show')); });
+
+// ===== CONFIG =====
+function salvarConfigFirestore() {
+    if (!window.currentUser) { alert('Sessão expirada!'); window.location.href='index.html'; return; }
+    const nomePizzaria = document.getElementById('configNome').value.trim();
+    const meta = parseFloat(document.getElementById('configMeta').value) || 15000;
+    const configData = { userId: window.currentUser.uid, nomePizzaria, meta };
+    window.fbSetDoc(window.fbDoc(window.fbDb, 'config', window.currentUser.uid), configData)
+        .then(() => status('✅ Configurações salvas!'))
+        .catch((err) => { status('❌ Erro!', true); console.error(err); });
+}
+
+// ===== PRECIFICAR (MARKUP) =====
+function calcPorMarkup() {
+    const custo = parseFloat(document.getElementById('calcCusto').value)||0;
+    const markup = parseFloat(document.getElementById('calcMarkup').value)||3;
+    const impostoP = parseFloat(document.getElementById('calcImposto').value)||0;
+    
+    if (custo > 0) {
+        const precoSugerido = custo * markup;
+        const totalImposto = precoSugerido * (impostoP / 100);
+        const lucroBruto = precoSugerido - custo;
+        const lucroLiquido = lucroBruto - totalImposto;
+
+        document.getElementById('calcPreco').textContent = 'R$ ' + precoSugerido.toFixed(2);
+        document.getElementById('calcLucro').textContent = 'Lucro Bruto: R$ ' + lucroBruto.toFixed(2);
+        const llElem = document.getElementById('calcLucroReal');
+        if(llElem) llElem.textContent = 'Lucro Líquido (Pós Imposto): R$ ' + lucroLiquido.toFixed(2) + ' (' + (precoSugerido > 0 ? (lucroLiquido/precoSugerido)*100 : 0).toFixed(1) + '%)';
+    } else {
+        document.getElementById('calcPreco').textContent = 'R$ 0,00';
+        document.getElementById('calcLucro').textContent = 'Lucro Bruto: R$ 0,00';
+        if(document.getElementById('calcLucroReal')) document.getElementById('calcLucroReal').textContent = 'Lucro Líquido (Pós Imposto): R$ 0,00 (-)';
+    }
+}

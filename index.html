@@ -234,7 +234,22 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDT8kvJBD5Uo0giOpZLBP50zUAjSemmjCs",
+            authDomain: "pizzacontrol-marllon.firebaseapp.com",
+            projectId: "pizzacontrol-marllon",
+            storageBucket: "pizzacontrol-marllon.firebasestorage.app",
+            messagingSenderId: "413127374575",
+            appId: "1:413127374575:web:79f3dc78834502727ecd1a"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
         // Floating pizzas
         const emojis = ['🍕','🧀','🍅','🫒','🌶️','🥓','🧄','🍄'];
         const container = document.getElementById('floatingPizzas');
@@ -249,55 +264,35 @@
             container.appendChild(el);
         }
 
-        // Check if already logged in
-        document.addEventListener('DOMContentLoaded', () => {
-            const session = localStorage.getItem('pizzaControlSession');
-            if (session) {
-                try {
-                    const s = JSON.parse(session);
-                    if (s.logged && s.remember) {
-                        window.location.href = 'app.html';
-                    }
-                } catch(e) {}
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                window.location.href = 'app.html';
             }
         });
 
-        function getCredentials() {
-            const saved = localStorage.getItem('pizzaControlCredentials');
-            if (saved) {
-                try { return JSON.parse(saved); } catch(e) {}
-            }
-            return { user: 'admin', pass: '1234' };
-        }
-
-        function handleLogin(e) {
+        window.handleLogin = function(e) {
             e.preventDefault();
-            const user = document.getElementById('username').value.trim();
+            const email = document.getElementById('username').value.trim();
             const pass = document.getElementById('password').value;
-            const remember = document.getElementById('rememberMe').checked;
             const btn = document.getElementById('btnLogin');
             const error = document.getElementById('errorMsg');
 
             error.classList.remove('show');
             btn.classList.add('loading');
 
-            setTimeout(() => {
-                const creds = getCredentials();
-                if (user === creds.user && pass === creds.pass) {
-                    localStorage.setItem('pizzaControlSession', JSON.stringify({
-                        logged: true, remember: remember, user: user, loginTime: Date.now()
-                    }));
+            signInWithEmailAndPassword(auth, email, pass)
+                .then((userCredential) => {
                     window.location.href = 'app.html';
-                } else {
+                })
+                .catch((error) => {
                     btn.classList.remove('loading');
                     error.classList.add('show');
                     document.getElementById('password').value = '';
                     document.getElementById('password').focus();
-                }
-            }, 1200);
-        }
+                });
+        };
 
-        function togglePass() {
+        window.togglePass = function() {
             const inp = document.getElementById('password');
             const btn = document.querySelector('.toggle-password');
             if (inp.type === 'password') {
@@ -305,7 +300,7 @@
             } else {
                 inp.type = 'password'; btn.textContent = '👁️';
             }
-        }
+        };
     </script>
 </body>
 </html>
