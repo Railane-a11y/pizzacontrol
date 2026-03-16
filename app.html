@@ -160,7 +160,8 @@
         .main-container {
             max-width: 1400px;
             margin: 20px auto;
-            padding: 0 15px
+            padding: 0 15px;
+            padding-bottom: 80px; /* Space for mobile nav */
         }
 
         .page {
@@ -1062,9 +1063,63 @@
                 text-align: center
             }
 
+            .nav-tabs {
+                position: fixed;
+                bottom: 0;
+                top: auto;
+                left: 0;
+                right: 0;
+                box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.1);
+                justify-content: flex-start;
+                padding-bottom: env(safe-area-inset-bottom, 5px);
+            }
+
             .nav-tab {
-                padding: 12px 10px;
-                font-size: 0.8em
+                padding: 12px 14px;
+                font-size: 0.75em;
+                border-bottom: none;
+                border-top: 3px solid transparent;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 5px;
+                min-height: 56px;
+                justify-content: center;
+            }
+
+            .nav-tab.active {
+                border-bottom: none;
+                border-top-color: var(--primary);
+            }
+
+            .btn, .form-control, .size-tab, .nav-tab {
+                min-height: 44px; /* Apple/Android touch target minimum */
+            }
+
+            .btn {
+               margin-bottom: 5px; /* Prevent touching buttons */
+               width: 100%; /* Better for mobile thumbs */
+               justify-content: center;
+            }
+            .ficha-actions .btn {
+               width: auto;
+               margin-bottom: 0;
+            }
+
+            .card-body {
+               overflow-x: auto; /* Responsive tables inside cards */
+            }
+
+            .card-body table {
+                min-width: 500px; /* Force minimum width to enable scroll on small screens */
+            }
+            
+            #topLista table {
+               min-width: unset; 
+               font-size: 0.85em; /* Smaller font for Top 5 on mobile */
+            }
+            #topLista th, #topLista td {
+               padding: 8px 4px;
             }
 
             .form-row {
@@ -1114,14 +1169,14 @@
         </div>
     </header>
     <nav class="nav-tabs">
-        <button class="nav-tab active" data-page="dashboard">📊 Dashboard</button>
-        <button class="nav-tab" data-page="insumos">📦 Insumos</button>
-        <button class="nav-tab" data-page="fichas">📋 Fichas</button>
-        <button class="nav-tab" data-page="nova-ficha">➕ Nova Ficha</button>
-        <button class="nav-tab" data-page="massa">🥖 Massa</button>
-        <button class="nav-tab" data-page="custos">💼 Custos Fixos</button>
-        <button class="nav-tab" data-page="precificar">💰 Precificar</button>
-        <button class="nav-tab" data-page="config">⚙️ Config</button>
+        <button class="nav-tab active" data-page="dashboard">📊<br>Início</button>
+        <button class="nav-tab" data-page="insumos">📦<br>Insumos</button>
+        <button class="nav-tab" data-page="fichas">📋<br>Fichas</button>
+        <button class="nav-tab" data-page="nova-ficha">➕<br>Criar</button>
+        <button class="nav-tab" data-page="massa">🥖<br>Massa</button>
+        <button class="nav-tab" data-page="custos">💼<br>Custos</button>
+        <button class="nav-tab" data-page="precificar">💰<br>Cálculo</button>
+        <button class="nav-tab" data-page="config">⚙️<br>Config</button>
     </nav>
     <div class="main-container">
         <!-- DASHBOARD -->
