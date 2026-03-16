@@ -634,7 +634,11 @@ function renderDashboard() {
 
     if (DB.fichas.length > 0) {
         const top = [...DB.fichas].sort((a,b) => b.lucro-a.lucro).slice(0,5);
-        document.getElementById('topLista').innerHTML = `<table><thead><tr><th>🍕 Pizza</th><th>$$ Venda</th><th>📈 Lucro</th></tr></thead><tbody>${top.map((f,i) => `<tr><td><strong>${f.nome}</strong><br><small style="color:#777">Custo: R$ ${f.custoTotal.toFixed(2)}</small></td><td>R$ ${f.precoVenda.toFixed(2)}</td><td style="color:var(--success);font-weight:bold">R$ ${f.lucro.toFixed(2)}</td></tr>`).join('')}</tbody></table>`;
+        
+        const htmlTable = `<table class="top5-desktop"><thead><tr><th>🍕 Pizza</th><th>$$ Venda</th><th>📈 Lucro</th></tr></thead><tbody>${top.map((f,i) => `<tr><td><strong>${f.nome}</strong><br><small style="color:#777">Custo: R$ ${f.custoTotal.toFixed(2)}</small></td><td>R$ ${f.precoVenda.toFixed(2)}</td><td style="color:var(--success);font-weight:bold">R$ ${f.lucro.toFixed(2)}</td></tr>`).join('')}</tbody></table>`;
+        const htmlCards = `<div class="top5-mobile"><div class="top5-list">${top.map((f,i) => `<div class="top5-mobile-card"><div class="t-title">${f.nome}</div><div class="t-row"><span>Custo: R$ ${f.custoTotal.toFixed(2)}</span></div><div class="t-row"><span>$$ Venda: R$ ${f.precoVenda.toFixed(2)}</span></div><div class="t-profit">💰 Lucro: R$ ${f.lucro.toFixed(2)}</div></div>`).join('')}</div></div>`;
+        
+        document.getElementById('topLista').innerHTML = htmlTable + htmlCards;
     } else { document.getElementById('topLista').innerHTML = '<div class="empty">Cadastre fichas</div>'; }
 }
 

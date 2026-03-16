@@ -1056,11 +1056,25 @@
             color: var(--dark)
         }
 
+        .top5-mobile { display: none; }
+        .top5-desktop { width: 100%; display: table; }
+
         @media(max-width:768px) {
             .header {
                 flex-direction: column;
+                align-items: center;
                 text-align: center;
-                padding-top: 50px; /* Space for hamburger fixed button */
+                padding-top: 65px; /* Space for hamburger fixed button */
+            }
+            .header-stats {
+                justify-content: center;
+                width: 100%;
+                gap: 8px;
+            }
+            .header-stats .btn-logout {
+                width: 100%;
+                margin-top: 5px;
+                justify-content: center;
             }
 
             /* Hamburger Menu Styles */
@@ -1135,13 +1149,56 @@
                 min-width: 500px; /* Force minimum width to enable scroll on small screens */
             }
             
-            #topLista table {
-               min-width: unset; 
-               font-size: 0.85em; /* Smaller font for Top 5 on mobile */
+            .resumo-grid, .total-grid {
+                grid-template-columns: 1fr; /* Force single column stacked cards on mobile */
             }
-            #topLista th, #topLista td {
-               padding: 8px 4px;
+            
+            .resumo-item, .total-item {
+                margin-bottom: 5px;
             }
+
+            .top5-list {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+            
+            .top5-mobile-card {
+                background: var(--light);
+                border: 1px solid #ddd;
+                border-left: 5px solid var(--success);
+                padding: 12px;
+                border-radius: 8px;
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .top5-mobile-card .t-title {
+                font-size: 1.15em;
+                font-weight: 800;
+                color: var(--dark);
+                margin-bottom: 5px;
+            }
+            
+            .top5-mobile-card .t-row {
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.9em;
+                color: #555;
+            }
+            
+            .top5-mobile-card .t-profit {
+                font-weight: 800;
+                color: var(--success);
+                font-size: 1.1em;
+                padding-top: 8px;
+                margin-top: 5px;
+                border-top: 1px dashed #ccc;
+            }
+
+            .top5-mobile { display: block; }
+            .top5-desktop { display: none; }
 
             .form-row {
                 grid-template-columns: 1fr
