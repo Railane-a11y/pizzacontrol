@@ -289,7 +289,8 @@
                 if (!docSnap.exists() || docSnap.data().status !== 'ativo') {
                     await signOut(auth);
                     btn.classList.remove('loading');
-                    alert('Acesso Suspenso. Identificamos que a sua mensalidade do PizzaControl está pendente. Clique em OK e regularize no link: [ https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=3de061373fb84cb98a05b3001b5105f8]');
+                    alert('Acesso Suspenso. Identificamos que a sua mensalidade do PizzaControl está pendente. Clique em OK para ser redirecionado para a página de regularização.');
+                    window.location.href = 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=3de061373fb84cb98a05b3001b5105f8';
                     
                     // Display visual error just in case alert is bypassed by browser
                     error.innerHTML = `⚠️ Acesso Suspenso! Mensalidade Pendente.`;
