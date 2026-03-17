@@ -1814,12 +1814,32 @@
         window.fbGetDoc = getDoc;
         window.currentUser = null;
 
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (!user) {
                 window.location.href = 'index.html';
-            } else {
+                return;
+            }
+            
+            try {
+                // Checagem Global de Assinatura
+                const docRef = window.fbDoc(window.fbDb, 'usuarios', user.uid);
+                const docSnap = await window.fbGetDoc(docRef);
+                
+                if (!docSnap.exists() || docSnap.data().status !== 'ativo') {
+                    await signOut(auth);
+                    alert('Acesso Suspenso. Identificamos que a sua mensalidade do PizzaControl está pendente. Regularize no link: [ https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=3de061373fb84cb98a05b3001b5105f8]');
+                    window.location.href = 'index.html';
+                    return; // Força parada absoluta
+                }
+                
+                // Assinatura Ativa Validada
                 window.currentUser = user;
                 window.dispatchEvent(new Event('firebaseUserLoaded'));
+                
+            } catch (err) {
+                console.error("Erro ao checar status de inscrição:", err);
+                await signOut(auth);
+                window.location.href = 'index.html';
             }
         });
 

@@ -232,7 +232,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDT8kvJBD5Uo0giOpZLBP50zUAjSemmjCs",
@@ -245,6 +246,7 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
 
         // Floating pizzas
         const emojis = ['🍕','🧀','🍅','🫒','🌶️','🥓','🧄','🍄'];
@@ -260,13 +262,9 @@
             container.appendChild(el);
         }
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                window.location.href = 'app.html';
-            }
-        });
+        // Removido onAuthStateChanged global. O redirecionamento ocorrerá apenas após o login intencional validado.
 
-        window.handleLogin = function(e) {
+        window.handleLogin = async function(e) {
             e.preventDefault();
             const email = document.getElementById('username').value.trim();
             const pass = document.getElementById('password').value;
@@ -275,17 +273,41 @@
 
             error.classList.remove('show');
             btn.classList.add('loading');
+            error.innerHTML = "⚠️ E-mail ou senha incorretos!"; // Default text
 
-            signInWithEmailAndPassword(auth, email, pass)
-                .then((userCredential) => {
-                    window.location.href = 'app.html';
-                })
-                .catch((error) => {
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+                const docSnap = await getDoc(doc(db, 'usuarios', userCredential.user.uid));
+                
+                console.log("Checando UID:", userCredential.user.uid);
+                if (docSnap.exists()) {
+                    console.log("Dados encontrados:", docSnap.data());
+                } else {
+                    console.log("Dados encontrados: <nenhum documento de usuário>");
+                }
+                
+                if (!docSnap.exists() || docSnap.data().status !== 'ativo') {
+                    await signOut(auth);
                     btn.classList.remove('loading');
-                    error.classList.add('show');
-                    document.getElementById('password').value = '';
-                    document.getElementById('password').focus();
-                });
+                    alert('Acesso Suspenso. Identificamos que a sua mensalidade do PizzaControl está pendente. Clique em OK e regularize no link: [ https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=3de061373fb84cb98a05b3001b5105f8]');
+                    
+                    // Display visual error just in case alert is bypassed by browser
+                    error.innerHTML = `⚠️ Acesso Suspenso! Mensalidade Pendente.`;
+                    error.style.display = 'block';
+                    return; // PARALISA A EXECUÇÃO AQUI
+                }
+                
+                // SÓ CHEGA AQUI SE FOR 'ativo'
+                window.location.href = 'app.html';
+                
+            } catch (err) {
+                console.error("Erro no login:", err);
+                btn.classList.remove('loading');
+                error.classList.add('show');
+                error.innerHTML = "⚠️ E-mail ou senha incorretos!";
+                document.getElementById('password').value = '';
+                document.getElementById('password').focus();
+            }
         };
 
         window.togglePass = function() {

@@ -216,9 +216,16 @@ function iniciarListenerInsumos() {
     window.fbOnSnapshot(docRefConfig, (docSnap) => {
         if (docSnap.exists()) {
             DB.config = docSnap.data();
+            
+            // Verificação de Assinatura (Mercado Pago bloqueio Front-end)
+            if (DB.config.statusPagamento === 'inativo' || DB.config.status === 'inativo') {
+                alert('⚠️ Assinatura Vencida!\nSeu acesso foi suspenso. Por favor, regularize seu pagamento para voltar a usar o PizzaControl.');
+                fazerLogout();
+                return;
+            }
+
             document.getElementById('configNome').value = DB.config.nomePizzaria || '';
             document.getElementById('configMeta').value = DB.config.meta || 15000;
-            // Removed: if(DB.config.nomePizzaria) document.querySelector('.logo').innerHTML = `🍕 ${DB.config.nomePizzaria}`;
         }
         renderDashboard();
     });
