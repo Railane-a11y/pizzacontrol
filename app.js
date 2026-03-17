@@ -219,8 +219,9 @@ function iniciarListenerInsumos() {
             
             // Verificação de Assinatura (Mercado Pago bloqueio Front-end)
             if (DB.config.statusPagamento === 'inativo' || DB.config.status === 'inativo') {
-                alert('⚠️ Assinatura Vencida!\nSeu acesso foi suspenso. Por favor, regularize seu pagamento para voltar a usar o PizzaControl.');
                 fazerLogout();
+                alert('Acesso Suspenso. Identificamos que a sua mensalidade do PizzaControl está pendente. Clique em OK para ser redirecionado para a página de regularização.');
+                window.location.href = 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=3de061373fb84cb98a05b3001b5105f8';
                 return;
             }
 
