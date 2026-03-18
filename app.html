@@ -1847,6 +1847,39 @@
             signOut(auth);
         });
     </script>
+    
+    <!-- Botão Suporte WhatsApp -->
+    <a href="https://wa.me/5598970260090?text=Fala%20Marllon!%20Preciso%20de%20uma%20ajuda%20aqui%20no%20PizzaControl." class="btn-whatsapp-flutuante" target="_blank">
+      <svg viewBox="0 0 32 32" class="whatsapp-ico">
+        <path d="M16 2a13 13 0 0 0-11 20.8l-2.2 6.6 6.8-2.2A13 13 0 1 0 16 2zm0 24a10.8 10.8 0 0 1-5.5-1.5l-.4-.2-4.1 1.3 1.4-4-.3-.4A10.8 10.8 0 1 1 16 26zm6-8.2c-.3-.2-2-.9-2.3-1-.3-.1-.5-.2-.7.1-.2.4-.9 1-1.1 1.3-.2.3-.4.3-.7.2-.3-.2-1.4-.5-2.7-1.7-1-1-1.7-1.6-1.9-1.9-.2-.3 0-.5.2-.6.2-.1.3-.3.5-.5.2-.2.2-.4.4-.6.1-.2.1-.4 0-.5-.1-.2-.7-1.7-1-2.4-.2-.6-.4-.5-.6-.5h-.5c-.2 0-.6.1-.9.4-.3.3-1.1 1-1.1 2.6s1.2 3.1 1.3 3.3c.2.2 2.3 3.5 5.5 4.9.8.3 1.4.5 1.9.6.6.2 1.1.2 1.5.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2-.1-.2-.3-.3-.6-.5z" fill="white"/>
+      </svg>
+    </a>
+    
+    <style>
+      .btn-whatsapp-flutuante {
+        position: fixed;
+        width: 60px;
+        height: 60px;
+        bottom: 25px;
+        right: 25px;
+        background-color: #25d366;
+        color: #FFF;
+        border-radius: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+        transition: transform 0.3s;
+      }
+      .btn-whatsapp-flutuante:hover {
+        transform: scale(1.1);
+      }
+      .whatsapp-ico {
+        width: 35px;
+        height: 35px;
+      }
+    </style>
 </body>
 
 </html>

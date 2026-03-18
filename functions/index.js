@@ -31,7 +31,7 @@ exports.webhookMercadoPago = functions.https.onRequest(async (req, res) => {
         // Lidar com evento de Pagamento
         if (type === "payment") {
             console.log(`Buscando dados do Pagamento ID: ${id}`);
-            
+
             // Usando fetch nativo (Node 18+) para blindagem contra quebras de versão do SDK do Mercado Pago
             const response = await fetch(`https://api.mercadopago.com/v1/payments/${id}`, {
                 headers: { "Authorization": `Bearer ${MP_ACCESS_TOKEN}` }
@@ -44,38 +44,57 @@ exports.webhookMercadoPago = functions.https.onRequest(async (req, res) => {
 
             const paymentInfo = await response.json();
 
-            // 2. Verificar se está com status aprovado
-            if (paymentInfo.status === "approved" && paymentInfo.payer && paymentInfo.payer.email) {
+            // 2. Verificar o status do pagamento
+            if (paymentInfo.payer && paymentInfo.payer.email) {
                 const payerEmail = paymentInfo.payer.email;
-                console.log(`✅ Pagamento APROVADO recebido para e-mail: ${payerEmail}`);
+                const paymentStatus = paymentInfo.status;
 
                 try {
                     // 3. Buscar usuário no Firebase Auth pelo E-mail fornecido no checkout do MP
                     const userRecord = await admin.auth().getUserByEmail(payerEmail);
                     const uid = userRecord.uid;
 
-                    // 4. Salvar status no Firestore (coleção 'usuarios' e 'config')
-                    const dadosAtualizacao = {
-                        email: payerEmail,
-                        status: "ativo",
-                        ultimaRenovacao: admin.firestore.FieldValue.serverTimestamp()
-                    };
+                    if (paymentStatus === "approved") {
+                        console.log(`✅ Pagamento APROVADO recebido para e-mail: ${payerEmail}`);
+                        // 4. Salvar status ATIVO no Firestore (coleção 'usuarios' e 'config')
+                        const dadosAtualizacao = {
+                            email: payerEmail,
+                            status: "ativo",
+                            ultimaRenovacao: admin.firestore.FieldValue.serverTimestamp()
+                        };
 
-                    await db.collection("usuarios").doc(uid).set(dadosAtualizacao, { merge: true });
-                    
-                    // Atualizar também na config local do App para segurança redundante
-                    await db.collection("config").doc(uid).set({
-                        statusPagamento: "ativo"
-                    }, { merge: true });
+                        await db.collection("usuarios").doc(uid).set(dadosAtualizacao, { merge: true });
 
-                    console.log(`🎉 Usuário ${uid} (${payerEmail}) marcado como ATIVO!`);
+                        // Atualizar também na config local do App para segurança redundante
+                        await db.collection("config").doc(uid).set({
+                            statusPagamento: "ativo"
+                        }, { merge: true });
+
+                        console.log(`🎉 Usuário ${uid} (${payerEmail}) marcado como ATIVO!`);
+                        
+                    } else if (["cancelled", "refunded", "charged_back", "rejected"].includes(paymentStatus)) {
+                        console.log(`🛑 Pagamento CANCELADO/INATIVO (${paymentStatus}) para e-mail: ${payerEmail}`);
+                        // 5. Revogar acesso do usuário (Suspender)
+                        await db.collection("usuarios").doc(uid).set({
+                            status: "inativo",
+                            dataSuspensao: admin.firestore.FieldValue.serverTimestamp()
+                        }, { merge: true });
+                        
+                        await db.collection("config").doc(uid).set({
+                            statusPagamento: "inativo"
+                        }, { merge: true });
+
+                        console.log(`🔒 Usuário ${uid} (${payerEmail}) SUSPENSO (inativo)!`);
+                    } else {
+                        console.log(`ℹ️ Pagamento verificado, status ignorado no momento: ${paymentStatus}`);
+                    }
 
                 } catch (authErr) {
                     console.error(`⚠️ Usuário não encontrado no Auth para o e-mail: ${payerEmail}`, authErr);
                     // Opcional: Criar log de pagamentos órfãos
                 }
             } else {
-                console.log(`Pagamento verificado, mas não está aprovado. Status atual: ${paymentInfo.status}`);
+                console.log(`Pagamento sem e-mail do pagador identificável. Status atual: ${paymentInfo.status}`);
             }
         }
     } catch (error) {
