@@ -1796,7 +1796,7 @@
             </div>
         </div>
     </div>
-    <script src="app.js"></script>
+    <script src="app.js?v=1.1.0"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
@@ -1829,32 +1829,65 @@
         window.fbGetDoc = getDoc;
         window.currentUser = null;
 
-        onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                window.location.href = 'index.html';
-                return;
-            }
-            
-            try {
-                // Checagem Global de Assinatura
-                const docRef = window.fbDoc(window.fbDb, 'usuarios', user.uid);
-                const docSnap = await window.fbGetDoc(docRef);
-                
-                if (!docSnap.exists() || docSnap.data().status !== 'ativo') {
-                    await signOut(auth);
-                    alert('Acesso Suspenso. Identificamos que a sua mensalidade do PizzaControl está pendente. Clique em OK para ser redirecionado para a página de regularização.');
-                    window.location.href = 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=3de061373fb84cb98a05b3001b5105f8';
-                    return; // Força parada absoluta
+        onAuthStateChanged(auth, (user) => {
+            const paginaAtual = window.location.pathname;
+
+            if (user) {
+                // 1. Se logou e está na tela inicial, vai pro painel
+                if (paginaAtual.includes('index.html') || paginaAtual === '/' || paginaAtual === '') {
+                    window.location.replace('app.html');
+                    return;
                 }
-                
-                // Assinatura Ativa Validada
+
+                // Exporta o user globalmente
                 window.currentUser = user;
                 window.dispatchEvent(new Event('firebaseUserLoaded'));
-                
-            } catch (err) {
-                console.error("Erro ao checar status de inscrição:", err);
-                await signOut(auth);
-                window.location.href = 'index.html';
+
+                // 2. Trava de Segurança Limpa (Sem hacks)
+                onSnapshot(doc(db, 'usuarios', user.uid), (docSnap) => {
+                    if (docSnap.exists()) {
+                        const dados = docSnap.data();
+                        console.log("📋 Dados do usuário:", dados);
+
+                        if (dados.data_vencimento) {
+                            // Suporta tanto Timestamp do Firestore quanto string ISO
+                            let dataVencimento;
+                            if (dados.data_vencimento.toDate) {
+                                // É um Timestamp do Firestore
+                                dataVencimento = dados.data_vencimento.toDate().getTime();
+                            } else {
+                                // É uma string ISO
+                                dataVencimento = new Date(dados.data_vencimento).getTime();
+                            }
+                            const agora = new Date().getTime();
+
+                            console.log("📅 Data Vencimento (ms):", dataVencimento);
+                            console.log("📅 Agora (ms):", agora);
+                            console.log("⏰ Expirou?:", agora > dataVencimento);
+
+                            if (agora > dataVencimento) {
+                                console.log("🚨 CONTA EXPIRADA! Redirecionando para pagamento...");
+                                document.body.style.display = 'none'; // Esconde a tela
+                                
+                                signOut(auth).then(() => {
+                                    window.location.href = 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=3de061373fb84cb98a05b3001b5105f8';
+                                });
+                            } else {
+                                document.body.style.display = 'block'; // Mostra o painel
+                            }
+                        } else {
+                            console.log("⚠️ Campo data_vencimento NÃO encontrado no documento!");
+                            document.body.style.display = 'block';
+                        }
+                    } else {
+                        console.log("⚠️ Documento do usuário NÃO existe na coleção 'users'!");
+                    }
+                });
+            } else {
+                // 3. Se NÃO tem usuário e NÃO está no index, expulsa pro index
+                if (!paginaAtual.includes('index.html') && paginaAtual !== '/' && paginaAtual !== '') {
+                    window.location.replace('index.html');
+                }
             }
         });
 

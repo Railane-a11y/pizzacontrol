@@ -1,3 +1,4 @@
+console.log('🔥 APP.JS CARREGADO - VERSÃO NOVA 🔥');
 // ==========================================
 // PIZZACONTROL - SISTEMA COMPLETO
 // ==========================================
@@ -756,3 +757,4 @@ function calcPorMarkup() {
         if(document.getElementById('calcLucroReal')) document.getElementById('calcLucroReal').textContent = 'Lucro Líquido (Pós Imposto): R$ 0,00 (-)';
     }
 }
+
