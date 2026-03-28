@@ -233,6 +233,86 @@
         </div>
     </div>
 
+    <!-- MODAL DE PLANOS MERCADO PAGO -->
+    <div id="modalPlanos" style="display:none;">
+        <div class="modal-planos-overlay"></div>
+        <div class="modal-planos-container">
+            <div class="modal-planos-header">
+                <span class="modal-planos-icon">🍕</span>
+                <h2>Renove seu PizzaControl</h2>
+                <p>Sua assinatura expirou. Escolha um plano para continuar:</p>
+            </div>
+            <div class="modal-planos-cards">
+                <div class="plano-card" onclick="selecionarPlano('mensal')">
+                    <div class="plano-tipo">Mensal</div>
+                    <div class="plano-preco"><span class="preco-cifrao">R$</span><span class="preco-valor">59</span><span class="preco-centavos">,90</span><span class="preco-periodo">/mês</span></div>
+                    <ul class="plano-features"><li>✅ Acesso completo</li><li>✅ Fichas ilimitadas</li><li>✅ PIX, Cartão ou Boleto</li></ul>
+                    <button class="btn-plano btn-mensal" onclick="event.stopPropagation(); selecionarPlano('mensal')">Assinar Mensal</button>
+                </div>
+                <div class="plano-card plano-destaque" onclick="selecionarPlano('anual')">
+                    <div class="plano-badge">🔥 MAIS POPULAR</div>
+                    <div class="plano-tipo">Anual</div>
+                    <div class="plano-preco"><span class="preco-cifrao">R$</span><span class="preco-valor">598</span><span class="preco-centavos">,80</span><span class="preco-periodo">/ano</span></div>
+                    <div class="plano-economia">Economize 17% — R$49,90/mês</div>
+                    <ul class="plano-features"><li>✅ Tudo do mensal</li><li>✅ 2 meses grátis</li><li>✅ PIX, Cartão ou Boleto</li></ul>
+                    <button class="btn-plano btn-anual" onclick="event.stopPropagation(); selecionarPlano('anual')">⭐ Assinar Anual</button>
+                </div>
+            </div>
+            <div class="modal-planos-footer"><p>🔒 Pagamento seguro via Mercado Pago</p></div>
+            <div id="planoLoading" style="display:none;" class="plano-loading"><div class="plano-spinner"></div><p>Gerando checkout seguro...</p></div>
+        </div>
+    </div>
+    <style>
+        #modalPlanos{position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;display:flex;align-items:center;justify-content:center}
+        .modal-planos-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.75);backdrop-filter:blur(6px)}
+        .modal-planos-container{position:relative;z-index:2;background:linear-gradient(145deg,#1a1a2e,#16213e);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:40px 30px;max-width:720px;width:95%;box-shadow:0 30px 80px rgba(0,0,0,.6);animation:modalEntrar .4s ease-out;max-height:95vh;overflow-y:auto}
+        @keyframes modalEntrar{from{opacity:0;transform:translateY(40px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+        .modal-planos-header{text-align:center;margin-bottom:30px;color:#fff}
+        .modal-planos-header .modal-planos-icon{font-size:3rem;display:block;margin-bottom:8px}
+        .modal-planos-header h2{font-size:1.6rem;font-weight:800;margin:0;background:linear-gradient(135deg,#fff,#ff9800);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+        .modal-planos-header p{color:rgba(255,255,255,.5);font-size:.9rem;margin-top:6px}
+        .modal-planos-cards{display:flex;gap:20px;justify-content:center;flex-wrap:wrap}
+        .plano-card{background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.08);border-radius:20px;padding:30px 24px;flex:1;min-width:260px;max-width:320px;text-align:center;color:#fff;cursor:pointer;transition:all .3s ease;position:relative}
+        .plano-card:hover{border-color:rgba(233,69,96,.4);transform:translateY(-4px);box-shadow:0 12px 40px rgba(233,69,96,.15)}
+        .plano-destaque{border-color:rgba(233,69,96,.5);background:rgba(233,69,96,.08)}
+        .plano-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#e94560,#ff6b6b);color:#fff;font-size:.7rem;font-weight:800;padding:4px 16px;border-radius:20px;letter-spacing:.5px;white-space:nowrap}
+        .plano-tipo{font-size:1.1rem;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px}
+        .plano-preco{margin-bottom:8px;line-height:1}
+        .preco-cifrao{font-size:1.2rem;font-weight:600;vertical-align:super;color:rgba(255,255,255,.6)}
+        .preco-valor{font-size:3rem;font-weight:800}
+        .preco-centavos{font-size:1.2rem;font-weight:600;vertical-align:super}
+        .preco-periodo{font-size:.85rem;color:rgba(255,255,255,.4);display:block;margin-top:4px}
+        .plano-economia{background:rgba(76,175,80,.15);color:#66bb6a;font-size:.75rem;font-weight:700;padding:6px 12px;border-radius:8px;margin-bottom:16px;display:inline-block}
+        .plano-features{list-style:none;padding:0;margin:16px 0 20px;text-align:left}
+        .plano-features li{font-size:.85rem;color:rgba(255,255,255,.7);padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+        .btn-plano{width:100%;padding:14px;border:none;border-radius:14px;font-size:1rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .3s ease}
+        .btn-mensal{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2)}
+        .btn-mensal:hover{background:rgba(255,255,255,.2)}
+        .btn-anual{background:linear-gradient(135deg,#e94560,#c0392b);color:#fff}
+        .btn-anual:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(233,69,96,.4)}
+        .modal-planos-footer{text-align:center;margin-top:20px;color:rgba(255,255,255,.35);font-size:.8rem}
+        .plano-loading{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(26,26,46,.95);border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;color:#fff}
+        .plano-spinner{width:40px;height:40px;border:4px solid rgba(255,255,255,.2);border-top-color:#e94560;border-radius:50%;animation:spinPlano .8s linear infinite;margin-bottom:16px}
+        @keyframes spinPlano{to{transform:rotate(360deg)}}
+        .plano-loading p{font-size:.95rem;color:rgba(255,255,255,.7)}
+        @media(max-width:600px){.modal-planos-container{padding:24px 16px}.modal-planos-cards{flex-direction:column;align-items:center}.plano-card{max-width:100%}.preco-valor{font-size:2.5rem}}
+    </style>
+    <script>
+        const FUNCTION_URL = 'https://us-central1-pizzacontrol-marllon.cloudfunctions.net/gerarCheckoutMP';
+        window._uidParaRenovar = null;
+        function abrirModalPlanos(uid) { window._uidParaRenovar = uid; document.getElementById('modalPlanos').style.display = 'flex'; document.getElementById('planoLoading').style.display = 'none'; }
+        async function selecionarPlano(tipo_plano) {
+            const uid = window._uidParaRenovar;
+            if (!uid) { alert('Erro: UID não encontrado.'); return; }
+            document.getElementById('planoLoading').style.display = 'flex';
+            try {
+                const response = await fetch(FUNCTION_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uid, tipo_plano }) });
+                const data = await response.json();
+                if (data.init_point) { window.location.href = data.init_point; } else { alert('Erro ao gerar checkout.'); document.getElementById('planoLoading').style.display = 'none'; }
+            } catch (e) { console.error(e); alert('Erro de conexão.'); document.getElementById('planoLoading').style.display = 'none'; }
+        }
+    </script>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
@@ -297,12 +377,7 @@
                 if (!docSnap.exists() || docSnap.data().status !== 'ativo') {
                     await signOut(auth);
                     btn.classList.remove('loading');
-                    alert('Acesso Suspenso. Identificamos que a sua mensalidade do PizzaControl está pendente. Clique em OK para ser redirecionado para a página de regularização.');
-                    window.location.href = 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=3de061373fb84cb98a05b3001b5105f8&external_reference=' + userCredential.user.uid;
-                    
-                    // Display visual error just in case alert is bypassed by browser
-                    error.innerHTML = `⚠️ Acesso Suspenso! Mensalidade Pendente.`;
-                    error.style.display = 'block';
+                    abrirModalPlanos(userCredential.user.uid);
                     return; // PARALISA A EXECUÇÃO AQUI
                 }
                 
