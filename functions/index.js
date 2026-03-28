@@ -71,8 +71,8 @@ exports.gerarCheckoutMP = functions.https.onRequest(async (req, res) => {
             },
             back_urls: {
                 success: "https://app.pizzacontrol.com.br/app.html",
-                failure: "https://app.pizzacontrol.com.br/app.html",
-                pending: "https://app.pizzacontrol.com.br/app.html"
+                failure: "https://app.pizzacontrol.com.br/index.html",
+                pending: "https://app.pizzacontrol.com.br/index.html"
             },
             auto_return: "approved",
             statement_descriptor: "PIZZACONTROL",
