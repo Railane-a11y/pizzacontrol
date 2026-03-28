@@ -222,7 +222,7 @@ function iniciarListenerInsumos() {
             if (DB.config.statusPagamento === 'inativo' || DB.config.status === 'inativo') {
                 fazerLogout();
                 alert('Acesso Suspenso. Identificamos que a sua mensalidade do PizzaControl está pendente. Clique em OK para ser redirecionado para a página de regularização.');
-                window.location.href = 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=3de061373fb84cb98a05b3001b5105f8';
+                window.location.href = 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=3de061373fb84cb98a05b3001b5105f8&external_reference=' + (window.currentUser ? window.currentUser.uid : '');
                 return;
             }
 

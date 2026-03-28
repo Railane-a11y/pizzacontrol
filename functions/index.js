@@ -44,24 +44,45 @@ exports.webhookMercadoPago = functions.https.onRequest(async (req, res) => {
 
             const paymentInfo = await response.json();
 
-            // 2. Verificar o status do pagamento
-            if (paymentInfo.payer && paymentInfo.payer.email) {
-                const payerEmail = paymentInfo.payer.email;
+        // 2. Verificar o status do pagamento
+            if (paymentInfo.status) {
+                const payerEmail = paymentInfo.payer ? paymentInfo.payer.email : null;
                 const paymentStatus = paymentInfo.status;
+                const externalReference = paymentInfo.external_reference || null;
 
                 try {
-                    // 3. Buscar usuário no Firebase Auth pelo E-mail fornecido no checkout do MP
-                    const userRecord = await admin.auth().getUserByEmail(payerEmail);
-                    const uid = userRecord.uid;
+                    // 3. Identificar o usuário: prioridade para external_reference (UID direto)
+                    let uid;
+                    if (externalReference) {
+                        uid = externalReference;
+                        console.log(`🎯 UID encontrado via external_reference: ${uid}`);
+                    } else if (payerEmail) {
+                        // Fallback: buscar pelo e-mail no Firebase Auth
+                        const userRecord = await admin.auth().getUserByEmail(payerEmail);
+                        uid = userRecord.uid;
+                        console.log(`📧 UID encontrado via e-mail (${payerEmail}): ${uid}`);
+                    } else {
+                        console.log("⚠️ Pagamento sem external_reference nem e-mail. Ignorando.");
+                        return;
+                    }
 
                     if (paymentStatus === "approved") {
-                        console.log(`✅ Pagamento APROVADO recebido para e-mail: ${payerEmail}`);
-                        // 4. Salvar status ATIVO no Firestore (coleção 'usuarios' e 'config')
+                        console.log(`✅ Pagamento APROVADO para UID: ${uid}`);
+
+                        // 4. Calcular nova data de vencimento (+30 dias a partir de HOJE)
+                        const novaDataVencimento = new Date();
+                        novaDataVencimento.setDate(novaDataVencimento.getDate() + 30);
+
+                        // 5. Atualizar Firestore (coleção 'usuarios')
                         const dadosAtualizacao = {
-                            email: payerEmail,
                             status: "ativo",
+                            data_vencimento: admin.firestore.Timestamp.fromDate(novaDataVencimento),
                             ultimaRenovacao: admin.firestore.FieldValue.serverTimestamp()
                         };
+
+                        if (payerEmail) {
+                            dadosAtualizacao.email = payerEmail;
+                        }
 
                         await db.collection("usuarios").doc(uid).set(dadosAtualizacao, { merge: true });
 
@@ -70,11 +91,11 @@ exports.webhookMercadoPago = functions.https.onRequest(async (req, res) => {
                             statusPagamento: "ativo"
                         }, { merge: true });
 
-                        console.log(`🎉 Usuário ${uid} (${payerEmail}) marcado como ATIVO!`);
+                        console.log(`🎉 Usuário ${uid} marcado como ATIVO! Vencimento: ${novaDataVencimento.toISOString()}`);
                         
                     } else if (["cancelled", "refunded", "charged_back", "rejected"].includes(paymentStatus)) {
-                        console.log(`🛑 Pagamento CANCELADO/INATIVO (${paymentStatus}) para e-mail: ${payerEmail}`);
-                        // 5. Revogar acesso do usuário (Suspender)
+                        console.log(`🛑 Pagamento CANCELADO/INATIVO (${paymentStatus}) para UID: ${uid}`);
+                        // 6. Revogar acesso do usuário (Suspender)
                         await db.collection("usuarios").doc(uid).set({
                             status: "inativo",
                             dataSuspensao: admin.firestore.FieldValue.serverTimestamp()
@@ -84,17 +105,16 @@ exports.webhookMercadoPago = functions.https.onRequest(async (req, res) => {
                             statusPagamento: "inativo"
                         }, { merge: true });
 
-                        console.log(`🔒 Usuário ${uid} (${payerEmail}) SUSPENSO (inativo)!`);
+                        console.log(`🔒 Usuário ${uid} SUSPENSO (inativo)!`);
                     } else {
                         console.log(`ℹ️ Pagamento verificado, status ignorado no momento: ${paymentStatus}`);
                     }
 
                 } catch (authErr) {
-                    console.error(`⚠️ Usuário não encontrado no Auth para o e-mail: ${payerEmail}`, authErr);
-                    // Opcional: Criar log de pagamentos órfãos
+                    console.error(`⚠️ Erro ao processar pagamento:`, authErr);
                 }
             } else {
-                console.log(`Pagamento sem e-mail do pagador identificável. Status atual: ${paymentInfo.status}`);
+                console.log(`Pagamento sem status identificável.`);
             }
         }
     } catch (error) {
