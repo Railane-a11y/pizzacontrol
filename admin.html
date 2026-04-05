@@ -203,7 +203,7 @@
             <span class="admin-icon">👑</span>
             <div>
                 <h1>Painel Administrativo</h1>
-                <p>Gestão de assinaturas PizzaControl</p>
+                <p>Visão local offline deste dispositivo</p>
             </div>
         </div>
         <div class="admin-header-right">
@@ -271,88 +271,68 @@
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    <script>
+        const SESSION_KEY = 'pizzaControlSession';
+        const STORAGE_KEY = 'pizzaControlLocalDB_v1';
+        const LEGACY_KEYS = ['pizzaControlFinal', 'pizzaControlDados', 'pizzaControlV3', 'pizzaControlV2', 'pizzaControl'];
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDT8kvJBD5Uo0giOpZLBP50zUAjSemmjCs",
-            authDomain: "pizzacontrol-marllon.firebaseapp.com",
-            projectId: "pizzacontrol-marllon",
-            storageBucket: "pizzacontrol-marllon.firebasestorage.app",
-            messagingSenderId: "413127374575",
-            appId: "1:413127374575:web:79f3dc78834502727ecd1a"
-        };
+        function obterSessao() {
+            const pin = localStorage.getItem('pizzaControlPinMaster');
+            if (!/^\d{4,6}$/.test(pin || '')) return null;
 
-        // Inicializar Firebase
-        let app, auth, db;
-        try {
-            app = initializeApp(firebaseConfig);
-        } catch (e) {
-            app = initializeApp(firebaseConfig, 'admin');
-        }
-        auth = getAuth(app);
-        db = getFirestore(app);
-
-        // ============================================================
-        // ADMIN LOCK — Lista de e-mails autorizados
-        // ============================================================
-        const admins = ['smarllon950@gmail.com'];
-
-        // Sair
-        document.getElementById('btnSair').addEventListener('click', () => {
-            signOut(auth).then(() => window.location.href = 'index.html');
-        });
-
-        onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                window.location.replace('index.html');
-                return;
-            }
-
-            // Verificar se é admin
-            if (!admins.includes(user.email)) {
-                console.warn('🚫 Acesso negado. Usuário não é admin.');
-                window.location.replace('app.html');
-                return;
-            }
-
-            // É admin! Mostra a tela
-            document.body.style.display = 'block';
-            document.getElementById('adminEmail').textContent = user.email;
-
-            // Carregar dados
-            await carregarClientes();
-        });
-
-        // ============================================================
-        // CARREGAR CLIENTES DO FIRESTORE
-        // ============================================================
-        async function carregarClientes() {
+            const raw = localStorage.getItem(SESSION_KEY);
+            if (!raw) return null;
             try {
-                const querySnapshot = await getDocs(collection(db, 'usuarios'));
-                const clientes = [];
-
-                querySnapshot.forEach((doc) => {
-                    const dados = doc.data();
-                    dados.uid = doc.id;
-                    clientes.push(dados);
-                });
-
-                renderizarTabela(clientes);
-                atualizarStats(clientes);
-
-            } catch (error) {
-                console.error('Erro ao carregar clientes:', error);
-                document.getElementById('loadingState').innerHTML = 
-                    '<p style="color:#e94560;">❌ Erro ao carregar dados. Verifique as permissões do Firestore.</p>';
+                const sessao = JSON.parse(raw);
+                return sessao && (sessao.authenticated === true || sessao.user) ? sessao : null;
+            } catch (err) {
+                localStorage.removeItem(SESSION_KEY);
+                return null;
             }
         }
 
-        // ============================================================
-        // RENDERIZAR TABELA
-        // ============================================================
+        function obterDadosLocais() {
+            const keys = [STORAGE_KEY, ...LEGACY_KEYS];
+            for (const key of keys) {
+                const raw = localStorage.getItem(key);
+                if (!raw) continue;
+                try {
+                    return JSON.parse(raw);
+                } catch (err) {
+                    console.warn('Falha ao ler key local:', key, err);
+                }
+            }
+            return null;
+        }
+
+        function montarLinhaLocal(sessao, dados) {
+            const config = dados && dados.config ? dados.config : {};
+            const nomePizzaria = (config.nomePizzaria || '').trim() || 'Não informada';
+
+            return {
+                email: sessao.user || 'acesso-local',
+                nome_pizzaria: nomePizzaria,
+                plano: 'offline',
+                ultimoPagamento: null,
+                data_vencimento: null,
+                status: 'Ativo'
+            };
+        }
+
+        function formatarData(campo) {
+            if (!campo) return '—';
+            const data = new Date(campo);
+            if (isNaN(data.getTime())) return '—';
+            const dia = String(data.getDate()).padStart(2, '0');
+            const mes = String(data.getMonth() + 1).padStart(2, '0');
+            const ano = data.getFullYear();
+            return `${dia}/${mes}/${ano}`;
+        }
+
+        function calcularStatus(cliente) {
+            return cliente.status || 'Ativo';
+        }
+
         window._todosClientes = [];
 
         function renderizarTabela(clientes) {
@@ -364,29 +344,21 @@
 
             loading.style.display = 'none';
 
-            if (clientes.length === 0) {
+            if (!clientes.length) {
                 empty.style.display = 'block';
                 tabela.style.display = 'none';
+                corpo.innerHTML = '';
                 return;
             }
 
+            empty.style.display = 'none';
             tabela.style.display = 'table';
             corpo.innerHTML = '';
 
-            // Ordenar: vencidos primeiro
-            clientes.sort((a, b) => {
-                const statusA = calcularStatus(a);
-                const statusB = calcularStatus(b);
-                if (statusA === 'Vencido' && statusB !== 'Vencido') return -1;
-                if (statusA !== 'Vencido' && statusB === 'Vencido') return 1;
-                return 0;
-            });
-
-            clientes.forEach(cliente => {
+            clientes.forEach((cliente) => {
                 const tr = document.createElement('tr');
-
                 const email = cliente.email || '—';
-                const pizzaria = cliente.nome_pizzaria || cliente.nomePizzaria || '—';
+                const pizzaria = cliente.nome_pizzaria || '—';
                 const plano = cliente.plano || '—';
                 const ultimoPgto = cliente.ultimoPagamento ? `R$ ${Number(cliente.ultimoPagamento).toFixed(2)}` : '—';
                 const vencimento = formatarData(cliente.data_vencimento);
@@ -404,79 +376,46 @@
             });
         }
 
-        // ============================================================
-        // ATUALIZAR CARDS DE STATS
-        // ============================================================
         function atualizarStats(clientes) {
             const total = clientes.length;
-            let ativos = 0;
-            let vencidos = 0;
-            let receitaMensal = 0;
-
-            clientes.forEach(c => {
-                const status = calcularStatus(c);
-                if (status === 'Ativo') {
-                    ativos++;
-                    // Estimar receita mensal
-                    if (c.plano === 'anual') {
-                        receitaMensal += 598.80 / 12;
-                    } else {
-                        receitaMensal += 59.90;
-                    }
-                } else {
-                    vencidos++;
-                }
-            });
+            const ativos = clientes.filter((c) => calcularStatus(c) === 'Ativo').length;
+            const vencidos = total - ativos;
 
             document.getElementById('statTotal').textContent = total;
             document.getElementById('statAtivos').textContent = ativos;
             document.getElementById('statVencidos').textContent = vencidos;
-            document.getElementById('statReceita').textContent = `R$ ${receitaMensal.toFixed(0)}`;
+            document.getElementById('statReceita').textContent = 'R$ 0';
         }
 
-        // ============================================================
-        // HELPERS
-        // ============================================================
-        function calcularStatus(cliente) {
-            if (!cliente.data_vencimento) return 'Vencido';
-
-            let dataVenc;
-            if (cliente.data_vencimento.toDate) {
-                dataVenc = cliente.data_vencimento.toDate().getTime();
-            } else {
-                dataVenc = new Date(cliente.data_vencimento).getTime();
-            }
-
-            return Date.now() > dataVenc ? 'Vencido' : 'Ativo';
+        function carregarVisaoLocal(sessao) {
+            const dados = obterDadosLocais();
+            const clientes = [montarLinhaLocal(sessao, dados)];
+            renderizarTabela(clientes);
+            atualizarStats(clientes);
         }
 
-        function formatarData(campo) {
-            if (!campo) return '—';
-
-            let data;
-            if (campo.toDate) {
-                data = campo.toDate();
-            } else {
-                data = new Date(campo);
-            }
-
-            if (isNaN(data.getTime())) return '—';
-
-            const dia = String(data.getDate()).padStart(2, '0');
-            const mes = String(data.getMonth() + 1).padStart(2, '0');
-            const ano = data.getFullYear();
-            return `${dia}/${mes}/${ano}`;
-        }
-
-        // Busca / Filtro por e-mail
         window.filtrarTabela = function() {
             const termo = document.getElementById('searchInput').value.toLowerCase();
-            const filtrados = window._todosClientes.filter(c => 
-                (c.email && c.email.toLowerCase().includes(termo)) ||
-                (c.nome_pizzaria && c.nome_pizzaria.toLowerCase().includes(termo))
+            const filtrados = window._todosClientes.filter(
+                (c) =>
+                    (c.email && c.email.toLowerCase().includes(termo)) ||
+                    (c.nome_pizzaria && c.nome_pizzaria.toLowerCase().includes(termo))
             );
             renderizarTabela(filtrados);
         };
+
+        const sessao = obterSessao();
+        if (!sessao) {
+            window.location.replace('index.html');
+        } else {
+            document.getElementById('adminEmail').textContent = sessao.user || 'Acesso local';
+            document.getElementById('btnSair').addEventListener('click', () => {
+                localStorage.removeItem(SESSION_KEY);
+                window.location.href = 'index.html';
+            });
+            document.body.style.display = 'block';
+            carregarVisaoLocal(sessao);
+        }
     </script>
 </body>
 </html>

@@ -1,408 +1,711 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#d32f2f">
+    <meta name="theme-color" content="#111827">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍕</text></svg>">
-    <title>🍕 PizzaControl - Login</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>PizzaControl | PIN Master</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-1: #f6f9fc;
+            --bg-2: #eef2ff;
+            --ink-900: #111827;
+            --ink-700: #374151;
+            --ink-500: #6b7280;
+            --line: #e5e7eb;
+            --brand: #0f766e;
+            --brand-2: #0b5f59;
+            --danger: #dc2626;
+            --card: rgba(255, 255, 255, 0.85);
+            --shadow: 0 28px 70px rgba(15, 23, 42, 0.16);
+        }
 
         body {
-            font-family: 'Inter', sans-serif;
             min-height: 100vh;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--ink-900);
+            background:
+                radial-gradient(circle at 12% 10%, rgba(20, 184, 166, 0.16), transparent 44%),
+                radial-gradient(circle at 88% 16%, rgba(14, 165, 233, 0.16), transparent 40%),
+                linear-gradient(160deg, var(--bg-1), var(--bg-2));
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 30%, #0f3460 60%, #e94560 100%);
-            background-size: 400% 400%;
-            animation: gradientShift 12s ease infinite;
+            padding: 26px;
+        }
+
+        .shell {
+            width: 100%;
+            max-width: 460px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-radius: 26px;
+            box-shadow: var(--shadow);
+            padding: 34px 30px;
+            animation: riseIn 420ms ease;
+        }
+
+        @keyframes riseIn {
+            from {
+                transform: translateY(16px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 1.35rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .brand-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0f766e, #0284c7);
+            color: #fff;
+            box-shadow: 0 12px 24px rgba(2, 132, 199, 0.25);
+            font-size: 18px;
+        }
+
+        .tagline {
+            color: var(--ink-500);
+            font-size: 0.9rem;
+            line-height: 1.45;
+            margin-bottom: 18px;
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 999px;
+            border: 1px solid rgba(15, 118, 110, 0.26);
+            background: rgba(15, 118, 110, 0.08);
+            color: var(--brand-2);
+            font-size: 0.76rem;
+            font-weight: 700;
+            padding: 6px 11px;
+            margin-bottom: 14px;
+        }
+
+        h1 {
+            font-size: 1.52rem;
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--ink-700);
+            font-size: 0.95rem;
+            line-height: 1.45;
+            margin-bottom: 18px;
+        }
+
+        .field-group {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .field {
+            display: grid;
+            gap: 6px;
+        }
+
+        .field label {
+            font-size: 0.82rem;
+            color: var(--ink-700);
+            font-weight: 600;
+        }
+
+        .input-wrap {
+            display: flex;
+            align-items: center;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: #fff;
+            transition: border-color 0.2s, box-shadow 0.2s;
             overflow: hidden;
-            position: relative;
         }
 
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+        .input-wrap:focus-within {
+            border-color: rgba(15, 118, 110, 0.6);
+            box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.12);
         }
 
-        /* Floating pizza decorations */
-        .floating-pizzas {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 0; overflow: hidden;
-        }
-        .pizza-float {
-            position: absolute; font-size: 2.5rem; opacity: 0.08;
-            animation: floatUp linear infinite;
-        }
-        @keyframes floatUp {
-            0% { transform: translateY(110vh) rotate(0deg); opacity: 0; }
-            10% { opacity: 0.08; }
-            90% { opacity: 0.08; }
-            100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+        .input-wrap input {
+            width: 100%;
+            border: 0;
+            outline: 0;
+            font-size: 1.08rem;
+            font-weight: 600;
+            color: var(--ink-900);
+            padding: 14px 14px;
+            font-family: inherit;
+            letter-spacing: 0.14em;
+            text-align: center;
         }
 
-        /* Glowing orbs */
-        .orb {
-            position: fixed; border-radius: 50%; filter: blur(80px);
-            pointer-events: none; z-index: 0;
-        }
-        .orb-1 { width: 300px; height: 300px; background: rgba(233,69,96,0.2); top: -100px; right: -50px; animation: orbMove1 8s ease-in-out infinite; }
-        .orb-2 { width: 250px; height: 250px; background: rgba(15,52,96,0.3); bottom: -80px; left: -50px; animation: orbMove2 10s ease-in-out infinite; }
-        .orb-3 { width: 200px; height: 200px; background: rgba(255,152,0,0.15); top: 50%; left: 50%; animation: orbMove3 12s ease-in-out infinite; }
-
-        @keyframes orbMove1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-50px,50px); } }
-        @keyframes orbMove2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(40px,-40px); } }
-        @keyframes orbMove3 { 0%,100% { transform: translate(-50%,-50%) scale(1); } 50% { transform: translate(-50%,-50%) scale(1.3); } }
-
-        .login-container {
-            position: relative; z-index: 10; width: 100%; max-width: 440px;
-            padding: 20px;
+        .toggle-visibility {
+            border: 0;
+            background: transparent;
+            color: var(--ink-500);
+            font-weight: 700;
+            cursor: pointer;
+            padding: 0 12px;
+            font-size: 0.8rem;
+            letter-spacing: 0.04em;
         }
 
-        .login-card {
-            background: rgba(255,255,255,0.07);
-            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border-radius: 24px;
-            border: 1px solid rgba(255,255,255,0.12);
-            box-shadow: 0 25px 60px rgba(0,0,0,0.4), 0 0 80px rgba(233,69,96,0.1);
-            padding: 45px 40px;
-            animation: cardAppear 0.8s ease-out;
+        .hint {
+            margin-top: 2px;
+            font-size: 0.78rem;
+            color: var(--ink-500);
+            line-height: 1.4;
         }
 
-        @keyframes cardAppear {
-            from { opacity: 0; transform: translateY(30px) scale(0.95); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+        .link-muted {
+            border: 0;
+            background: transparent;
+            color: #64748b;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            cursor: pointer;
+            width: fit-content;
+            margin-top: 2px;
+            padding: 0;
         }
 
-        .logo-section {
-            text-align: center; margin-bottom: 35px;
-        }
-        .logo-icon {
-            font-size: 3.5rem; margin-bottom: 8px;
-            animation: logoPulse 2s ease-in-out infinite;
-        }
-        @keyframes logoPulse {
-            0%,100% { transform: scale(1); }
-            50% { transform: scale(1.08); }
-        }
-        .logo-text {
-            font-size: 1.8rem; font-weight: 800; color: white;
-            letter-spacing: -0.5px;
-        }
-        .logo-text span { color: #ff9800; }
-        .logo-subtitle {
-            color: rgba(255,255,255,0.5); font-size: 0.85rem;
-            margin-top: 4px; font-weight: 300;
+        .link-muted:hover {
+            color: #0f766e;
         }
 
-        .input-group {
-            position: relative; margin-bottom: 20px;
-        }
-        .input-icon {
-            position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
-            font-size: 1.1rem; color: rgba(255,255,255,0.35);
-            transition: color 0.3s;
-        }
-        .input-group input {
-            width: 100%; padding: 16px 16px 16px 48px;
-            background: rgba(255,255,255,0.06);
-            border: 2px solid rgba(255,255,255,0.08);
-            border-radius: 14px; color: white; font-size: 1rem;
-            font-family: 'Inter', sans-serif;
-            transition: all 0.3s ease;
-        }
-        .input-group input::placeholder { color: rgba(255,255,255,0.3); }
-        .input-group input:focus {
-            outline: none;
-            border-color: rgba(233,69,96,0.6);
-            background: rgba(255,255,255,0.1);
-            box-shadow: 0 0 20px rgba(233,69,96,0.15);
-        }
-        .input-group input:focus + .input-icon,
-        .input-group input:focus ~ .input-icon { color: #e94560; }
-
-        .toggle-password {
-            position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
-            background: none; border: none; color: rgba(255,255,255,0.35);
-            cursor: pointer; font-size: 1.1rem; transition: color 0.3s;
-        }
-        .toggle-password:hover { color: white; }
-
-        .options-row {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 25px;
-        }
-        .remember-me {
-            display: flex; align-items: center; gap: 8px;
-            color: rgba(255,255,255,0.6); font-size: 0.85rem; cursor: pointer;
-        }
-        .remember-me input[type="checkbox"] {
-            width: 18px; height: 18px; accent-color: #e94560; cursor: pointer;
+        .recovery-panel {
+            margin-top: 10px;
+            border: 1px solid #dbe3ec;
+            border-radius: 14px;
+            background: #f8fbff;
+            padding: 12px;
+            display: grid;
+            gap: 10px;
         }
 
-        .btn-login {
-            width: 100%; padding: 16px; border: none; border-radius: 14px;
-            background: linear-gradient(135deg, #e94560, #c0392b);
-            color: white; font-size: 1.05rem; font-weight: 700;
-            font-family: 'Inter', sans-serif; cursor: pointer;
-            transition: all 0.3s ease; position: relative; overflow: hidden;
+        .recovery-head {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #0f172a;
         }
-        .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(233,69,96,0.4);
-        }
-        .btn-login:active { transform: translateY(0); }
-        .btn-login.loading {
-            pointer-events: none; color: transparent;
-        }
-        .btn-login.loading::after {
-            content: ''; position: absolute;
-            width: 24px; height: 24px;
-            border: 3px solid rgba(255,255,255,0.3);
-            border-top-color: white; border-radius: 50%;
-            top: 50%; left: 50%; margin: -12px 0 0 -12px;
-            animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
 
-        .error-msg {
-            background: rgba(231,76,60,0.15);
-            border: 1px solid rgba(231,76,60,0.3);
-            border-radius: 10px; padding: 12px 16px;
-            color: #ff6b6b; font-size: 0.85rem; text-align: center;
-            margin-bottom: 20px; display: none;
-            animation: shake 0.4s ease;
+        .recovery-actions {
+            display: flex;
+            gap: 8px;
         }
-        @keyframes shake {
-            0%,100% { transform: translateX(0); }
-            25% { transform: translateX(-8px); }
-            75% { transform: translateX(8px); }
-        }
-        .error-msg.show { display: block; }
 
-        .footer-text {
-            text-align: center; color: rgba(255,255,255,0.25);
-            font-size: 0.75rem; margin-top: 25px;
+        .btn-secondary {
+            flex: 1;
+            border-radius: 12px;
+            border: 1px solid var(--line);
+            background: #fff;
+            color: var(--ink-700);
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 0.84rem;
+            padding: 10px 12px;
+            cursor: pointer;
+        }
+
+        .btn-secondary:hover {
+            border-color: #cbd5e1;
+            background: #f8fafc;
+        }
+
+        .btn-primary {
+            width: 100%;
+            margin-top: 4px;
+            border: 0;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--brand), #0284c7);
+            color: #fff;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 0.96rem;
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 14px 24px rgba(2, 132, 199, 0.24);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 28px rgba(2, 132, 199, 0.28);
+        }
+
+        .recovery-actions .btn-primary {
+            flex: 1;
+            width: auto;
+            margin-top: 0;
+            padding: 10px 12px;
+            font-size: 0.84rem;
+            box-shadow: none;
+        }
+
+        .recovery-actions .btn-primary:hover {
+            box-shadow: none;
+            transform: none;
+        }
+
+        .feedback {
+            display: none;
+            margin-top: 12px;
+            border-radius: 12px;
+            padding: 10px 12px;
+            font-size: 0.84rem;
+            font-weight: 600;
+        }
+
+        .feedback.error {
+            display: block;
+            border: 1px solid rgba(220, 38, 38, 0.25);
+            background: rgba(220, 38, 38, 0.08);
+            color: var(--danger);
+        }
+
+        .footer-note {
+            margin-top: 14px;
+            color: var(--ink-500);
+            font-size: 0.75rem;
+            line-height: 1.45;
+        }
+
+        .hidden {
+            display: none;
         }
 
         @media (max-width: 480px) {
-            .login-card { padding: 35px 25px; }
-            .logo-text { font-size: 1.5rem; }
+            body {
+                padding: 16px;
+            }
+
+            .card {
+                padding: 26px 20px;
+                border-radius: 20px;
+            }
+
+            h1 {
+                font-size: 1.34rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="floating-pizzas" id="floatingPizzas"></div>
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
-
-    <div class="login-container">
-        <div class="login-card">
-            <div class="logo-section">
-                <div class="logo-icon">🍕</div>
-                <div class="logo-text">Pizza<span>Control</span></div>
-                <div class="logo-subtitle">Sistema de Gestão de Fichas Técnicas</div>
+    <div class="shell">
+        <section class="card">
+            <div class="brand">
+                <span class="brand-icon">P</span>
+                <span>PizzaControl</span>
             </div>
+            <p class="tagline">Painel financeiro offline com acesso vitalicio neste dispositivo.</p>
 
-            <div class="error-msg" id="errorMsg">⚠️ Usuário ou senha incorretos!</div>
+            <span class="chip" id="modeChip">Primeiro acesso</span>
 
-            <form id="loginForm" autocomplete="off" onsubmit="handleLogin(event)">
-                <div class="input-group">
-                    <input type="text" id="username" placeholder="Usuário (Email)" autocomplete="off" required>
-                    <span class="input-icon">👤</span>
+            <h1 id="screenTitle">Crie seu PIN master</h1>
+            <p class="subtitle" id="screenSubtitle">Defina um PIN numerico de 4 a 6 digitos para proteger os dados da pizzaria.</p>
+
+            <form id="pinForm" autocomplete="off">
+                <div id="setupFields" class="field-group">
+                    <div class="field">
+                        <label for="setupPin">Novo PIN</label>
+                        <div class="input-wrap">
+                            <input id="setupPin" type="password" inputmode="numeric" maxlength="6" placeholder="0000" required>
+                            <button type="button" class="toggle-visibility" data-target="setupPin">VER</button>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="setupPinConfirm">Confirmar PIN</label>
+                        <div class="input-wrap">
+                            <input id="setupPinConfirm" type="password" inputmode="numeric" maxlength="6" placeholder="0000" required>
+                            <button type="button" class="toggle-visibility" data-target="setupPinConfirm">VER</button>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="setupRecovery">Palavra-Chave de Recuperacao</label>
+                        <div class="input-wrap">
+                            <input id="setupRecovery" type="text" maxlength="80" placeholder="Ex: comida favorita" required>
+                        </div>
+                        <p class="hint">Use uma referencia que so voce saiba para recuperar o PIN.</p>
+                    </div>
                 </div>
-                <div class="input-group">
-                    <input type="password" id="password" placeholder="Senha" autocomplete="new-password" required>
-                    <span class="input-icon">🔒</span>
-                    <button type="button" class="toggle-password" onclick="togglePass()">👁️</button>
+
+                <div id="unlockFields" class="field-group hidden">
+                    <div class="field">
+                        <label for="unlockPin">PIN master</label>
+                        <div class="input-wrap">
+                            <input id="unlockPin" type="password" inputmode="numeric" maxlength="6" placeholder="Digite seu PIN" required>
+                            <button type="button" class="toggle-visibility" data-target="unlockPin">VER</button>
+                        </div>
+                        <p class="hint">Digite o PIN cadastrado para liberar o painel.</p>
+                        <button type="button" class="link-muted hidden" id="forgotPinBtn">Esqueci meu PIN</button>
+                    </div>
+
+                    <div id="recoveryPanel" class="recovery-panel hidden">
+                        <div class="recovery-head">Recuperacao de emergencia</div>
+                        <div class="field">
+                            <label for="recoveryKeyword">Palavra-Chave</label>
+                            <div class="input-wrap">
+                                <input id="recoveryKeyword" type="text" maxlength="80" placeholder="Digite sua palavra-chave">
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="recoveryNewPin">Novo PIN</label>
+                            <div class="input-wrap">
+                                <input id="recoveryNewPin" type="password" inputmode="numeric" maxlength="6" placeholder="4 a 6 digitos">
+                                <button type="button" class="toggle-visibility" data-target="recoveryNewPin">VER</button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="recoveryNewPinConfirm">Confirmar Novo PIN</label>
+                            <div class="input-wrap">
+                                <input id="recoveryNewPinConfirm" type="password" inputmode="numeric" maxlength="6" placeholder="Repita o novo PIN">
+                                <button type="button" class="toggle-visibility" data-target="recoveryNewPinConfirm">VER</button>
+                            </div>
+                        </div>
+                        <div class="recovery-actions">
+                            <button type="button" class="btn-secondary" id="cancelRecoveryBtn">Cancelar</button>
+                            <button type="button" class="btn-primary" id="confirmRecoveryBtn">Redefinir PIN</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="options-row">
-                    <label class="remember-me">
-                        <input type="checkbox" id="rememberMe"> Lembrar-me
-                    </label>
-                </div>
-                <button type="submit" class="btn-login" id="btnLogin">🚀 Entrar</button>
+
+                <button type="submit" class="btn-primary" id="submitBtn">Salvar PIN e entrar</button>
             </form>
 
-        </div>
+            <p id="errorBox" class="feedback"></p>
+
+            <p class="footer-note">Seu PIN e seus dados ficam armazenados apenas no navegador deste dispositivo.</p>
+        </section>
     </div>
 
-    <!-- MODAL DE PLANOS MERCADO PAGO -->
-    <div id="modalPlanos" style="display:none;">
-        <div class="modal-planos-overlay"></div>
-        <div class="modal-planos-container">
-            <div class="modal-planos-header">
-                <span class="modal-planos-icon">🍕</span>
-                <h2>Renove seu PizzaControl</h2>
-                <p>Sua assinatura expirou. Escolha um plano para continuar:</p>
-            </div>
-            <div class="modal-planos-cards">
-                <div class="plano-card" onclick="selecionarPlano('mensal')">
-                    <div class="plano-tipo">Mensal</div>
-                    <div class="plano-preco"><span class="preco-cifrao">R$</span><span class="preco-valor">59</span><span class="preco-centavos">,90</span><span class="preco-periodo">/mês</span></div>
-                    <ul class="plano-features"><li>✅ Acesso completo</li><li>✅ Fichas ilimitadas</li><li>✅ PIX, Cartão ou Boleto</li></ul>
-                    <button class="btn-plano btn-mensal" onclick="event.stopPropagation(); selecionarPlano('mensal')">Assinar Mensal</button>
-                </div>
-                <div class="plano-card plano-destaque" onclick="selecionarPlano('anual')">
-                    <div class="plano-badge">🔥 MAIS POPULAR</div>
-                    <div class="plano-tipo">Anual</div>
-                    <div class="plano-preco"><span class="preco-cifrao">R$</span><span class="preco-valor">598</span><span class="preco-centavos">,80</span><span class="preco-periodo">/ano</span></div>
-                    <div class="plano-economia">Economize 17% — R$49,90/mês</div>
-                    <ul class="plano-features"><li>✅ Tudo do mensal</li><li>✅ 2 meses grátis</li><li>✅ PIX, Cartão ou Boleto</li></ul>
-                    <button class="btn-plano btn-anual" onclick="event.stopPropagation(); selecionarPlano('anual')">⭐ Assinar Anual</button>
-                </div>
-            </div>
-            <div class="modal-planos-footer"><p>🔒 Pagamento seguro via Mercado Pago</p></div>
-            <div id="planoLoading" style="display:none;" class="plano-loading"><div class="plano-spinner"></div><p>Gerando checkout seguro...</p></div>
-        </div>
-    </div>
-    <style>
-        #modalPlanos{position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;display:flex;align-items:center;justify-content:center}
-        .modal-planos-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.75);backdrop-filter:blur(6px)}
-        .modal-planos-container{position:relative;z-index:2;background:linear-gradient(145deg,#1a1a2e,#16213e);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:40px 30px;max-width:720px;width:95%;box-shadow:0 30px 80px rgba(0,0,0,.6);animation:modalEntrar .4s ease-out;max-height:95vh;overflow-y:auto}
-        @keyframes modalEntrar{from{opacity:0;transform:translateY(40px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
-        .modal-planos-header{text-align:center;margin-bottom:30px;color:#fff}
-        .modal-planos-header .modal-planos-icon{font-size:3rem;display:block;margin-bottom:8px}
-        .modal-planos-header h2{font-size:1.6rem;font-weight:800;margin:0;background:linear-gradient(135deg,#fff,#ff9800);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-        .modal-planos-header p{color:rgba(255,255,255,.5);font-size:.9rem;margin-top:6px}
-        .modal-planos-cards{display:flex;gap:20px;justify-content:center;flex-wrap:wrap}
-        .plano-card{background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.08);border-radius:20px;padding:30px 24px;flex:1;min-width:260px;max-width:320px;text-align:center;color:#fff;cursor:pointer;transition:all .3s ease;position:relative}
-        .plano-card:hover{border-color:rgba(233,69,96,.4);transform:translateY(-4px);box-shadow:0 12px 40px rgba(233,69,96,.15)}
-        .plano-destaque{border-color:rgba(233,69,96,.5);background:rgba(233,69,96,.08)}
-        .plano-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#e94560,#ff6b6b);color:#fff;font-size:.7rem;font-weight:800;padding:4px 16px;border-radius:20px;letter-spacing:.5px;white-space:nowrap}
-        .plano-tipo{font-size:1.1rem;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px}
-        .plano-preco{margin-bottom:8px;line-height:1}
-        .preco-cifrao{font-size:1.2rem;font-weight:600;vertical-align:super;color:rgba(255,255,255,.6)}
-        .preco-valor{font-size:3rem;font-weight:800}
-        .preco-centavos{font-size:1.2rem;font-weight:600;vertical-align:super}
-        .preco-periodo{font-size:.85rem;color:rgba(255,255,255,.4);display:block;margin-top:4px}
-        .plano-economia{background:rgba(76,175,80,.15);color:#66bb6a;font-size:.75rem;font-weight:700;padding:6px 12px;border-radius:8px;margin-bottom:16px;display:inline-block}
-        .plano-features{list-style:none;padding:0;margin:16px 0 20px;text-align:left}
-        .plano-features li{font-size:.85rem;color:rgba(255,255,255,.7);padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05)}
-        .btn-plano{width:100%;padding:14px;border:none;border-radius:14px;font-size:1rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .3s ease}
-        .btn-mensal{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2)}
-        .btn-mensal:hover{background:rgba(255,255,255,.2)}
-        .btn-anual{background:linear-gradient(135deg,#e94560,#c0392b);color:#fff}
-        .btn-anual:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(233,69,96,.4)}
-        .modal-planos-footer{text-align:center;margin-top:20px;color:rgba(255,255,255,.35);font-size:.8rem}
-        .plano-loading{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(26,26,46,.95);border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;color:#fff}
-        .plano-spinner{width:40px;height:40px;border:4px solid rgba(255,255,255,.2);border-top-color:#e94560;border-radius:50%;animation:spinPlano .8s linear infinite;margin-bottom:16px}
-        @keyframes spinPlano{to{transform:rotate(360deg)}}
-        .plano-loading p{font-size:.95rem;color:rgba(255,255,255,.7)}
-        @media(max-width:600px){.modal-planos-container{padding:24px 16px}.modal-planos-cards{flex-direction:column;align-items:center}.plano-card{max-width:100%}.preco-valor{font-size:2.5rem}}
-    </style>
     <script>
-        const FUNCTION_URL = 'https://us-central1-pizzacontrol-marllon.cloudfunctions.net/gerarCheckoutMP';
-        window._uidParaRenovar = null;
-        function abrirModalPlanos(uid) { window._uidParaRenovar = uid; document.getElementById('modalPlanos').style.display = 'flex'; document.getElementById('planoLoading').style.display = 'none'; }
-        async function selecionarPlano(tipo_plano) {
-            const uid = window._uidParaRenovar;
-            if (!uid) { alert('Erro: UID não encontrado.'); return; }
-            document.getElementById('planoLoading').style.display = 'flex';
-            try {
-                const response = await fetch(FUNCTION_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uid, tipo_plano }) });
-                const data = await response.json();
-                if (data.init_point) { window.location.href = data.init_point; } else { alert('Erro ao gerar checkout.'); document.getElementById('planoLoading').style.display = 'none'; }
-            } catch (e) { console.error(e); alert('Erro de conexão.'); document.getElementById('planoLoading').style.display = 'none'; }
-        }
-    </script>
+        const PIN_MASTER_KEY = 'pizzaControlPinMaster';
+        const RECOVERY_HASH_KEY = 'pizzaControlRecoveryKeyHash';
+        const SESSION_KEY = 'pizzaControlSession';
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        const setupFields = document.getElementById('setupFields');
+        const unlockFields = document.getElementById('unlockFields');
+        const screenTitle = document.getElementById('screenTitle');
+        const screenSubtitle = document.getElementById('screenSubtitle');
+        const modeChip = document.getElementById('modeChip');
+        const submitBtn = document.getElementById('submitBtn');
+        const errorBox = document.getElementById('errorBox');
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDT8kvJBD5Uo0giOpZLBP50zUAjSemmjCs",
-            authDomain: "pizzacontrol-marllon.firebaseapp.com",
-            projectId: "pizzacontrol-marllon",
-            storageBucket: "pizzacontrol-marllon.firebasestorage.app",
-            messagingSenderId: "413127374575",
-            appId: "1:413127374575:web:79f3dc78834502727ecd1a"
-        };
+        const setupPin = document.getElementById('setupPin');
+        const setupPinConfirm = document.getElementById('setupPinConfirm');
+        const setupRecovery = document.getElementById('setupRecovery');
+        const unlockPin = document.getElementById('unlockPin');
+        const forgotPinBtn = document.getElementById('forgotPinBtn');
+        const recoveryPanel = document.getElementById('recoveryPanel');
+        const recoveryKeyword = document.getElementById('recoveryKeyword');
+        const recoveryNewPin = document.getElementById('recoveryNewPin');
+        const recoveryNewPinConfirm = document.getElementById('recoveryNewPinConfirm');
+        const cancelRecoveryBtn = document.getElementById('cancelRecoveryBtn');
+        const confirmRecoveryBtn = document.getElementById('confirmRecoveryBtn');
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        const form = document.getElementById('pinForm');
+        const pinSalvo = localStorage.getItem(PIN_MASTER_KEY);
+        const modoPrimeiroAcesso = !/^\d{4,6}$/.test(pinSalvo || '');
 
-        // Floating pizzas
-        const emojis = ['🍕','🧀','🍅','🫒','🌶️','🥓','🧄','🍄'];
-        const container = document.getElementById('floatingPizzas');
-        for (let i = 0; i < 15; i++) {
-            const el = document.createElement('div');
-            el.className = 'pizza-float';
-            el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-            el.style.left = Math.random() * 100 + '%';
-            el.style.animationDuration = (12 + Math.random() * 18) + 's';
-            el.style.animationDelay = (Math.random() * 15) + 's';
-            el.style.fontSize = (1.5 + Math.random() * 2) + 'rem';
-            container.appendChild(el);
+        function sanitizarPin(valor) {
+            return String(valor || '').replace(/\D/g, '').slice(0, 6);
         }
 
-        // Se o usuário já estiver logado e cair na tela de login, manda pro painel
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                window.location.href = 'app.html';
+        function pinValido(pin) {
+            return /^\d{4,6}$/.test(pin);
+        }
+
+        function normalizarPalavraChave(valor) {
+            return String(valor || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .trim()
+                .toLowerCase()
+                .replace(/\s+/g, ' ');
+        }
+
+        function gerarHashRecuperacao(chave) {
+            const base = 'pc-recovery-v1::' + normalizarPalavraChave(chave);
+            let hashA = 2166136261;
+            let hashB = 2654435761;
+
+            for (let i = 0; i < base.length; i++) {
+                const code = base.charCodeAt(i);
+                hashA ^= code;
+                hashA = Math.imul(hashA, 16777619);
+
+                hashB ^= code + i;
+                hashB = Math.imul(hashB, 2246822519);
             }
+
+            const partA = (hashA >>> 0).toString(16).padStart(8, '0');
+            const partB = (hashB >>> 0).toString(16).padStart(8, '0');
+            const mix = (partA + partB).split('').reverse().join('');
+            return 'obf:' + partA + partB + mix;
+        }
+
+        function hashRecuperacaoValido() {
+            const hash = localStorage.getItem(RECOVERY_HASH_KEY) || '';
+            return /^obf:[a-f0-9]{32}$/.test(hash) ? hash : '';
+        }
+
+        function sessaoValida() {
+            const raw = localStorage.getItem(SESSION_KEY);
+            if (!raw) return false;
+            try {
+                const sessao = JSON.parse(raw);
+                return !!(sessao && (sessao.authenticated === true || sessao.user));
+            } catch (err) {
+                localStorage.removeItem(SESSION_KEY);
+                return false;
+            }
+        }
+
+        function criarSessao() {
+            localStorage.setItem(
+                SESSION_KEY,
+                JSON.stringify({
+                    authenticated: true,
+                    unlockedAt: new Date().toISOString()
+                })
+            );
+        }
+
+        function mostrarErro(msg) {
+            errorBox.className = 'feedback error';
+            errorBox.textContent = msg;
+        }
+
+        function limparErro() {
+            errorBox.className = 'feedback';
+            errorBox.textContent = '';
+        }
+
+        function limparCamposRecuperacao() {
+            recoveryKeyword.value = '';
+            recoveryNewPin.value = '';
+            recoveryNewPinConfirm.value = '';
+        }
+
+        function abrirRecuperacao() {
+            if (!hashRecuperacaoValido()) {
+                mostrarErro('Recuperacao indisponivel neste dispositivo.');
+                return;
+            }
+
+            limparErro();
+            recoveryPanel.classList.remove('hidden');
+            forgotPinBtn.classList.add('hidden');
+            recoveryKeyword.focus();
+        }
+
+        function fecharRecuperacao() {
+            recoveryPanel.classList.add('hidden');
+            if (!modoPrimeiroAcesso && hashRecuperacaoValido()) {
+                forgotPinBtn.classList.remove('hidden');
+            }
+            limparCamposRecuperacao();
+            limparErro();
+        }
+
+        function processarRecuperacao() {
+            limparErro();
+
+            const hashSalvo = hashRecuperacaoValido();
+            if (!hashSalvo) {
+                mostrarErro('Recuperacao indisponivel neste dispositivo.');
+                return;
+            }
+
+            const chave = normalizarPalavraChave(recoveryKeyword.value);
+            if (chave.length < 3) {
+                mostrarErro('Informe sua palavra-chave de recuperacao.');
+                return;
+            }
+
+            const novoPin = sanitizarPin(recoveryNewPin.value);
+            const confirmaNovoPin = sanitizarPin(recoveryNewPinConfirm.value);
+
+            if (!pinValido(novoPin)) {
+                mostrarErro('Use um novo PIN numerico com 4 a 6 digitos.');
+                return;
+            }
+
+            if (novoPin !== confirmaNovoPin) {
+                mostrarErro('Os novos PINs nao conferem.');
+                return;
+            }
+
+            const hashInformado = gerarHashRecuperacao(chave);
+            if (hashInformado !== hashSalvo) {
+                mostrarErro('Palavra-chave incorreta.');
+                recoveryKeyword.focus();
+                return;
+            }
+
+            localStorage.setItem(PIN_MASTER_KEY, novoPin);
+            criarSessao();
+            window.location.href = 'app.html';
+        }
+
+        function configurarTela() {
+            if (modoPrimeiroAcesso) {
+                modeChip.textContent = 'Primeiro acesso';
+                screenTitle.textContent = 'Crie seu PIN master';
+                screenSubtitle.textContent = 'Defina um PIN numerico de 4 a 6 digitos para proteger os dados da pizzaria.';
+                submitBtn.textContent = 'Salvar PIN e entrar';
+                setupFields.classList.remove('hidden');
+                unlockFields.classList.add('hidden');
+                setupPin.required = true;
+                setupPinConfirm.required = true;
+                setupRecovery.required = true;
+                unlockPin.required = false;
+                setupPin.focus();
+                return;
+            }
+
+            modeChip.textContent = 'Acesso bloqueado';
+            screenTitle.textContent = 'Digite seu PIN master';
+            screenSubtitle.textContent = 'Informe o PIN para liberar o PizzaControl neste navegador.';
+            submitBtn.textContent = 'Desbloquear';
+            setupFields.classList.add('hidden');
+            unlockFields.classList.remove('hidden');
+            setupPin.required = false;
+            setupPinConfirm.required = false;
+            setupRecovery.required = false;
+            unlockPin.required = true;
+
+            const recDisponivel = !!hashRecuperacaoValido();
+            forgotPinBtn.classList.toggle('hidden', !recDisponivel);
+            recoveryPanel.classList.add('hidden');
+            unlockPin.focus();
+        }
+
+        if (sessaoValida()) {
+            window.location.replace('app.html');
+        }
+
+        [setupPin, setupPinConfirm, unlockPin, recoveryNewPin, recoveryNewPinConfirm].forEach((campo) => {
+            if (!campo) return;
+            campo.addEventListener('input', () => {
+                campo.value = sanitizarPin(campo.value);
+                limparErro();
+            });
         });
 
-        window.handleLogin = async function(e) {
-            e.preventDefault();
-            const email = document.getElementById('username').value.trim();
-            const pass = document.getElementById('password').value;
-            const btn = document.getElementById('btnLogin');
-            const error = document.getElementById('errorMsg');
+        [setupRecovery, recoveryKeyword].forEach((campo) => {
+            if (!campo) return;
+            campo.addEventListener('input', limparErro);
+        });
 
-            error.classList.remove('show');
-            btn.classList.add('loading');
-            error.innerHTML = "⚠️ E-mail ou senha incorretos!"; // Default text
-
-            try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-                const docSnap = await getDoc(doc(db, 'usuarios', userCredential.user.uid));
-                
-                console.log("Checando UID:", userCredential.user.uid);
-                if (docSnap.exists()) {
-                    console.log("Dados encontrados:", docSnap.data());
+        document.querySelectorAll('.toggle-visibility').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const targetId = btn.getAttribute('data-target');
+                const input = document.getElementById(targetId);
+                if (!input) return;
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    btn.textContent = 'OCULTAR';
                 } else {
-                    console.log("Dados encontrados: <nenhum documento de usuário>");
+                    input.type = 'password';
+                    btn.textContent = 'VER';
                 }
-                
-                if (!docSnap.exists() || docSnap.data().status !== 'ativo') {
-                    await signOut(auth);
-                    btn.classList.remove('loading');
-                    abrirModalPlanos(userCredential.user.uid);
-                    return; // PARALISA A EXECUÇÃO AQUI
-                }
-                
-                // SÓ CHEGA AQUI SE FOR 'ativo'
-                window.location.href = 'app.html';
-                
-            } catch (err) {
-                console.error("Erro no login:", err);
-                btn.classList.remove('loading');
-                error.classList.add('show');
-                error.innerHTML = "⚠️ E-mail ou senha incorretos!";
-                document.getElementById('password').value = '';
-                document.getElementById('password').focus();
-            }
-        };
+            });
+        });
 
-        window.togglePass = function() {
-            const inp = document.getElementById('password');
-            const btn = document.querySelector('.toggle-password');
-            if (inp.type === 'password') {
-                inp.type = 'text'; btn.textContent = '🙈';
-            } else {
-                inp.type = 'password'; btn.textContent = '👁️';
+        forgotPinBtn.addEventListener('click', abrirRecuperacao);
+        cancelRecoveryBtn.addEventListener('click', fecharRecuperacao);
+        confirmRecoveryBtn.addEventListener('click', processarRecuperacao);
+
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            limparErro();
+
+            if (modoPrimeiroAcesso) {
+                const novoPin = sanitizarPin(setupPin.value);
+                const confirmarPin = sanitizarPin(setupPinConfirm.value);
+                const palavra = normalizarPalavraChave(setupRecovery.value);
+
+                if (!pinValido(novoPin)) {
+                    mostrarErro('Use um PIN numerico com 4 a 6 digitos.');
+                    return;
+                }
+
+                if (novoPin !== confirmarPin) {
+                    mostrarErro('Os PINs digitados nao conferem.');
+                    return;
+                }
+
+                if (palavra.length < 3) {
+                    mostrarErro('Defina uma palavra-chave com pelo menos 3 caracteres.');
+                    return;
+                }
+
+                localStorage.setItem(PIN_MASTER_KEY, novoPin);
+                localStorage.setItem(RECOVERY_HASH_KEY, gerarHashRecuperacao(palavra));
+                criarSessao();
+                window.location.href = 'app.html';
+                return;
             }
-        };
+
+            const pinInformado = sanitizarPin(unlockPin.value);
+            const pinCadastrado = localStorage.getItem(PIN_MASTER_KEY) || '';
+
+            if (!pinValido(pinInformado)) {
+                mostrarErro('Digite um PIN valido para continuar.');
+                return;
+            }
+
+            if (pinInformado !== pinCadastrado) {
+                mostrarErro('PIN incorreto. Tente novamente.');
+                unlockPin.value = '';
+                unlockPin.focus();
+                return;
+            }
+
+            criarSessao();
+            window.location.href = 'app.html';
+        });
+
+        configurarTela();
     </script>
 </body>
 </html>
