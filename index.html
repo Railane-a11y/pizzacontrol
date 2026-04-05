@@ -8,413 +8,114 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍕</text></svg>">
     <title>PizzaControl | PIN Master</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --bg-1: #f6f9fc;
-            --bg-2: #eef2ff;
-            --ink-900: #111827;
-            --ink-700: #374151;
-            --ink-500: #6b7280;
-            --line: #e5e7eb;
-            --brand: #0f766e;
-            --brand-2: #0b5f59;
-            --danger: #dc2626;
-            --card: rgba(255, 255, 255, 0.85);
-            --shadow: 0 28px 70px rgba(15, 23, 42, 0.16);
-        }
-
-        body {
-            min-height: 100vh;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            color: var(--ink-900);
-            background:
-                radial-gradient(circle at 12% 10%, rgba(20, 184, 166, 0.16), transparent 44%),
-                radial-gradient(circle at 88% 16%, rgba(14, 165, 233, 0.16), transparent 40%),
-                linear-gradient(160deg, var(--bg-1), var(--bg-2));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 26px;
-        }
-
-        .shell {
-            width: 100%;
-            max-width: 460px;
-        }
-
-        .card {
-            background: var(--card);
-            border: 1px solid rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border-radius: 26px;
-            box-shadow: var(--shadow);
-            padding: 34px 30px;
-            animation: riseIn 420ms ease;
-        }
-
-        @keyframes riseIn {
-            from {
-                transform: translateY(16px);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 8px;
-            font-size: 1.35rem;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-        }
-
-        .brand-icon {
-            width: 34px;
-            height: 34px;
-            border-radius: 10px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #0f766e, #0284c7);
-            color: #fff;
-            box-shadow: 0 12px 24px rgba(2, 132, 199, 0.25);
-            font-size: 18px;
-        }
-
-        .tagline {
-            color: var(--ink-500);
-            font-size: 0.9rem;
-            line-height: 1.45;
-            margin-bottom: 18px;
-        }
-
-        .chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            border-radius: 999px;
-            border: 1px solid rgba(15, 118, 110, 0.26);
-            background: rgba(15, 118, 110, 0.08);
-            color: var(--brand-2);
-            font-size: 0.76rem;
-            font-weight: 700;
-            padding: 6px 11px;
-            margin-bottom: 14px;
-        }
-
-        h1 {
-            font-size: 1.52rem;
-            line-height: 1.2;
-            letter-spacing: -0.02em;
-            margin-bottom: 8px;
-        }
-
-        .subtitle {
-            color: var(--ink-700);
-            font-size: 0.95rem;
-            line-height: 1.45;
-            margin-bottom: 18px;
-        }
-
-        .field-group {
-            display: grid;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .field {
-            display: grid;
-            gap: 6px;
-        }
-
-        .field label {
-            font-size: 0.82rem;
-            color: var(--ink-700);
-            font-weight: 600;
-        }
-
-        .input-wrap {
-            display: flex;
-            align-items: center;
-            border: 1px solid var(--line);
-            border-radius: 14px;
-            background: #fff;
-            transition: border-color 0.2s, box-shadow 0.2s;
-            overflow: hidden;
-        }
-
-        .input-wrap:focus-within {
-            border-color: rgba(15, 118, 110, 0.6);
-            box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.12);
-        }
-
-        .input-wrap input {
-            width: 100%;
-            border: 0;
-            outline: 0;
-            font-size: 1.08rem;
-            font-weight: 600;
-            color: var(--ink-900);
-            padding: 14px 14px;
-            font-family: inherit;
-            letter-spacing: 0.14em;
-            text-align: center;
-        }
-
-        .toggle-visibility {
-            border: 0;
-            background: transparent;
-            color: var(--ink-500);
-            font-weight: 700;
-            cursor: pointer;
-            padding: 0 12px;
-            font-size: 0.8rem;
-            letter-spacing: 0.04em;
-        }
-
-        .hint {
-            margin-top: 2px;
-            font-size: 0.78rem;
-            color: var(--ink-500);
-            line-height: 1.4;
-        }
-
-        .link-muted {
-            border: 0;
-            background: transparent;
-            color: #64748b;
-            font-size: 0.78rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            text-decoration: underline;
-            text-underline-offset: 3px;
-            cursor: pointer;
-            width: fit-content;
-            margin-top: 2px;
-            padding: 0;
-        }
-
-        .link-muted:hover {
-            color: #0f766e;
-        }
-
-        .recovery-panel {
-            margin-top: 10px;
-            border: 1px solid #dbe3ec;
-            border-radius: 14px;
-            background: #f8fbff;
-            padding: 12px;
-            display: grid;
-            gap: 10px;
-        }
-
-        .recovery-head {
-            font-size: 0.82rem;
-            font-weight: 700;
-            color: #0f172a;
-        }
-
-        .recovery-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .btn-secondary {
-            flex: 1;
-            border-radius: 12px;
-            border: 1px solid var(--line);
-            background: #fff;
-            color: var(--ink-700);
-            font-family: inherit;
-            font-weight: 700;
-            font-size: 0.84rem;
-            padding: 10px 12px;
-            cursor: pointer;
-        }
-
-        .btn-secondary:hover {
-            border-color: #cbd5e1;
-            background: #f8fafc;
-        }
-
-        .btn-primary {
-            width: 100%;
-            margin-top: 4px;
-            border: 0;
-            border-radius: 14px;
-            background: linear-gradient(135deg, var(--brand), #0284c7);
-            color: #fff;
-            font-family: inherit;
-            font-weight: 700;
-            font-size: 0.96rem;
-            padding: 14px 16px;
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            box-shadow: 0 14px 24px rgba(2, 132, 199, 0.24);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 16px 28px rgba(2, 132, 199, 0.28);
-        }
-
-        .recovery-actions .btn-primary {
-            flex: 1;
-            width: auto;
-            margin-top: 0;
-            padding: 10px 12px;
-            font-size: 0.84rem;
-            box-shadow: none;
-        }
-
-        .recovery-actions .btn-primary:hover {
-            box-shadow: none;
-            transform: none;
-        }
-
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style type="text/tailwindcss">
         .feedback {
-            display: none;
-            margin-top: 12px;
-            border-radius: 12px;
-            padding: 10px 12px;
-            font-size: 0.84rem;
-            font-weight: 600;
+            @apply hidden mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700;
         }
 
         .feedback.error {
-            display: block;
-            border: 1px solid rgba(220, 38, 38, 0.25);
-            background: rgba(220, 38, 38, 0.08);
-            color: var(--danger);
-        }
-
-        .footer-note {
-            margin-top: 14px;
-            color: var(--ink-500);
-            font-size: 0.75rem;
-            line-height: 1.45;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        @media (max-width: 480px) {
-            body {
-                padding: 16px;
-            }
-
-            .card {
-                padding: 26px 20px;
-                border-radius: 20px;
-            }
-
-            h1 {
-                font-size: 1.34rem;
-            }
+            @apply block;
         }
     </style>
 </head>
-<body>
-    <div class="shell">
-        <section class="card">
-            <div class="brand">
-                <span class="brand-icon">P</span>
-                <span>PizzaControl</span>
-            </div>
-            <p class="tagline">Painel financeiro offline com acesso vitalicio neste dispositivo.</p>
-
-            <span class="chip" id="modeChip">Primeiro acesso</span>
-
-            <h1 id="screenTitle">Crie seu PIN master</h1>
-            <p class="subtitle" id="screenSubtitle">Defina um PIN numerico de 4 a 6 digitos para proteger os dados da pizzaria.</p>
-
-            <form id="pinForm" autocomplete="off">
-                <div id="setupFields" class="field-group">
-                    <div class="field">
-                        <label for="setupPin">Novo PIN</label>
-                        <div class="input-wrap">
-                            <input id="setupPin" type="password" inputmode="numeric" maxlength="6" placeholder="0000" required>
-                            <button type="button" class="toggle-visibility" data-target="setupPin">VER</button>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label for="setupPinConfirm">Confirmar PIN</label>
-                        <div class="input-wrap">
-                            <input id="setupPinConfirm" type="password" inputmode="numeric" maxlength="6" placeholder="0000" required>
-                            <button type="button" class="toggle-visibility" data-target="setupPinConfirm">VER</button>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label for="setupRecovery">Palavra-Chave de Recuperacao</label>
-                        <div class="input-wrap">
-                            <input id="setupRecovery" type="text" maxlength="80" placeholder="Ex: comida favorita" required>
-                        </div>
-                        <p class="hint">Use uma referencia que so voce saiba para recuperar o PIN.</p>
+<body class="bg-slate-50 text-slate-900 antialiased" style="font-family: 'Plus Jakarta Sans', sans-serif;">
+    <main class="min-h-screen flex items-center justify-center px-4 py-8 sm:px-6">
+        <div class="w-full max-w-md">
+            <section class="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 sm:p-8">
+                <div class="mb-5 flex items-center gap-3">
+                    <div class="h-11 w-11 rounded-xl bg-red-600 text-white flex items-center justify-center font-bold shadow-lg shadow-red-200">🍕</div>
+                    <div>
+                        <p class="text-xl font-extrabold tracking-tight text-slate-900">PizzaControl</p>
+                        <p class="text-xs text-slate-500">Acesso interno protegido</p>
                     </div>
                 </div>
 
-                <div id="unlockFields" class="field-group hidden">
-                    <div class="field">
-                        <label for="unlockPin">PIN master</label>
-                        <div class="input-wrap">
-                            <input id="unlockPin" type="password" inputmode="numeric" maxlength="6" placeholder="Digite seu PIN" required>
-                            <button type="button" class="toggle-visibility" data-target="unlockPin">VER</button>
+                <span id="modeChip" class="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">Primeiro acesso</span>
+
+                <h1 id="screenTitle" class="mt-4 text-2xl font-bold tracking-tight text-slate-900">Crie seu PIN master</h1>
+                <p id="screenSubtitle" class="mt-2 text-sm leading-relaxed text-slate-600">Defina um PIN numerico de 4 a 6 digitos para proteger os dados da pizzaria.</p>
+
+                <form id="pinForm" autocomplete="off" class="mt-6 space-y-4">
+                    <div id="setupFields" class="space-y-4">
+                        <div class="space-y-1.5">
+                            <label for="setupPin" class="text-xs font-semibold uppercase tracking-wide text-slate-700">Novo PIN</label>
+                            <div class="flex items-center rounded-xl border border-slate-300 bg-white focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/20">
+                                <input id="setupPin" type="password" inputmode="numeric" maxlength="6" placeholder="0000" required class="w-full bg-white px-3 py-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400">
+                                <button type="button" class="toggle-visibility px-3 text-xs font-bold text-slate-600 hover:text-red-600" data-target="setupPin">VER</button>
+                            </div>
                         </div>
-                        <p class="hint">Digite o PIN cadastrado para liberar o painel.</p>
-                        <button type="button" class="link-muted hidden" id="forgotPinBtn">Esqueci meu PIN</button>
+
+                        <div class="space-y-1.5">
+                            <label for="setupPinConfirm" class="text-xs font-semibold uppercase tracking-wide text-slate-700">Confirmar PIN</label>
+                            <div class="flex items-center rounded-xl border border-slate-300 bg-white focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/20">
+                                <input id="setupPinConfirm" type="password" inputmode="numeric" maxlength="6" placeholder="0000" required class="w-full bg-white px-3 py-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400">
+                                <button type="button" class="toggle-visibility px-3 text-xs font-bold text-slate-600 hover:text-red-600" data-target="setupPinConfirm">VER</button>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label for="setupRecovery" class="text-xs font-semibold uppercase tracking-wide text-slate-700">Palavra-Chave de Recuperacao</label>
+                            <div class="flex items-center rounded-xl border border-slate-300 bg-white focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/20">
+                                <input id="setupRecovery" type="text" maxlength="80" placeholder="Ex: comida favorita" required class="w-full bg-white px-3 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400">
+                            </div>
+                            <p class="text-xs text-slate-500">Use uma referencia que so voce saiba para recuperar o PIN.</p>
+                        </div>
                     </div>
 
-                    <div id="recoveryPanel" class="recovery-panel hidden">
-                        <div class="recovery-head">Recuperacao de emergencia</div>
-                        <div class="field">
-                            <label for="recoveryKeyword">Palavra-Chave</label>
-                            <div class="input-wrap">
-                                <input id="recoveryKeyword" type="text" maxlength="80" placeholder="Digite sua palavra-chave">
+                    <div id="unlockFields" class="hidden space-y-4">
+                        <div class="space-y-1.5">
+                            <label for="unlockPin" class="text-xs font-semibold uppercase tracking-wide text-slate-700">PIN master</label>
+                            <div class="flex items-center rounded-xl border border-slate-300 bg-white focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/20">
+                                <input id="unlockPin" type="password" inputmode="numeric" maxlength="6" placeholder="Digite seu PIN" required class="w-full bg-white px-3 py-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400">
+                                <button type="button" class="toggle-visibility px-3 text-xs font-bold text-slate-600 hover:text-red-600" data-target="unlockPin">VER</button>
                             </div>
+                            <p class="text-xs text-slate-500">Digite o PIN cadastrado para liberar o painel.</p>
+                            <button type="button" id="forgotPinBtn" class="hidden text-xs font-semibold text-slate-500 underline underline-offset-4 hover:text-red-600">Esqueci meu PIN</button>
                         </div>
-                        <div class="field">
-                            <label for="recoveryNewPin">Novo PIN</label>
-                            <div class="input-wrap">
-                                <input id="recoveryNewPin" type="password" inputmode="numeric" maxlength="6" placeholder="4 a 6 digitos">
-                                <button type="button" class="toggle-visibility" data-target="recoveryNewPin">VER</button>
+
+                        <div id="recoveryPanel" class="hidden space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                            <div class="text-xs font-bold uppercase tracking-wide text-slate-700">Recuperacao de emergencia</div>
+
+                            <div class="space-y-1.5">
+                                <label for="recoveryKeyword" class="text-xs font-semibold uppercase tracking-wide text-slate-700">Palavra-Chave</label>
+                                <div class="flex items-center rounded-xl border border-slate-300 bg-white focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/20">
+                                    <input id="recoveryKeyword" type="text" maxlength="80" placeholder="Digite sua palavra-chave" class="w-full bg-white px-3 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400">
+                                </div>
                             </div>
-                        </div>
-                        <div class="field">
-                            <label for="recoveryNewPinConfirm">Confirmar Novo PIN</label>
-                            <div class="input-wrap">
-                                <input id="recoveryNewPinConfirm" type="password" inputmode="numeric" maxlength="6" placeholder="Repita o novo PIN">
-                                <button type="button" class="toggle-visibility" data-target="recoveryNewPinConfirm">VER</button>
+
+                            <div class="space-y-1.5">
+                                <label for="recoveryNewPin" class="text-xs font-semibold uppercase tracking-wide text-slate-700">Novo PIN</label>
+                                <div class="flex items-center rounded-xl border border-slate-300 bg-white focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/20">
+                                    <input id="recoveryNewPin" type="password" inputmode="numeric" maxlength="6" placeholder="4 a 6 digitos" class="w-full bg-white px-3 py-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400">
+                                    <button type="button" class="toggle-visibility px-3 text-xs font-bold text-slate-600 hover:text-red-600" data-target="recoveryNewPin">VER</button>
+                                </div>
                             </div>
-                        </div>
-                        <div class="recovery-actions">
-                            <button type="button" class="btn-secondary" id="cancelRecoveryBtn">Cancelar</button>
-                            <button type="button" class="btn-primary" id="confirmRecoveryBtn">Redefinir PIN</button>
+
+                            <div class="space-y-1.5">
+                                <label for="recoveryNewPinConfirm" class="text-xs font-semibold uppercase tracking-wide text-slate-700">Confirmar Novo PIN</label>
+                                <div class="flex items-center rounded-xl border border-slate-300 bg-white focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/20">
+                                    <input id="recoveryNewPinConfirm" type="password" inputmode="numeric" maxlength="6" placeholder="Repita o novo PIN" class="w-full bg-white px-3 py-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400">
+                                    <button type="button" class="toggle-visibility px-3 text-xs font-bold text-slate-600 hover:text-red-600" data-target="recoveryNewPinConfirm">VER</button>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2 pt-1">
+                                <button type="button" id="cancelRecoveryBtn" class="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100">Cancelar</button>
+                                <button type="button" id="confirmRecoveryBtn" class="flex-1 rounded-xl bg-red-600 px-3 py-2.5 text-xs font-bold text-white hover:bg-red-700">Redefinir PIN</button>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <button type="submit" class="btn-primary" id="submitBtn">Salvar PIN e entrar</button>
-            </form>
+                    <button type="submit" id="submitBtn" class="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-700">Salvar PIN e entrar</button>
+                </form>
 
-            <p id="errorBox" class="feedback"></p>
+                <p id="errorBox" class="feedback"></p>
 
-            <p class="footer-note">Seu PIN e seus dados ficam armazenados apenas no navegador deste dispositivo.</p>
-        </section>
-    </div>
+                <p class="mt-4 text-xs leading-relaxed text-slate-500">Seu PIN e seus dados ficam armazenados apenas no navegador deste dispositivo.</p>
+            </section>
+        </div>
+    </main>
 
     <script>
         const PIN_MASTER_KEY = 'pizzaControlPinMaster';
