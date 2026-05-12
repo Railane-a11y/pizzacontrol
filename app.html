@@ -1299,6 +1299,7 @@
         <button class="nav-tab" data-page="nova-ficha">➕ Criar Ficha</button>
         <button class="nav-tab" data-page="massa">🥖 Massa</button>
         <button class="nav-tab" data-page="custos">💼 Custos Fixos</button>
+        <button class="nav-tab" data-page="produtos">🥤 Bebidas</button>
         <button class="nav-tab" data-page="precificar">💰 Gerar Preço</button>
         <button class="nav-tab" data-page="config">⚙️ Configurações</button>
         
@@ -1647,6 +1648,38 @@
                 </div>
             </div>
         </div>
+        <!-- BEBIDAS E ADICIONAIS -->
+        <div class="page" id="page-produtos">
+            <div class="alert alert-info">🥤 Cadastre bebidas, cervejas, doces e adicionais. Esses itens serão usados no <strong>Simulador de Combos</strong>.</div>
+            <div class="card">
+                <div class="card-header" style="background:linear-gradient(135deg, #00796b, #26a69a)">🥤 Bebidas e Adicionais <button class="btn btn-warning btn-sm" onclick="abrirModalProduto()">+ Novo</button></div>
+                <div class="card-body">
+                    <div class="search-row"><input type="text" class="form-control" placeholder="🔍 Buscar produto..." id="buscaProd" oninput="filtrarProdutosBusca()"></div>
+                    <div class="size-tabs">
+                        <button class="size-tab all prod-cat-tab active" onclick="filtrarProdutos('all',this)">Todos <span class="size-count" id="cntProdAll">0</span></button>
+                        <button class="size-tab prod-cat-tab" style="border-color:#2196f3" onclick="filtrarProdutos('Bebida',this)">🥤 Bebidas <span class="size-count" id="cntProdBeb">0</span></button>
+                        <button class="size-tab prod-cat-tab" style="border-color:#ff9800" onclick="filtrarProdutos('Cerveja',this)">🍺 Cervejas <span class="size-count" id="cntProdCerv">0</span></button>
+                        <button class="size-tab prod-cat-tab" style="border-color:#e91e63" onclick="filtrarProdutos('Doce',this)">🍫 Doces <span class="size-count" id="cntProdDoce">0</span></button>
+                        <button class="size-tab prod-cat-tab" style="border-color:#9c27b0" onclick="filtrarProdutos('Adicional',this)">➕ Adicionais <span class="size-count" id="cntProdAdic">0</span></button>
+                    </div>
+                    <div style="overflow-x:auto">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Categoria</th>
+                                    <th>Custo</th>
+                                    <th>Venda</th>
+                                    <th>Lucro</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tblProdutos"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
         <!-- PRECIFICAR -->
         <div class="page" id="page-precificar">
             <div class="alert alert-info">💰 Use as calculadoras para encontrar o preço ideal. CMV recomendado:
@@ -1740,6 +1773,43 @@
                     <div id="maMResultado" style="display:none"></div>
                 </div>
             </div>
+            <!-- SIMULADOR DE COMBOS VIP -->
+            <div class="card" style="margin-top:20px">
+                <div class="card-header" style="background:linear-gradient(135deg, #1565c0, #42a5f5)">🎯 Simulador de Combos VIP</div>
+                <div class="card-body">
+                    <div class="alert alert-info" style="margin-bottom:15px">
+                        🍕 Monte um combo <strong>Pizza + Bebida + Adicional</strong> e descubra o lucro real, mesmo com desconto promocional.
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>🍕 Pizza (Ficha Técnica)</label>
+                            <select class="form-control" id="comboPizza" onchange="calcCombo()">
+                                <option value="">-- Selecione a Pizza --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>🥤 Bebida</label>
+                            <select class="form-control" id="comboBebida" onchange="calcCombo()">
+                                <option value="">-- Selecione a Bebida --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>➕ Adicional / Doce (opcional)</label>
+                            <select class="form-control" id="comboAdicional" onchange="calcCombo()">
+                                <option value="">-- Nenhum (opcional) --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>🏷️ Preço Promocional do Combo (R$)</label>
+                            <input type="number" class="form-control" id="comboPrecoPromo" placeholder="Ex: 49.90" step="0.01" oninput="calcCombo()">
+                            <small style="color:#777">Deixe vazio para usar a soma dos preços individuais</small>
+                        </div>
+                    </div>
+                    <div id="comboResultado" style="display:none"></div>
+                </div>
+            </div>
         </div>
         <!-- CONFIG -->
         <div class="page" id="page-config">
@@ -1821,6 +1891,33 @@
                 </div>
                 <div class="alert alert-info" id="insPreview">💡 Preencha para ver o custo unitário</div>
                 <button class="btn btn-success btn-block" onclick="salvarInsumo()">💾 Salvar Insumo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PRODUTO PRONTO -->
+    <div class="modal-bg" id="modalProd">
+        <div class="modal">
+            <div class="modal-header" style="background:linear-gradient(135deg, #00796b, #26a69a)">
+                <h3 id="modalProdTitle">🥤 Novo Produto</h3><button class="modal-close" onclick="fecharModal('modalProd')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="prodId">
+                <div class="form-row">
+                    <div class="form-group"><label>Nome do Produto <span class="required">*</span></label><input type="text" class="form-control" id="prodNome" placeholder="Ex: Coca-Cola 2L"></div>
+                    <div class="form-group"><label>Categoria</label><select class="form-control" id="prodCat">
+                            <option value="Bebida">🥤 Bebida (Refrigerante/Suco)</option>
+                            <option value="Cerveja">🍺 Cerveja</option>
+                            <option value="Doce">🍫 Doce / Sobremesa</option>
+                            <option value="Adicional">➕ Adicional (Borda, Extra)</option>
+                        </select></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Preço de Custo (Compra) <span class="required">*</span></label><input type="number" class="form-control" id="prodCusto" placeholder="4.50" step="0.01" oninput="previewProduto()"></div>
+                    <div class="form-group"><label>Preço de Venda <span class="required">*</span></label><input type="number" class="form-control" id="prodVenda" placeholder="8.00" step="0.01" oninput="previewProduto()"></div>
+                </div>
+                <div class="alert alert-info" id="prodPreview">💡 Preencha custo e venda para ver</div>
+                <button class="btn btn-success btn-block" onclick="salvarProduto()">💾 Salvar Produto</button>
             </div>
         </div>
     </div>

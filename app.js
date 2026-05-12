@@ -34,11 +34,13 @@ const DB_PADRAO = {
     config: {
         nomePizzaria: '',
         meta: 15000
-    }
+    },
+    produtosProntos: []
 };
 
 let DB = clonar(DB_PADRAO);
 let editandoFichaId = null;
+let editandoProdutoId = null;
 let filtroTam = 'all';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -236,7 +238,18 @@ function normalizarDados(raw) {
         meta: numero(configOrigem.meta, 15000) || 15000
     };
 
-    return { insumos, fichas, custos, massa, config };
+    const produtosProntos = Array.isArray(origem.produtosProntos)
+        ? origem.produtosProntos.map((p) => ({
+              id: String(p.id || gerarId()),
+              nome: (p.nome || '').trim(),
+              categoria: p.categoria || 'Bebida',
+              precoCusto: numero(p.precoCusto),
+              precoVenda: numero(p.precoVenda),
+              lucro: numero(p.lucro, numero(p.precoVenda) - numero(p.precoCusto))
+          }))
+        : [];
+
+    return { insumos, fichas, custos, massa, config, produtosProntos };
 }
 
 function obterPrimeiroValor(keys) {
@@ -370,6 +383,7 @@ function renderAll() {
     renderHeader();
     renderInsumos();
     renderFichas();
+    renderProdutosProntos();
     renderDashboard();
 }
 
@@ -389,6 +403,7 @@ function sincronizarUI() {
     refreshIngSelects();
     refreshMassaSelects();
     renderFichas();
+    renderProdutosProntos();
     renderDashboard();
     loadFichasSelect();
 }
@@ -418,7 +433,8 @@ function setupNav() {
                 refreshMassaSelects();
                 calcMassa();
             }
-            if (tab.dataset.page === 'precificar') { loadFichasSelect(); loadFichasSelectMeioAMeio(); }
+            if (tab.dataset.page === 'precificar') { loadFichasSelect(); loadFichasSelectMeioAMeio(); loadComboSelects(); }
+            if (tab.dataset.page === 'produtos') renderProdutosProntos();
             if (tab.dataset.page === 'fichas') renderFichas();
             if (tab.dataset.page === 'dashboard') renderDashboard();
 
@@ -1284,6 +1300,277 @@ function calcMeioAMeio() {
         </div>`;
 }
 
+// ===== PRODUTOS PRONTOS (Bebidas e Adicionais) =====
+let filtroProdCat = 'all';
+
+function abrirModalProduto(id = null) {
+    document.getElementById('modalProd').classList.add('show');
+    document.getElementById('prodId').value = '';
+    document.getElementById('prodNome').value = '';
+    document.getElementById('prodCat').value = 'Bebida';
+    document.getElementById('prodCusto').value = '';
+    document.getElementById('prodVenda').value = '';
+    document.getElementById('modalProdTitle').textContent = '🥤 Novo Produto';
+    editandoProdutoId = null;
+
+    if (id) {
+        const prod = DB.produtosProntos.find(p => p.id === id);
+        if (prod) {
+            editandoProdutoId = id;
+            document.getElementById('prodId').value = id;
+            document.getElementById('prodNome').value = prod.nome;
+            document.getElementById('prodCat').value = prod.categoria;
+            document.getElementById('prodCusto').value = prod.precoCusto;
+            document.getElementById('prodVenda').value = prod.precoVenda;
+            document.getElementById('modalProdTitle').textContent = '✏️ Editar Produto';
+        }
+    }
+    previewProduto();
+}
+
+function previewProduto() {
+    const custo = parseFloat(document.getElementById('prodCusto').value) || 0;
+    const venda = parseFloat(document.getElementById('prodVenda').value) || 0;
+    const prev = document.getElementById('prodPreview');
+    if (custo > 0 && venda > 0) {
+        const lucro = venda - custo;
+        const margem = (lucro / venda) * 100;
+        prev.innerHTML = '💡 Lucro: <strong>R$ ' + lucro.toFixed(2) + '</strong> | Margem: <strong>' + margem.toFixed(1) + '%</strong>';
+        prev.style.color = lucro >= 0 ? 'var(--success)' : 'var(--danger)';
+    } else {
+        prev.innerHTML = '💡 Preencha custo e venda para ver';
+        prev.style.color = '#666';
+    }
+}
+
+function salvarProduto() {
+    const nome = document.getElementById('prodNome').value.trim();
+    const cat = document.getElementById('prodCat').value;
+    const custo = parseFloat(document.getElementById('prodCusto').value) || 0;
+    const venda = parseFloat(document.getElementById('prodVenda').value) || 0;
+
+    if (!nome) { alert('⚠️ Preencha o nome do produto!'); return; }
+    if (custo <= 0) { alert('⚠️ Informe o preço de custo!'); return; }
+    if (venda <= 0) { alert('⚠️ Informe o preço de venda!'); return; }
+
+    const prodData = {
+        id: editandoProdutoId || gerarId(),
+        nome,
+        categoria: cat,
+        precoCusto: custo,
+        precoVenda: venda,
+        lucro: venda - custo
+    };
+
+    if (editandoProdutoId) {
+        const idx = DB.produtosProntos.findIndex(p => p.id === editandoProdutoId);
+        if (idx !== -1) DB.produtosProntos[idx] = prodData;
+        status('💾 Produto atualizado!');
+    } else {
+        DB.produtosProntos.push(prodData);
+        status('💾 Produto salvo!');
+    }
+
+    editandoProdutoId = null;
+    persistirDados(false);
+    fecharModal('modalProd');
+    renderProdutosProntos();
+    renderDashboard();
+}
+
+function excluirProduto(id) {
+    if (!confirm('Excluir este produto?')) return;
+    DB.produtosProntos = DB.produtosProntos.filter(p => p.id !== id);
+    persistirDados(false);
+    renderProdutosProntos();
+    renderDashboard();
+    status('🗑️ Produto excluído!');
+}
+
+function renderProdutosProntos() {
+    const tbody = document.getElementById('tblProdutos');
+    if (!tbody) return;
+
+    const prods = filtroProdCat === 'all'
+        ? DB.produtosProntos
+        : DB.produtosProntos.filter(p => p.categoria === filtroProdCat);
+
+    // Atualizar contadores
+    const cntProdAll = document.getElementById('cntProdAll');
+    const cntProdBeb = document.getElementById('cntProdBeb');
+    const cntProdCerv = document.getElementById('cntProdCerv');
+    const cntProdDoce = document.getElementById('cntProdDoce');
+    const cntProdAdic = document.getElementById('cntProdAdic');
+    if (cntProdAll) cntProdAll.textContent = DB.produtosProntos.length;
+    if (cntProdBeb) cntProdBeb.textContent = DB.produtosProntos.filter(p => p.categoria === 'Bebida').length;
+    if (cntProdCerv) cntProdCerv.textContent = DB.produtosProntos.filter(p => p.categoria === 'Cerveja').length;
+    if (cntProdDoce) cntProdDoce.textContent = DB.produtosProntos.filter(p => p.categoria === 'Doce').length;
+    if (cntProdAdic) cntProdAdic.textContent = DB.produtosProntos.filter(p => p.categoria === 'Adicional').length;
+
+    if (prods.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty"><div class="icon">🥤</div>Nenhum produto cadastrado</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = prods.map(p => {
+        const lucro = p.precoVenda - p.precoCusto;
+        const margem = p.precoVenda > 0 ? (lucro / p.precoVenda) * 100 : 0;
+        const catIcons = { 'Bebida': '🥤', 'Cerveja': '🍺', 'Doce': '🍫', 'Adicional': '➕' };
+        return `<tr>
+            <td><strong>${p.nome}</strong></td>
+            <td><span class="badge badge-info">${catIcons[p.categoria] || '📦'} ${p.categoria}</span></td>
+            <td>R$ ${p.precoCusto.toFixed(2)}</td>
+            <td>R$ ${p.precoVenda.toFixed(2)}</td>
+            <td><strong style="color:${lucro >= 0 ? 'var(--success)' : 'var(--danger)'}">R$ ${lucro.toFixed(2)}</strong><br><small>${margem.toFixed(1)}%</small></td>
+            <td class="actions">
+                <button class="btn btn-info btn-sm" onclick="abrirModalProduto('${p.id}')">✏️</button>
+                <button class="btn btn-danger btn-sm" onclick="excluirProduto('${p.id}')">🗑️</button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function filtrarProdutos(cat, btn) {
+    filtroProdCat = cat;
+    document.querySelectorAll('.prod-cat-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    renderProdutosProntos();
+}
+
+function filtrarProdutosBusca() {
+    const busca = document.getElementById('buscaProd').value.toLowerCase();
+    document.querySelectorAll('#tblProdutos tr').forEach(tr => {
+        tr.style.display = tr.textContent.toLowerCase().includes(busca) ? '' : 'none';
+    });
+}
+
+// ===== SIMULADOR DE COMBOS VIP =====
+function loadComboSelects() {
+    const selPizza = document.getElementById('comboPizza');
+    const selBebida = document.getElementById('comboBebida');
+    const selAdicional = document.getElementById('comboAdicional');
+    if (!selPizza || !selBebida) return;
+
+    // Pizza select (das fichas técnicas)
+    const valPizza = selPizza.value;
+    selPizza.innerHTML = '<option value="">-- Selecione a Pizza --</option>' +
+        DB.fichas.map(f => {
+            atualizarCustosDaFicha(f);
+            return `<option value="${f.id}">${f.nome} (${f.tamanho}) - Venda: R$ ${f.precoVenda.toFixed(2)}</option>`;
+        }).join('');
+    selPizza.value = valPizza;
+
+    // Bebida select (dos produtos prontos, categoria Bebida + Cerveja)
+    const bebidas = DB.produtosProntos.filter(p => p.categoria === 'Bebida' || p.categoria === 'Cerveja');
+    const valBebida = selBebida.value;
+    selBebida.innerHTML = '<option value="">-- Selecione a Bebida --</option>' +
+        bebidas.map(p => `<option value="${p.id}">${p.nome} - Venda: R$ ${p.precoVenda.toFixed(2)}</option>`).join('');
+    selBebida.value = valBebida;
+
+    // Adicional select (dos produtos prontos, categoria Adicional + Doce)
+    if (selAdicional) {
+        const adicionais = DB.produtosProntos.filter(p => p.categoria === 'Adicional' || p.categoria === 'Doce');
+        const valAdic = selAdicional.value;
+        selAdicional.innerHTML = '<option value="">-- Nenhum (opcional) --</option>' +
+            adicionais.map(p => `<option value="${p.id}">${p.nome} - Venda: R$ ${p.precoVenda.toFixed(2)}</option>`).join('');
+        selAdicional.value = valAdic;
+    }
+}
+
+function calcCombo() {
+    const idPizza = document.getElementById('comboPizza').value;
+    const idBebida = document.getElementById('comboBebida').value;
+    const idAdicional = document.getElementById('comboAdicional').value;
+    const resDiv = document.getElementById('comboResultado');
+
+    if (!idPizza || !idBebida) {
+        resDiv.style.display = 'none';
+        return;
+    }
+
+    const pizza = DB.fichas.find(f => f.id === idPizza);
+    const bebida = DB.produtosProntos.find(p => p.id === idBebida);
+    if (!pizza || !bebida) return;
+
+    atualizarCustosDaFicha(pizza);
+
+    const adicional = idAdicional ? DB.produtosProntos.find(p => p.id === idAdicional) : null;
+
+    // ===== CÁLCULOS DO COMBO =====
+    const custoPizza = pizza.custoTotal || 0;
+    const custoBebida = bebida.precoCusto || 0;
+    const custoAdicional = adicional ? (adicional.precoCusto || 0) : 0;
+    const custoTotalCombo = custoPizza + custoBebida + custoAdicional;
+
+    const vendaPizza = pizza.precoVenda || 0;
+    const vendaBebida = bebida.precoVenda || 0;
+    const vendaAdicional = adicional ? (adicional.precoVenda || 0) : 0;
+    const somaVendasIndividuais = vendaPizza + vendaBebida + vendaAdicional;
+
+    // Preço promocional digitado
+    const precoPromo = parseFloat(document.getElementById('comboPrecoPromo').value) || 0;
+    const precoFinal = precoPromo > 0 ? precoPromo : somaVendasIndividuais;
+    const desconto = somaVendasIndividuais - precoFinal;
+    const descontoPerc = somaVendasIndividuais > 0 ? (desconto / somaVendasIndividuais) * 100 : 0;
+
+    const lucroReal = precoFinal - custoTotalCombo;
+    const margem = precoFinal > 0 ? (lucroReal / precoFinal) * 100 : 0;
+    const cmv = precoFinal > 0 ? (custoTotalCombo / precoFinal) * 100 : 0;
+
+    resDiv.style.display = 'block';
+    resDiv.innerHTML = `
+        <div class="alert alert-info" style="margin-bottom:15px">
+            🎯 <strong>Combo:</strong> ${pizza.nome} + ${bebida.nome}${adicional ? ' + ' + adicional.nome : ''}
+        </div>
+        <table style="width:100%;margin:10px 0;font-size:0.9em">
+            <tr style="background:#f8f9fa"><td colspan="3" style="padding:8px;font-weight:bold">📊 Decomposição de Custos</td></tr>
+            <tr>
+                <td style="padding:6px">🍕 ${pizza.nome} (custo produção):</td>
+                <td></td>
+                <td style="text-align:right;padding:6px;font-weight:bold">R$ ${custoPizza.toFixed(2)}</td>
+            </tr>
+            <tr>
+                <td style="padding:6px">🥤 ${bebida.nome} (custo compra):</td>
+                <td></td>
+                <td style="text-align:right;padding:6px;font-weight:bold">R$ ${custoBebida.toFixed(2)}</td>
+            </tr>
+            ${adicional ? `<tr>
+                <td style="padding:6px">${adicional.categoria === 'Doce' ? '🍫' : '➕'} ${adicional.nome} (custo compra):</td>
+                <td></td>
+                <td style="text-align:right;padding:6px;font-weight:bold">R$ ${custoAdicional.toFixed(2)}</td>
+            </tr>` : ''}
+            <tr style="font-weight:bold;border-top:2px solid #333;background:#fff3e0">
+                <td style="padding:8px">CUSTO TOTAL DO COMBO:</td>
+                <td></td>
+                <td style="text-align:right;padding:8px;color:var(--danger);font-size:1.1em">R$ ${custoTotalCombo.toFixed(2)}</td>
+            </tr>
+        </table>
+        <table style="width:100%;margin:10px 0;font-size:0.9em">
+            <tr style="background:#e8f5e9"><td colspan="2" style="padding:8px;font-weight:bold">💰 Preços de Venda Individuais</td></tr>
+            <tr><td style="padding:6px">🍕 ${pizza.nome}:</td><td style="text-align:right;padding:6px">R$ ${vendaPizza.toFixed(2)}</td></tr>
+            <tr><td style="padding:6px">🥤 ${bebida.nome}:</td><td style="text-align:right;padding:6px">R$ ${vendaBebida.toFixed(2)}</td></tr>
+            ${adicional ? `<tr><td style="padding:6px">${adicional.categoria === 'Doce' ? '🍫' : '➕'} ${adicional.nome}:</td><td style="text-align:right;padding:6px">R$ ${vendaAdicional.toFixed(2)}</td></tr>` : ''}
+            <tr style="border-top:1px solid #ccc"><td style="padding:6px;font-weight:bold">Soma Individual:</td><td style="text-align:right;padding:6px;font-weight:bold">R$ ${somaVendasIndividuais.toFixed(2)}</td></tr>
+            ${precoPromo > 0 ? `<tr style="background:#fff8e1"><td style="padding:6px;font-weight:bold;color:#e65100">🏷️ Desconto Promocional:</td><td style="text-align:right;padding:6px;font-weight:bold;color:#e65100">- R$ ${desconto.toFixed(2)} (${descontoPerc.toFixed(1)}%)</td></tr>` : ''}
+        </table>
+        <div class="resumo-box" style="margin-top:15px">
+            <div class="resumo-grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr))">
+                <div class="resumo-item"><small>💰 Preço Combo</small><div class="val blue" style="font-size:1.3em">R$ ${precoFinal.toFixed(2)}</div></div>
+                <div class="resumo-item"><small>📦 Custo Total</small><div class="val red">R$ ${custoTotalCombo.toFixed(2)}</div></div>
+                <div class="resumo-item"><small>🎯 Lucro Real</small><div class="val ${lucroReal >= 0 ? 'green' : 'red'}" style="font-size:1.3em">R$ ${lucroReal.toFixed(2)}</div></div>
+                <div class="resumo-item"><small>📈 Margem</small><div class="val ${margem >= 50 ? 'green' : margem >= 30 ? 'yellow' : 'red'}">${margem.toFixed(1)}%</div></div>
+                <div class="resumo-item"><small>📊 CMV</small><div class="val ${cmv <= 30 ? 'green' : cmv <= 35 ? 'yellow' : 'red'}">${cmv.toFixed(1)}%</div></div>
+            </div>
+        </div>
+        <div class="alert ${lucroReal >= 0 ? 'alert-success' : 'alert-warning'}" style="margin-top:15px">
+            ${lucroReal >= 0
+                ? '✅ <strong>Combo viável!</strong> Lucro de R$ ' + lucroReal.toFixed(2) + ' com margem de ' + margem.toFixed(1) + '%.'
+                  + (precoPromo > 0 && desconto > 0 ? ' Desconto de ' + descontoPerc.toFixed(1) + '% sobre o preço individual.' : '')
+                : '⚠️ <strong>Atenção!</strong> Este combo gera prejuízo de R$ ' + Math.abs(lucroReal).toFixed(2) + '. Aumente o preço promocional.'
+            }
+        </div>`;
+}
+
 // ===== EXPORT/IMPORT =====
 function exportar() {
     const blob = new Blob([JSON.stringify(DB, null, 2)], { type: 'application/json' });
@@ -1333,6 +1620,11 @@ function importar(e) {
                 };
             }
             if (d.config) DB.config = d.config;
+            if (d.produtosProntos && d.produtosProntos.length > 0) {
+                d.produtosProntos.forEach(p => {
+                    DB.produtosProntos.push({ ...p, id: gerarId() });
+                });
+            }
 
             persistirDados(false);
             sincronizarUI();
