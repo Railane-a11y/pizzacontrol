@@ -1716,6 +1716,30 @@
                     </div>
                 </div>
             </div>
+            <!-- SIMULADOR MEIO A MEIO -->
+            <div class="card" style="margin-top:20px">
+                <div class="card-header" style="background:linear-gradient(135deg, #e65100, #ff9800)">🍕 Simulador Meio a Meio (2 Sabores)</div>
+                <div class="card-body">
+                    <div class="alert alert-info" style="margin-bottom:15px">
+                        📐 <strong>Regra:</strong> O preço cobrado é <strong>sempre o do sabor mais caro</strong>. O custo real é a <strong>soma da metade</strong> dos ingredientes de cada sabor.
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>🍕 Sabor A (1ª metade)</label>
+                            <select class="form-control" id="maMSaborA" onchange="calcMeioAMeio()">
+                                <option value="">-- Selecione --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>🍕 Sabor B (2ª metade)</label>
+                            <select class="form-control" id="maMSaborB" onchange="calcMeioAMeio()">
+                                <option value="">-- Selecione --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="maMResultado" style="display:none"></div>
+                </div>
+            </div>
         </div>
         <!-- CONFIG -->
         <div class="page" id="page-config">

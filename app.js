@@ -418,7 +418,7 @@ function setupNav() {
                 refreshMassaSelects();
                 calcMassa();
             }
-            if (tab.dataset.page === 'precificar') loadFichasSelect();
+            if (tab.dataset.page === 'precificar') { loadFichasSelect(); loadFichasSelectMeioAMeio(); }
             if (tab.dataset.page === 'fichas') renderFichas();
             if (tab.dataset.page === 'dashboard') renderDashboard();
 
@@ -1162,6 +1162,126 @@ function calcComFicha() {
     document.getElementById('cfP35').textContent = 'R$ ' + (custoTotal / 0.35).toFixed(2);
     document.getElementById('cfP30').textContent = 'R$ ' + (custoTotal / 0.3).toFixed(2);
     document.getElementById('cfP25').textContent = 'R$ ' + (custoTotal / 0.25).toFixed(2);
+}
+
+// ===== MEIO A MEIO =====
+function loadFichasSelectMeioAMeio() {
+    const selA = document.getElementById('maMSaborA');
+    const selB = document.getElementById('maMSaborB');
+    if (!selA || !selB) return;
+
+    const options = '<option value="">-- Selecione --</option>' +
+        DB.fichas.map(f => `<option value="${f.id}">${f.nome} (${f.tamanho}) - R$ ${f.precoVenda.toFixed(2)}</option>`).join('');
+    
+    const valA = selA.value;
+    const valB = selB.value;
+    selA.innerHTML = options;
+    selB.innerHTML = options;
+    selA.value = valA;
+    selB.value = valB;
+}
+
+function calcMeioAMeio() {
+    const idA = document.getElementById('maMSaborA').value;
+    const idB = document.getElementById('maMSaborB').value;
+    const resDiv = document.getElementById('maMResultado');
+
+    if (!idA || !idB) {
+        resDiv.style.display = 'none';
+        return;
+    }
+
+    if (idA === idB) {
+        resDiv.style.display = 'block';
+        resDiv.innerHTML = '<div class="alert alert-warning" style="margin:0">⚠️ Selecione dois sabores <strong>diferentes</strong> para simular a Meio a Meio!</div>';
+        return;
+    }
+
+    const fichaA = DB.fichas.find(f => f.id === idA);
+    const fichaB = DB.fichas.find(f => f.id === idB);
+    if (!fichaA || !fichaB) return;
+
+    // Atualizar custos antes de calcular
+    atualizarCustosDaFicha(fichaA);
+    atualizarCustosDaFicha(fichaB);
+
+    // ===== REGRAS DE NEGÓCIO MEIO A MEIO =====
+    // Preço de Venda: SEMPRE o valor do sabor mais caro
+    const precoVenda = Math.max(fichaA.precoVenda, fichaB.precoVenda);
+
+    // Custo de Produção (Insumos): soma da metade do custo de cada sabor
+    const custoIngA = (fichaA.custoIng || 0) / 2;
+    const custoIngB = (fichaB.custoIng || 0) / 2;
+    const custoIngMeioAMeio = custoIngA + custoIngB;
+
+    // Custo da massa: usa a massa do tamanho mais caro (ou média se tamanhos diferentes)
+    // A massa é uma pizza inteira, não meia
+    const custoMassaA = fichaA.custoMassa || 0;
+    const custoMassaB = fichaB.custoMassa || 0;
+    const custoMassa = Math.max(custoMassaA, custoMassaB);
+
+    // Custo fixo: permanece o mesmo (é por pizza)
+    const custoFixo = calcularCustoFixoPorPizza();
+
+    // Custo Total de Produção
+    const custoTotalProducao = custoIngMeioAMeio + custoMassa + custoFixo;
+
+    // Lucro Real
+    const lucroReal = precoVenda - custoTotalProducao;
+
+    // CMV e Margem
+    const cmv = precoVenda > 0 ? (custoTotalProducao / precoVenda) * 100 : 0;
+    const margem = precoVenda > 0 ? (lucroReal / precoVenda) * 100 : 0;
+
+    // Identificar qual é o mais caro
+    const maisCaroNome = fichaA.precoVenda >= fichaB.precoVenda ? fichaA.nome : fichaB.nome;
+
+    resDiv.style.display = 'block';
+    resDiv.innerHTML = `
+        <div class="alert alert-info" style="margin-bottom:15px">
+            🍕 <strong>Meio a Meio:</strong> ${fichaA.nome} + ${fichaB.nome}<br>
+            <small>Preço cobrado pelo sabor mais caro: <strong>${maisCaroNome}</strong></small>
+        </div>
+        <table style="width:100%;margin:15px 0;font-size:0.9em">
+            <tr style="background:#f8f9fa"><td colspan="3" style="padding:8px;font-weight:bold">📊 Decomposição do Custo</td></tr>
+            <tr>
+                <td style="padding:6px">½ ${fichaA.nome} (ingredientes):</td>
+                <td style="text-align:right;padding:6px;color:#666">R$ ${(fichaA.custoIng || 0).toFixed(2)} ÷ 2</td>
+                <td style="text-align:right;padding:6px;font-weight:bold">R$ ${custoIngA.toFixed(2)}</td>
+            </tr>
+            <tr>
+                <td style="padding:6px">½ ${fichaB.nome} (ingredientes):</td>
+                <td style="text-align:right;padding:6px;color:#666">R$ ${(fichaB.custoIng || 0).toFixed(2)} ÷ 2</td>
+                <td style="text-align:right;padding:6px;font-weight:bold">R$ ${custoIngB.toFixed(2)}</td>
+            </tr>
+            <tr style="border-top:1px dashed #ccc">
+                <td style="padding:6px">Custo Ingredientes (Meio a Meio):</td>
+                <td></td>
+                <td style="text-align:right;padding:6px;font-weight:bold;color:var(--danger)">R$ ${custoIngMeioAMeio.toFixed(2)}</td>
+            </tr>
+            <tr><td style="padding:6px">Massa:</td><td></td><td style="text-align:right;padding:6px">R$ ${custoMassa.toFixed(2)}</td></tr>
+            <tr><td style="padding:6px">Custo Fixo:</td><td></td><td style="text-align:right;padding:6px">R$ ${custoFixo.toFixed(2)}</td></tr>
+            <tr style="font-weight:bold;border-top:2px solid #333;background:#fff3e0">
+                <td style="padding:8px">CUSTO TOTAL PRODUÇÃO:</td>
+                <td></td>
+                <td style="text-align:right;padding:8px;color:var(--danger);font-size:1.1em">R$ ${custoTotalProducao.toFixed(2)}</td>
+            </tr>
+        </table>
+        <div class="resumo-box" style="margin-top:15px">
+            <div class="resumo-grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr))">
+                <div class="resumo-item"><small>💰 Preço Venda</small><div class="val blue" style="font-size:1.3em">R$ ${precoVenda.toFixed(2)}</div></div>
+                <div class="resumo-item"><small>📦 Custo Total</small><div class="val red">R$ ${custoTotalProducao.toFixed(2)}</div></div>
+                <div class="resumo-item"><small>🎯 Lucro Real</small><div class="val ${lucroReal >= 0 ? 'green' : 'red'}" style="font-size:1.3em">R$ ${lucroReal.toFixed(2)}</div></div>
+                <div class="resumo-item"><small>📊 CMV</small><div class="val ${cmv <= 30 ? 'green' : cmv <= 35 ? 'yellow' : 'red'}">${cmv.toFixed(1)}%</div></div>
+                <div class="resumo-item"><small>📈 Margem</small><div class="val ${margem >= 50 ? 'green' : margem >= 30 ? 'yellow' : 'red'}">${margem.toFixed(1)}%</div></div>
+            </div>
+        </div>
+        <div class="alert ${lucroReal >= 0 ? 'alert-success' : 'alert-warning'}" style="margin-top:15px">
+            ${lucroReal >= 0 
+                ? '✅ <strong>Meio a Meio viável!</strong> Lucro de R$ ' + lucroReal.toFixed(2) + ' com margem de ' + margem.toFixed(1) + '%.'
+                : '⚠️ <strong>Atenção!</strong> Esta combinação gera prejuízo de R$ ' + Math.abs(lucroReal).toFixed(2) + '. Revise os preços.'
+            }
+        </div>`;
 }
 
 // ===== EXPORT/IMPORT =====
