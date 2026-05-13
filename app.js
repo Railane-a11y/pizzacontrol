@@ -1445,10 +1445,32 @@ function filtrarProdutosBusca() {
 }
 
 // ===== SIMULADOR DE COMBOS VIP =====
+function getComboAdicionaisOptions() {
+    const adicionais = DB.produtosProntos.filter(p => p.categoria === 'Adicional' || p.categoria === 'Doce');
+    return '<option value="">-- Selecione (opcional) --</option>' +
+        adicionais.map(p => `<option value="${p.id}">${p.nome} - Venda: R$ ${p.precoVenda.toFixed(2)}</option>`).join('');
+}
+
+function addComboAdicional(selectedId) {
+    const container = document.getElementById('comboAdicionaisContainer');
+    if (!container) return;
+
+    const div = document.createElement('div');
+    div.className = 'combo-adicional-item';
+    div.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px';
+    div.innerHTML = `<select class="form-control" onchange="calcCombo()" style="flex:1">${getComboAdicionaisOptions()}</select><button class="btn btn-danger btn-sm" onclick="this.parentElement.remove();calcCombo()" style="flex-shrink:0;min-width:40px">✕</button>`;
+    container.appendChild(div);
+
+    if (selectedId) {
+        div.querySelector('select').value = selectedId;
+    }
+
+    calcCombo();
+}
+
 function loadComboSelects() {
     const selPizza = document.getElementById('comboPizza');
     const selBebida = document.getElementById('comboBebida');
-    const selAdicional = document.getElementById('comboAdicional');
     if (!selPizza || !selBebida) return;
 
     // Pizza select (das fichas técnicas)
@@ -1467,20 +1489,20 @@ function loadComboSelects() {
         bebidas.map(p => `<option value="${p.id}">${p.nome} - Venda: R$ ${p.precoVenda.toFixed(2)}</option>`).join('');
     selBebida.value = valBebida;
 
-    // Adicional select (dos produtos prontos, categoria Adicional + Doce)
-    if (selAdicional) {
-        const adicionais = DB.produtosProntos.filter(p => p.categoria === 'Adicional' || p.categoria === 'Doce');
-        const valAdic = selAdicional.value;
-        selAdicional.innerHTML = '<option value="">-- Nenhum (opcional) --</option>' +
-            adicionais.map(p => `<option value="${p.id}">${p.nome} - Venda: R$ ${p.precoVenda.toFixed(2)}</option>`).join('');
-        selAdicional.value = valAdic;
+    // Atualizar options dos selects de adicionais já existentes
+    const container = document.getElementById('comboAdicionaisContainer');
+    if (container) {
+        container.querySelectorAll('.combo-adicional-item select').forEach(sel => {
+            const val = sel.value;
+            sel.innerHTML = getComboAdicionaisOptions();
+            sel.value = val;
+        });
     }
 }
 
 function calcCombo() {
     const idPizza = document.getElementById('comboPizza').value;
     const idBebida = document.getElementById('comboBebida').value;
-    const idAdicional = document.getElementById('comboAdicional').value;
     const resDiv = document.getElementById('comboResultado');
 
     if (!idPizza || !idBebida) {
@@ -1494,18 +1516,34 @@ function calcCombo() {
 
     atualizarCustosDaFicha(pizza);
 
-    const adicional = idAdicional ? DB.produtosProntos.find(p => p.id === idAdicional) : null;
+    // Varrer TODOS os selects de adicionais do container
+    const adicionaisSelecionados = [];
+    const container = document.getElementById('comboAdicionaisContainer');
+    if (container) {
+        container.querySelectorAll('.combo-adicional-item select').forEach(sel => {
+            if (sel.value) {
+                const prod = DB.produtosProntos.find(p => p.id === sel.value);
+                if (prod) adicionaisSelecionados.push(prod);
+            }
+        });
+    }
 
     // ===== CÁLCULOS DO COMBO =====
     const custoPizza = pizza.custoTotal || 0;
     const custoBebida = bebida.precoCusto || 0;
-    const custoAdicional = adicional ? (adicional.precoCusto || 0) : 0;
-    const custoTotalCombo = custoPizza + custoBebida + custoAdicional;
+
+    let custoAdicionaisTotal = 0;
+    let vendaAdicionaisTotal = 0;
+    adicionaisSelecionados.forEach(a => {
+        custoAdicionaisTotal += (a.precoCusto || 0);
+        vendaAdicionaisTotal += (a.precoVenda || 0);
+    });
+
+    const custoTotalCombo = custoPizza + custoBebida + custoAdicionaisTotal;
 
     const vendaPizza = pizza.precoVenda || 0;
     const vendaBebida = bebida.precoVenda || 0;
-    const vendaAdicional = adicional ? (adicional.precoVenda || 0) : 0;
-    const somaVendasIndividuais = vendaPizza + vendaBebida + vendaAdicional;
+    const somaVendasIndividuais = vendaPizza + vendaBebida + vendaAdicionaisTotal;
 
     // Preço promocional digitado
     const precoPromo = parseFloat(document.getElementById('comboPrecoPromo').value) || 0;
@@ -1517,10 +1555,28 @@ function calcCombo() {
     const margem = precoFinal > 0 ? (lucroReal / precoFinal) * 100 : 0;
     const cmv = precoFinal > 0 ? (custoTotalCombo / precoFinal) * 100 : 0;
 
+    // Gerar linhas de adicionais para as tabelas
+    const adicionaisCustoHTML = adicionaisSelecionados.map(a => {
+        const icon = a.categoria === 'Doce' ? '🍫' : '➕';
+        return `<tr>
+            <td style="padding:6px">${icon} ${a.nome} (custo compra):</td>
+            <td></td>
+            <td style="text-align:right;padding:6px;font-weight:bold">R$ ${(a.precoCusto || 0).toFixed(2)}</td>
+        </tr>`;
+    }).join('');
+
+    const adicionaisVendaHTML = adicionaisSelecionados.map(a => {
+        const icon = a.categoria === 'Doce' ? '🍫' : '➕';
+        return `<tr><td style="padding:6px">${icon} ${a.nome}:</td><td style="text-align:right;padding:6px">R$ ${(a.precoVenda || 0).toFixed(2)}</td></tr>`;
+    }).join('');
+
+    const nomesAdicionais = adicionaisSelecionados.map(a => a.nome).join(' + ');
+    const comboDescricao = pizza.nome + ' + ' + bebida.nome + (nomesAdicionais ? ' + ' + nomesAdicionais : '');
+
     resDiv.style.display = 'block';
     resDiv.innerHTML = `
         <div class="alert alert-info" style="margin-bottom:15px">
-            🎯 <strong>Combo:</strong> ${pizza.nome} + ${bebida.nome}${adicional ? ' + ' + adicional.nome : ''}
+            🎯 <strong>Combo:</strong> ${comboDescricao}
         </div>
         <table style="width:100%;margin:10px 0;font-size:0.9em">
             <tr style="background:#f8f9fa"><td colspan="3" style="padding:8px;font-weight:bold">📊 Decomposição de Custos</td></tr>
@@ -1534,11 +1590,7 @@ function calcCombo() {
                 <td></td>
                 <td style="text-align:right;padding:6px;font-weight:bold">R$ ${custoBebida.toFixed(2)}</td>
             </tr>
-            ${adicional ? `<tr>
-                <td style="padding:6px">${adicional.categoria === 'Doce' ? '🍫' : '➕'} ${adicional.nome} (custo compra):</td>
-                <td></td>
-                <td style="text-align:right;padding:6px;font-weight:bold">R$ ${custoAdicional.toFixed(2)}</td>
-            </tr>` : ''}
+            ${adicionaisCustoHTML}
             <tr style="font-weight:bold;border-top:2px solid #333;background:#fff3e0">
                 <td style="padding:8px">CUSTO TOTAL DO COMBO:</td>
                 <td></td>
@@ -1549,7 +1601,7 @@ function calcCombo() {
             <tr style="background:#e8f5e9"><td colspan="2" style="padding:8px;font-weight:bold">💰 Preços de Venda Individuais</td></tr>
             <tr><td style="padding:6px">🍕 ${pizza.nome}:</td><td style="text-align:right;padding:6px">R$ ${vendaPizza.toFixed(2)}</td></tr>
             <tr><td style="padding:6px">🥤 ${bebida.nome}:</td><td style="text-align:right;padding:6px">R$ ${vendaBebida.toFixed(2)}</td></tr>
-            ${adicional ? `<tr><td style="padding:6px">${adicional.categoria === 'Doce' ? '🍫' : '➕'} ${adicional.nome}:</td><td style="text-align:right;padding:6px">R$ ${vendaAdicional.toFixed(2)}</td></tr>` : ''}
+            ${adicionaisVendaHTML}
             <tr style="border-top:1px solid #ccc"><td style="padding:6px;font-weight:bold">Soma Individual:</td><td style="text-align:right;padding:6px;font-weight:bold">R$ ${somaVendasIndividuais.toFixed(2)}</td></tr>
             ${precoPromo > 0 ? `<tr style="background:#fff8e1"><td style="padding:6px;font-weight:bold;color:#e65100">🏷️ Desconto Promocional:</td><td style="text-align:right;padding:6px;font-weight:bold;color:#e65100">- R$ ${desconto.toFixed(2)} (${descontoPerc.toFixed(1)}%)</td></tr>` : ''}
         </table>

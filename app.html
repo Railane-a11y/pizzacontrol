@@ -1794,13 +1794,12 @@
                             </select>
                         </div>
                     </div>
+                    <div style="margin-bottom:15px">
+                        <label style="font-weight:bold;margin-bottom:8px;display:block">➕ Adicionais / Doces (opcional)</label>
+                        <div id="comboAdicionaisContainer"></div>
+                        <button class="btn btn-info btn-sm" onclick="addComboAdicional()" style="margin-top:8px">+ Incluir Adicional</button>
+                    </div>
                     <div class="form-row">
-                        <div class="form-group">
-                            <label>➕ Adicional / Doce (opcional)</label>
-                            <select class="form-control" id="comboAdicional" onchange="calcCombo()">
-                                <option value="">-- Nenhum (opcional) --</option>
-                            </select>
-                        </div>
                         <div class="form-group">
                             <label>🏷️ Preço Promocional do Combo (R$)</label>
                             <input type="number" class="form-control" id="comboPrecoPromo" placeholder="Ex: 49.90" step="0.01" oninput="calcCombo()">
