@@ -10,6 +10,10 @@
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="manifest" href="manifest.json">
     <title>🍕 PizzaControl - Sistema Completo</title>
+    <!-- Firebase SDK v9 Compat (CDN) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <style>
         * {
             margin: 0;
@@ -1270,10 +1274,246 @@
                 padding: 15px 10px; /* slightly less padding on mobile */
             }
         }
+        /* ===== TELAS DE AUTH (Login / Loading / Expired) ===== */
+        .auth-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .auth-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 420px;
+            overflow: hidden;
+        }
+
+        .auth-card-header {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            padding: 30px 25px;
+            text-align: center;
+            color: white;
+        }
+
+        .auth-card-header .auth-logo {
+            font-size: 2.2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .auth-card-header .auth-logo span {
+            color: var(--secondary);
+        }
+
+        .auth-card-header p {
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+
+        .auth-card-body {
+            padding: 30px 25px;
+        }
+
+        .auth-card-body .form-group {
+            margin-bottom: 18px;
+        }
+
+        .auth-card-body .form-group label {
+            font-weight: 600;
+            margin-bottom: 6px;
+            display: block;
+            color: var(--dark);
+        }
+
+        .auth-card-body .form-control {
+            padding: 14px;
+            font-size: 1em;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-login-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-login-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(211,47,47,0.4);
+        }
+
+        .btn-login-cta {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            color: white;
+            margin-top: 12px;
+            text-decoration: none;
+        }
+
+        .btn-login-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255,152,0,0.4);
+        }
+
+        .auth-erro {
+            background: #ffebee;
+            color: var(--danger);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+            font-weight: 600;
+            text-align: center;
+            border-left: 4px solid var(--danger);
+        }
+
+        .auth-divider {
+            text-align: center;
+            margin: 20px 0 15px;
+            color: #999;
+            font-size: 0.85em;
+        }
+
+        .loading-spinner {
+            text-align: center;
+        }
+
+        .loading-spinner .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-spinner p {
+            color: white;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        .expired-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+        }
+
+        .expired-msg {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .conta-info {
+            background: var(--light);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid var(--info);
+        }
+
+        .conta-info h4 {
+            margin-bottom: 15px;
+            color: var(--dark);
+        }
+
+        .conta-info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 0.95em;
+        }
+
+        .conta-info-item:last-child {
+            border-bottom: none;
+        }
+
+        .conta-info-item .label {
+            color: #777;
+        }
+
+        .conta-info-item .value {
+            font-weight: 600;
+            color: var(--dark);
+        }
     </style>
 </head>
 
 <body>
+    <!-- TELA DE LOADING (visível enquanto Firebase verifica auth) -->
+    <div id="loadingScreen" class="auth-screen" style="display:flex">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>🍕 Carregando PizzaControl...</p>
+        </div>
+    </div>
+
+    <!-- TELA DE LOGIN -->
+    <div id="loginScreen" class="auth-screen" style="display:none">
+        <div class="auth-card">
+            <div class="auth-card-header">
+                <div class="auth-logo">🍕 Pizza<span>Control</span></div>
+                <p>Sistema profissional de gestão para pizzarias</p>
+            </div>
+            <div class="auth-card-body">
+                <div class="auth-erro" id="loginErro"></div>
+                <div class="form-group">
+                    <label>📧 E-mail</label>
+                    <input type="email" class="form-control" id="loginEmail" placeholder="seu@email.com" autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label>🔒 Senha</label>
+                    <input type="password" class="form-control" id="loginSenha" placeholder="Sua senha" autocomplete="current-password">
+                </div>
+                <button class="btn-login btn-login-primary" id="btnLogin" onclick="fazerLoginFirebase()">🔑 Entrar</button>
+                <div class="auth-divider">Ainda não é assinante?</div>
+                <a href="#" class="btn-login btn-login-cta" id="btnAssinar" target="_blank">🚀 Assinar PizzaControl (R$ 49,90/mês)</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- TELA DE ASSINATURA EXPIRADA -->
+    <div id="expiredScreen" class="auth-screen" style="display:none">
+        <div class="auth-card">
+            <div class="auth-card-header" style="background:linear-gradient(135deg, #e65100, #ff9800)">
+                <div class="auth-logo">🍕 Pizza<span>Control</span></div>
+                <p>Sua assinatura expirou</p>
+            </div>
+            <div class="auth-card-body" style="text-align:center">
+                <div class="expired-icon">⏰</div>
+                <h3 style="margin-bottom:10px;color:var(--danger)">Acesso Bloqueado</h3>
+                <p class="expired-msg">Sua assinatura do PizzaControl expirou ou não foi encontrada.<br>Renove agora para continuar usando todas as funcionalidades do sistema.</p>
+                <a href="#" class="btn-login btn-login-cta" target="_blank" style="margin-bottom:12px">🔄 Renovar Assinatura (R$ 49,90/mês)</a>
+                <button class="btn-login" style="background:#eee;color:var(--dark);margin-top:8px" onclick="fazerLogout()">🚪 Sair e trocar de conta</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- APP CONTENT (oculto até validar assinatura Firebase) -->
+    <div id="appContent" style="display:none">
     <div class="status-bar" id="statusBar"></div>
     <button class="menu-toggle" onclick="toggleMenu()">☰</button>
     <div class="menu-overlay" id="menuOverlay" onclick="toggleMenu()"></div>
@@ -1842,21 +2082,10 @@
                             onclick="testarStorage()">🔧 Testar Storage</button></div>
                     <div class="alert alert-warning" style="margin-top:20px">⚠️ <strong>Importante:</strong> Faça backup
                         regularmente exportando seus dados!</div>
-                    <div class="senha-section">
-                        <h4>🔐 Alterar PIN de Segurança</h4>
-                        <div class="form-row">
-                            <div class="form-group"><label>PIN Atual</label><input type="password" class="form-control"
-                                    id="pinAtual" inputmode="numeric" maxlength="6" placeholder="Digite o PIN atual"></div>
-                            <div class="form-group"><label>Novo PIN</label><input type="password" class="form-control"
-                                    id="novaSenha" inputmode="numeric" maxlength="6" placeholder="4 a 6 números"></div>
-                            <div class="form-group"><label>Confirmar Novo PIN</label><input type="password"
-                                    class="form-control" id="confSenha" inputmode="numeric" maxlength="6" placeholder="Repita o novo PIN"></div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group"><label>Nova Palavra-Chave de Recuperação (opcional)</label><input type="text" class="form-control"
-                                    id="novaRecuperacao" maxlength="80" placeholder="Ex: comida favorita, primeiro pet"></div>
-                        </div>
-                        <button class="btn btn-info" onclick="alterarSenha()">🔑 Atualizar PIN</button>
+                    <div class="conta-info">
+                        <h4>👤 Minha Conta</h4>
+                        <div class="conta-info-item"><span class="label">E-mail:</span><span class="value" id="contaEmail">-</span></div>
+                        <div class="conta-info-item"><span class="label">Assinatura até:</span><span class="value" id="contaVencimento">-</span></div>
                     </div>
                 </div>
             </div>
@@ -1929,32 +2158,9 @@
         </div>
     </div>
 
-    <script>
-        (function validarSessaoOffline() {
-            const pin = localStorage.getItem('pizzaControlPinMaster');
-            if (!/^\d{4,6}$/.test(pin || '')) {
-                localStorage.removeItem('pizzaControlSession');
-                window.location.replace('index.html');
-                return;
-            }
+    </div><!-- /appContent -->
 
-            const raw = localStorage.getItem('pizzaControlSession');
-            if (!raw) {
-                window.location.replace('index.html');
-                return;
-            }
-
-            try {
-                const sessao = JSON.parse(raw);
-                if (!sessao || (sessao.authenticated !== true && !sessao.user)) throw new Error('Sessão inválida');
-            } catch (err) {
-                localStorage.removeItem('pizzaControlSession');
-                window.location.replace('index.html');
-            }
-        })();
-    </script>
-
-    <script src="app.js?v=2.1.0"></script>
+    <script src="app.js?v=3.0.0"></script>
     
     <!-- Botão Suporte WhatsApp -->
     <a href="https://wa.me/5598970260090?text=Fala%20Marllon!%20Preciso%20de%20uma%20ajuda%20aqui%20no%20PizzaControl." class="btn-whatsapp-flutuante" target="_blank">

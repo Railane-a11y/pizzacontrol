@@ -1,10 +1,26 @@
-console.log('🍕 APP.JS CARREGADO - MODO OFFLINE LOCALSTORAGE');
+console.log('🍕 APP.JS CARREGADO - MODO SAAS FIREBASE + LOCALSTORAGE');
 
-const STORAGE_KEY = 'pizzaControlLocalDB_v1';
+let STORAGE_KEY = 'pizzaControlLocalDB_v1';
+const STORAGE_KEY_BASE = 'pizzaControlLocalDB_v1';
 const SESSION_KEY = 'pizzaControlSession';
 const PIN_MASTER_KEY = 'pizzaControlPinMaster';
 const RECOVERY_HASH_KEY = 'pizzaControlRecoveryKeyHash';
 const LEGACY_KEYS = ['pizzaControlFinal', 'pizzaControlDados', 'pizzaControlV3', 'pizzaControlV2', 'pizzaControl'];
+
+// ===== FIREBASE CONFIG =====
+const firebaseConfig = {
+    apiKey: "AIzaSyAzrYsr6S2hMkgeG9ZOJ0MnkuT0V81a3rc",
+    authDomain: "pizzacontrol-oficial.firebaseapp.com",
+    projectId: "pizzacontrol-oficial",
+    storageBucket: "pizzacontrol-oficial.firebasestorage.app",
+    messagingSenderId: "1066316732970",
+    appId: "1:1066316732970:web:617739279818c1ef698153"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const dbFirestore = firebase.firestore();
+let firebaseUser = null;
+let assinaturaDataVencimento = null;
 
 const DB_PADRAO = {
     insumos: [],
@@ -44,8 +60,107 @@ let editandoProdutoId = null;
 let filtroTam = 'all';
 
 document.addEventListener('DOMContentLoaded', () => {
-    if (!validarSessao()) return;
+    // Enter na tela de login dispara o botão Entrar
+    document.getElementById('loginSenha')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') fazerLoginFirebase();
+    });
+    document.getElementById('loginEmail')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') document.getElementById('loginSenha')?.focus();
+    });
 
+    // Observador de estado de autenticação Firebase
+    auth.onAuthStateChanged(async (user) => {
+        if (!user) {
+            firebaseUser = null;
+            mostrarTela('login');
+            return;
+        }
+        firebaseUser = user;
+        mostrarTela('loading');
+
+        const valido = await verificarAssinatura(user.uid);
+        if (!valido) {
+            mostrarTela('expired');
+            return;
+        }
+
+        // Assinatura válida — configurar storage e liberar o sistema
+        configurarStorageUsuario(user.uid);
+        mostrarTela('app');
+        inicializarApp();
+    });
+});
+
+window.addEventListener('storage', (event) => {
+    if (event.key !== STORAGE_KEY) return;
+
+    carregarDados();
+    renderAll();
+    loadMassaUI();
+    loadCustosUI();
+    loadConfigUI();
+    refreshIngSelects();
+    refreshMassaSelects();
+    loadFichasSelect();
+});
+
+// ===== FIREBASE AUTH & ASSINATURA =====
+function mostrarTela(tela) {
+    document.getElementById('loadingScreen').style.display = tela === 'loading' ? 'flex' : 'none';
+    document.getElementById('loginScreen').style.display = tela === 'login' ? 'flex' : 'none';
+    document.getElementById('expiredScreen').style.display = tela === 'expired' ? 'flex' : 'none';
+    document.getElementById('appContent').style.display = tela === 'app' ? '' : 'none';
+}
+
+async function verificarAssinatura(uid) {
+    try {
+        const doc = await dbFirestore.collection('usuarios').doc(uid).get();
+        if (!doc.exists) {
+            console.warn('⚠️ Documento do usuário não encontrado no Firestore:', uid);
+            return false;
+        }
+
+        const dados = doc.data();
+        if (!dados.dataVencimento) {
+            console.warn('⚠️ Campo dataVencimento não encontrado para:', uid);
+            return false;
+        }
+
+        let dataVenc;
+        if (dados.dataVencimento.toDate) {
+            // Firestore Timestamp
+            dataVenc = dados.dataVencimento.toDate();
+        } else {
+            // String YYYY-MM-DD
+            dataVenc = new Date(dados.dataVencimento + 'T23:59:59');
+        }
+
+        assinaturaDataVencimento = dataVenc;
+        const agora = new Date();
+        const valido = agora <= dataVenc;
+
+        console.log('📅 Assinatura:', valido ? '✅ Válida' : '❌ Expirada', '| Vence em:', dataVenc.toLocaleDateString('pt-BR'));
+        return valido;
+    } catch (err) {
+        console.error('❌ Erro ao verificar assinatura:', err);
+        return false;
+    }
+}
+
+function configurarStorageUsuario(uid) {
+    const chaveUsuario = STORAGE_KEY_BASE + '_' + uid;
+    const chaveGenerica = STORAGE_KEY_BASE;
+
+    // Migrar dados antigos (sem UID) para a chave do usuário
+    if (!localStorage.getItem(chaveUsuario) && localStorage.getItem(chaveGenerica)) {
+        localStorage.setItem(chaveUsuario, localStorage.getItem(chaveGenerica));
+        console.log('📦 Dados migrados da chave genérica para a chave do usuário:', uid);
+    }
+
+    STORAGE_KEY = chaveUsuario;
+}
+
+function inicializarApp() {
     carregarDados();
     setupNav();
     renderAll();
@@ -63,21 +178,52 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshIngSelects();
     refreshMassaSelects();
     loadFichasSelect();
-});
 
-window.addEventListener('storage', (event) => {
-    if (event.key !== STORAGE_KEY) return;
-    if (!validarSessao()) return;
+    // Exibir info da conta na aba Config
+    const contaEmail = document.getElementById('contaEmail');
+    const contaVenc = document.getElementById('contaVencimento');
+    if (contaEmail && firebaseUser) contaEmail.textContent = firebaseUser.email;
+    if (contaVenc && assinaturaDataVencimento) {
+        contaVenc.textContent = assinaturaDataVencimento.toLocaleDateString('pt-BR');
+    }
+}
 
-    carregarDados();
-    renderAll();
-    loadMassaUI();
-    loadCustosUI();
-    loadConfigUI();
-    refreshIngSelects();
-    refreshMassaSelects();
-    loadFichasSelect();
-});
+async function fazerLoginFirebase() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const senha = document.getElementById('loginSenha').value;
+    const btnLogin = document.getElementById('btnLogin');
+    const erroDiv = document.getElementById('loginErro');
+
+    if (!email || !senha) {
+        erroDiv.textContent = '⚠️ Preencha e-mail e senha!';
+        erroDiv.style.display = 'block';
+        return;
+    }
+
+    btnLogin.disabled = true;
+    btnLogin.textContent = '⏳ Entrando...';
+    erroDiv.style.display = 'none';
+
+    try {
+        await auth.signInWithEmailAndPassword(email, senha);
+        // onAuthStateChanged cuida do resto
+    } catch (err) {
+        btnLogin.disabled = false;
+        btnLogin.textContent = '🔑 Entrar';
+
+        const mensagens = {
+            'auth/user-not-found': '❌ E-mail não encontrado.',
+            'auth/wrong-password': '❌ Senha incorreta.',
+            'auth/invalid-email': '❌ E-mail inválido.',
+            'auth/too-many-requests': '⚠️ Muitas tentativas. Aguarde um momento.',
+            'auth/invalid-credential': '❌ E-mail ou senha incorretos.',
+            'auth/network-request-failed': '❌ Sem conexão com a internet.'
+        };
+
+        erroDiv.textContent = mensagens[err.code] || '❌ Erro: ' + err.message;
+        erroDiv.style.display = 'block';
+    }
+}
 
 function clonar(valor) {
     return JSON.parse(JSON.stringify(valor));
@@ -132,27 +278,9 @@ function gerarHashRecuperacao(chave) {
 }
 
 function validarSessao() {
-    if (!obterPinMaster()) {
-        localStorage.removeItem(SESSION_KEY);
-        window.location.replace('index.html');
-        return false;
-    }
-
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) {
-        window.location.replace('index.html');
-        return false;
-    }
-
-    try {
-        const sessao = JSON.parse(raw);
-        if (!sessao || (sessao.authenticated !== true && !sessao.user)) throw new Error('Sessão inválida');
-        return true;
-    } catch (err) {
-        localStorage.removeItem(SESSION_KEY);
-        window.location.replace('index.html');
-        return false;
-    }
+    // Autenticação agora é feita pelo Firebase Auth
+    // Esta função é mantida como no-op para compatibilidade
+    return true;
 }
 
 function normalizarDados(raw) {
@@ -300,8 +428,8 @@ function salvarDados() {
 }
 
 function fazerLogout() {
-    localStorage.removeItem(SESSION_KEY);
-    window.location.href = 'index.html';
+    auth.signOut();
+    // onAuthStateChanged mostra a tela de login automaticamente
 }
 
 function alterarSenha() {
