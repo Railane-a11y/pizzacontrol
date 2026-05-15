@@ -151,10 +151,12 @@ function configurarStorageUsuario(uid) {
     const chaveUsuario = STORAGE_KEY_BASE + '_' + uid;
     const chaveGenerica = STORAGE_KEY_BASE;
 
-    // Migrar dados antigos (sem UID) para a chave do usuário
+    // Migrar dados antigos (sem UID) para o PRIMEIRO usuário que fizer login.
+    // Após migrar, a chave genérica é REMOVIDA para que novos usuários comecem limpos.
     if (!localStorage.getItem(chaveUsuario) && localStorage.getItem(chaveGenerica)) {
         localStorage.setItem(chaveUsuario, localStorage.getItem(chaveGenerica));
-        console.log('📦 Dados migrados da chave genérica para a chave do usuário:', uid);
+        localStorage.removeItem(chaveGenerica);
+        console.log('📦 Dados migrados para o usuário:', uid, '| Chave genérica removida.');
     }
 
     STORAGE_KEY = chaveUsuario;
