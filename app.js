@@ -1134,6 +1134,37 @@ function renderDashboard() {
     } else {
         topLista.innerHTML = '<div class="empty">Cadastre fichas</div>';
     }
+
+    renderRankingProdutosProntos();
+}
+
+function renderRankingProdutosProntos() {
+    const container = document.getElementById('topProdutosLista');
+    if (!container) return;
+
+    if (DB.produtosProntos.length === 0) {
+        container.innerHTML = '<div class="empty"><div class="icon">🥤</div>Cadastre produtos prontos para ver o ranking</div>';
+        return;
+    }
+
+    const ranking = DB.produtosProntos.map(p => {
+        const lucro = (p.precoVenda || 0) - (p.precoCusto || 0);
+        const margem = p.precoVenda > 0 ? (lucro / p.precoVenda) * 100 : 0;
+        const catIcons = { 'Bebida': '🥤', 'Cerveja': '🍺', 'Doce': '🍫', 'Adicional': '➕' };
+        return { ...p, lucro, margem, icon: catIcons[p.categoria] || '📦' };
+    }).sort((a, b) => b.lucro - a.lucro);
+
+    const htmlTable = `<table class="top5-desktop"><thead><tr><th>🥤 Produto</th><th>Categoria</th><th>💰 Lucro</th><th>📊 Margem</th></tr></thead><tbody>${ranking
+        .map(p =>
+            `<tr><td><strong>${p.nome}</strong><br><small style="color:#777">Custo: R$ ${p.precoCusto.toFixed(2)} | Venda: R$ ${p.precoVenda.toFixed(2)}</small></td><td><span class="badge badge-info">${p.icon} ${p.categoria}</span></td><td style="color:${p.lucro >= 0 ? 'var(--success)' : 'var(--danger)'};font-weight:bold">R$ ${p.lucro.toFixed(2)}</td><td style="font-weight:bold">${p.margem.toFixed(1)}%</td></tr>`
+        ).join('')}</tbody></table>`;
+
+    const htmlCards = `<div class="top5-mobile"><div class="top5-list">${ranking
+        .map(p =>
+            `<div class="top5-mobile-card" style="border-left-color:#00897b"><div class="t-title">${p.icon} ${p.nome}</div><div class="t-row"><span style="color:#777">${p.categoria}</span></div><div class="t-row"><span>Custo: R$ ${p.precoCusto.toFixed(2)}</span><span>Venda: R$ ${p.precoVenda.toFixed(2)}</span></div><div class="t-profit" style="color:${p.lucro >= 0 ? 'var(--success)' : 'var(--danger)'}">💰 Lucro: R$ ${p.lucro.toFixed(2)} | Margem: ${p.margem.toFixed(1)}%</div></div>`
+        ).join('')}</div></div>`;
+
+    container.innerHTML = htmlTable + htmlCards;
 }
 
 // ===== PRECIFICAR =====
