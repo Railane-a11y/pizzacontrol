@@ -110,6 +110,14 @@ function mostrarTela(tela) {
     document.getElementById('loginScreen').style.display = tela === 'login' ? 'flex' : 'none';
     document.getElementById('expiredScreen').style.display = tela === 'expired' ? 'flex' : 'none';
     document.getElementById('appContent').style.display = tela === 'app' ? '' : 'none';
+
+    // Resetar botão de login ao exibir a tela (corrige bug pós-logout)
+    if (tela === 'login') {
+        const btn = document.getElementById('btnLogin');
+        if (btn) { btn.disabled = false; btn.textContent = '🔑 Entrar'; }
+        const erro = document.getElementById('loginErro');
+        if (erro) erro.style.display = 'none';
+    }
 }
 
 async function verificarAssinatura(uid) {
@@ -160,6 +168,16 @@ function configurarStorageUsuario(uid) {
     }
 
     STORAGE_KEY = chaveUsuario;
+
+    // Criar PIN e sessão automaticamente (bypass legado)
+    // Garante que nenhum código remanescente bloqueie o acesso do cliente
+    if (!localStorage.getItem(PIN_MASTER_KEY)) {
+        localStorage.setItem(PIN_MASTER_KEY, '000000');
+    }
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+        authenticated: true,
+        unlockedAt: new Date().toISOString()
+    }));
 }
 
 function inicializarApp() {
