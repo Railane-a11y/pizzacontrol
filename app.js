@@ -68,6 +68,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') document.getElementById('loginSenha')?.focus();
     });
 
+    // Garantir redirecionamento limpo para a Landing Page sem intercepção local
+    document.addEventListener('click', (e) => {
+        const link = e.target.closest('a');
+        if (link && (link.getAttribute('href') === '/' || link.getAttribute('href') === 'https://pizzacontrol.com.br')) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.location.href = 'https://pizzacontrol.com.br';
+        }
+    });
+
     // Observador de estado de autenticação Firebase
     auth.onAuthStateChanged(async (user) => {
         if (!user) {
