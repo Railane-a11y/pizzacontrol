@@ -501,6 +501,7 @@
             background: white;
             border-radius: var(--radius);
             box-shadow: var(--shadow);
+            margin-bottom: 20px;
             overflow: hidden;
             transition: transform 0.3s;
             border-top: 5px solid #ccc
@@ -746,7 +747,7 @@
             text-align: right
         }
 
-        .massa-item {
+        .massa-grid {
             display: grid;
             grid-template-columns: 2fr 1fr 100px auto;
             gap: 10px;
@@ -1223,7 +1224,7 @@
                 width: 100%
             }
 
-            .massa-item {
+            .massa-grid {
                 grid-template-columns: 1fr
             }
 
@@ -1489,6 +1490,12 @@
                     <input type="password" class="form-control" id="loginSenha" placeholder="Sua senha" autocomplete="current-password">
                 </div>
                 <button class="btn-login btn-login-primary" id="btnLogin" onclick="fazerLoginFirebase()">🔑 Entrar</button>
+                
+                <!-- Botão Recuperar Senha Integrado -->
+                <div style="text-align: center; margin-top: 15px;">
+                    <a href="#" onclick="recuperarSenha(); return false;" style="color: var(--primary); text-decoration: underline; font-weight: 600; font-size: 0.95em;">Esqueci minha senha</a>
+                </div>
+
                 <div class="auth-footer" style="text-align: center; margin-top: 25px;">
                     <a href="https://pizzacontrol.com.br" style="color: var(--primary); text-decoration: none; font-weight: 600; font-size: 0.95em; transition: color 0.3s;" onmouseover="this.style.color='var(--primary-dark)'" onmouseout="this.style.color='var(--primary)'">Ainda não é assinante? Conheça o PizzaControl</a>
                 </div>
@@ -2195,6 +2202,29 @@
         height: 35px;
       }
     </style>
+
+    <!-- Função Inteligente de Recuperação de Senha do Firebase -->
+    <script>
+    function recuperarSenha() {
+        var emailCliente = document.getElementById("loginEmail").value; 
+
+        if (emailCliente != "") {
+            firebase.auth().sendPasswordResetEmail(emailCliente)
+                .then(function() {
+                    alert("Sucesso! O link para criar uma nova senha foi enviado para o seu e-mail.");
+                })
+                .catch(function(error) {
+                    if(error.code === 'auth/user-not-found') {
+                        alert("Esse e-mail ainda não tem uma assinatura ativa.");
+                    } else {
+                        alert("Ocorreu um erro: " + error.message);
+                    }
+                });
+        } else {
+            alert("Por favor, digite o seu e-mail na caixinha acima e clique em 'Esqueci minha senha' de novo.");
+        }
+    }
+    </script>
 </body>
 
 </html>
