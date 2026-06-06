@@ -1,5 +1,7 @@
 console.log('🍕 APP.JS CARREGADO - MODO SAAS FIREBASE + LOCALSTORAGE');
 
+let isPro = false;
+
 let STORAGE_KEY = 'pizzaControlLocalDB_v1';
 const STORAGE_KEY_BASE = 'pizzaControlLocalDB_v1';
 const SESSION_KEY = 'pizzaControlSession';
@@ -157,6 +159,15 @@ async function verificarAssinatura(uid) {
         const agora = new Date();
         const valido = agora <= dataVenc;
 
+        // Verificar plano do usuário (basico ou pro)
+        if (dados.plano === 'pro') {
+            isPro = true;
+            console.log('⭐ Plano: PRO');
+        } else {
+            isPro = false;
+            console.log('📋 Plano: BÁSICO');
+        }
+
         console.log('📅 Assinatura:', valido ? '✅ Válida' : '❌ Expirada', '| Vence em:', dataVenc.toLocaleDateString('pt-BR'));
         return valido;
     } catch (err) {
@@ -193,6 +204,7 @@ function configurarStorageUsuario(uid) {
 function inicializarApp() {
     carregarDados();
     setupNav();
+    aplicarTravaPlanos();
     renderAll();
     loadMassaUI();
     loadCustosUI();
@@ -1950,4 +1962,116 @@ function calcPorMarkup() {
         const elem = document.getElementById('calcLucroReal');
         if (elem) elem.textContent = 'Lucro Líquido (Pós Imposto): R$ 0,00 (-)';
     }
+}
+
+// ===== TRAVA DE PLANOS (BÁSICO vs PRO) =====
+function aplicarTravaPlanos() {
+    if (isPro) return;
+
+    // --- 1. Travar Exportar / Importar ---
+    const btnExportar = document.querySelector('button[onclick="exportar()"]');
+    if (btnExportar) {
+        btnExportar.textContent = '🔒 Recurso PRO';
+        btnExportar.className = 'btn btn-secondary';
+        btnExportar.removeAttribute('onclick');
+        btnExportar.addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('🔒 O backup (exportar) é um recurso exclusivo do Plano PRO.\n\nFaça upgrade para desbloquear!');
+        });
+    }
+
+    const lblImportar = document.querySelector('label.btn.btn-warning');
+    if (lblImportar) {
+        const inputFile = lblImportar.querySelector('input[type="file"]');
+        if (inputFile) inputFile.remove();
+        lblImportar.textContent = '🔒 Recurso PRO';
+        lblImportar.className = 'btn btn-secondary';
+        lblImportar.style.cursor = 'pointer';
+        lblImportar.addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('🔒 A importação de dados é um recurso exclusivo do Plano PRO.\n\nFaça upgrade para desbloquear!');
+        });
+    }
+
+    // --- 2. Travar Simulador de Combos VIP ---
+    const cardHeaders = document.querySelectorAll('.card-header');
+    let comboCard = null;
+    cardHeaders.forEach(function(header) {
+        if (header.textContent.includes('Simulador de Combos VIP')) {
+            comboCard = header.closest('.card');
+        }
+    });
+
+    if (comboCard) {
+        const comboBody = comboCard.querySelector('.card-body');
+        if (comboBody) {
+            comboBody.style.position = 'relative';
+
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;' +
+                'backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);' +
+                'background:rgba(255,255,255,0.3);z-index:10;' +
+                'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
+                'border-radius:0 0 12px 12px;';
+
+            overlay.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+
+            const btnPro = document.createElement('button');
+            btnPro.className = 'btn btn-success';
+            btnPro.textContent = '⭐ Quero ser PRO';
+            btnPro.style.cssText = 'font-size:1.1em;padding:12px 30px;box-shadow:0 4px 15px rgba(76,175,80,0.4);' +
+                'animation:pulse 2s infinite;cursor:pointer;z-index:11;';
+            btnPro.addEventListener('click', function(e) {
+                e.stopPropagation();
+                window.open('https://pizzacontrol.com.br', '_blank');
+            });
+
+            const lockIcon = document.createElement('div');
+            lockIcon.textContent = '🔒';
+            lockIcon.style.cssText = 'font-size:2.5em;margin-bottom:10px;';
+
+            const lockText = document.createElement('p');
+            lockText.textContent = 'Recurso exclusivo do Plano PRO';
+            lockText.style.cssText = 'font-weight:600;color:#333;margin-bottom:15px;font-size:1em;';
+
+            overlay.appendChild(lockIcon);
+            overlay.appendChild(lockText);
+            overlay.appendChild(btnPro);
+            comboBody.appendChild(overlay);
+        }
+    }
+
+    // --- 3. Travar Simulação de CMV (Cenários) ---
+    const cenariosDiv = document.querySelector('.cenarios');
+    if (cenariosDiv) {
+        cenariosDiv.style.filter = 'blur(4px)';
+        cenariosDiv.style.pointerEvents = 'none';
+        cenariosDiv.style.position = 'relative';
+
+        const parentEl = cenariosDiv.parentElement;
+        if (parentEl) {
+            const aviso = document.createElement('div');
+            aviso.style.cssText = 'text-align:center;padding:12px 20px;margin-top:10px;' +
+                'background:linear-gradient(135deg,#fff3e0,#ffe0b2);border-radius:8px;' +
+                'border:1px solid #ffcc80;cursor:pointer;';
+            aviso.innerHTML = '<span style="font-size:1.1em;font-weight:600;color:#e65100;">🔒 PRO: Ver Metas de CMV</span>';
+            aviso.addEventListener('click', function() {
+                alert('🔒 As metas de CMV são um recurso exclusivo do Plano PRO.\n\nFaça upgrade para desbloquear!');
+            });
+
+            cenariosDiv.insertAdjacentElement('afterend', aviso);
+        }
+    }
+
+    // Injetar animação pulse se não existir
+    if (!document.getElementById('proAnimStyles')) {
+        const style = document.createElement('style');
+        style.id = 'proAnimStyles';
+        style.textContent = '@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}';
+        document.head.appendChild(style);
+    }
+
+    console.log('🔒 Travas do Plano Básico aplicadas.');
 }
