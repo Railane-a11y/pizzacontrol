@@ -2065,6 +2065,94 @@ function aplicarTravaPlanos() {
         }
     }
 
+    // --- 4. Travar Simulador Meio a Meio ---
+    cardHeaders.forEach(function(header) {
+        if (header.textContent.includes('Simulador Meio a Meio')) {
+            const maMCard = header.closest('.card');
+            if (maMCard) {
+                const maMBody = maMCard.querySelector('.card-body');
+                if (maMBody) {
+                    maMBody.style.position = 'relative';
+
+                    const overlayMaM = document.createElement('div');
+                    overlayMaM.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;' +
+                        'backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);' +
+                        'background:rgba(255,255,255,0.3);z-index:10;' +
+                        'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
+                        'border-radius:0 0 12px 12px;';
+                    overlayMaM.addEventListener('click', function(e) { e.stopPropagation(); });
+
+                    const lockMaM = document.createElement('div');
+                    lockMaM.textContent = '🔒';
+                    lockMaM.style.cssText = 'font-size:2.5em;margin-bottom:10px;';
+
+                    const txtMaM = document.createElement('p');
+                    txtMaM.textContent = 'Recurso exclusivo do Plano PRO';
+                    txtMaM.style.cssText = 'font-weight:600;color:#333;margin-bottom:15px;font-size:1em;';
+
+                    const btnMaM = document.createElement('button');
+                    btnMaM.className = 'btn btn-success';
+                    btnMaM.textContent = '⭐ Quero ser PRO';
+                    btnMaM.style.cssText = 'font-size:1.1em;padding:12px 30px;box-shadow:0 4px 15px rgba(76,175,80,0.4);' +
+                        'animation:pulse 2s infinite;cursor:pointer;z-index:11;';
+                    btnMaM.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        window.open('https://pizzacontrol.com.br', '_blank');
+                    });
+
+                    overlayMaM.appendChild(lockMaM);
+                    overlayMaM.appendChild(txtMaM);
+                    overlayMaM.appendChild(btnMaM);
+                    maMBody.appendChild(overlayMaM);
+                }
+            }
+        }
+    });
+
+    // --- 5. Travar Cadastro de Bebidas e Adicionais ---
+    cardHeaders.forEach(function(header) {
+        if (header.textContent.includes('Bebidas e Adicionais') && !header.textContent.includes('Top')) {
+            const bebCard = header.closest('.card');
+            if (bebCard) {
+                const bebBody = bebCard.querySelector('.card-body');
+                if (bebBody) {
+                    bebBody.style.position = 'relative';
+
+                    const overlayBeb = document.createElement('div');
+                    overlayBeb.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;' +
+                        'backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);' +
+                        'background:rgba(255,255,255,0.3);z-index:10;' +
+                        'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
+                        'border-radius:0 0 12px 12px;';
+                    overlayBeb.addEventListener('click', function(e) { e.stopPropagation(); });
+
+                    const lockBeb = document.createElement('div');
+                    lockBeb.textContent = '🔒';
+                    lockBeb.style.cssText = 'font-size:2.5em;margin-bottom:10px;';
+
+                    const txtBeb = document.createElement('p');
+                    txtBeb.textContent = 'Recurso exclusivo do Plano PRO';
+                    txtBeb.style.cssText = 'font-weight:600;color:#333;margin-bottom:15px;font-size:1em;';
+
+                    const btnBeb = document.createElement('button');
+                    btnBeb.className = 'btn btn-success';
+                    btnBeb.textContent = '⭐ Quero ser PRO';
+                    btnBeb.style.cssText = 'font-size:1.1em;padding:12px 30px;box-shadow:0 4px 15px rgba(76,175,80,0.4);' +
+                        'animation:pulse 2s infinite;cursor:pointer;z-index:11;';
+                    btnBeb.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        window.open('https://pizzacontrol.com.br', '_blank');
+                    });
+
+                    overlayBeb.appendChild(lockBeb);
+                    overlayBeb.appendChild(txtBeb);
+                    overlayBeb.appendChild(btnBeb);
+                    bebBody.appendChild(overlayBeb);
+                }
+            }
+        }
+    });
+
     // Injetar animação pulse se não existir
     if (!document.getElementById('proAnimStyles')) {
         const style = document.createElement('style');
