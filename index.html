@@ -847,72 +847,111 @@
   });
 </script>
 <!-- Checkout Modal -->
-<div id="checkoutModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); align-items:center; justify-content:center; padding: 16px;">
-  <div style="background:#fff; border-radius:12px; width:100%; max-width:480px; overflow:hidden; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
-    <div style="background:#f8fafc; padding:16px 24px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
-      <h3 style="margin:0; font-size:1.2rem; font-weight:800; color:#1a202c;">Finalizar Assinatura</h3>
-      <button onclick="closeCheckoutModal()" style="background:none; border:none; font-size:1.5rem; color:#a0aec0; cursor:pointer;">&times;</button>
-    </div>
-    <div style="padding:24px;">
-      <form id="checkoutForm" onsubmit="handleCheckoutSubmit(event)">
-        <input type="hidden" name="plan" id="planInput" value="">
-        <input type="hidden" name="price" id="priceInput" value="">
-        <div style="margin-bottom:16px;">
-          <label style="display:block; font-size:0.85rem; font-weight:600; color:#4a5568; margin-bottom:4px;">Nome Completo</label>
-          <input type="text" name="name" required style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.95rem;">
+<div id="checkoutModal" style="display:none; position:fixed; inset:0; z-index:9999; background:#f4f5f7; overflow-y:auto; padding: 24px 16px;">
+  
+  <div style="max-width:440px; margin:0 auto 16px; display:flex; justify-content:space-between; align-items:center;">
+    <button type="button" onclick="closeCheckoutModal()" style="background:none; border:none; font-size:0.9rem; font-weight:600; color:#718096; cursor:pointer;">← Voltar</button>
+    <span style="font-size:0.8rem; color:#a0aec0;">Ambiente Seguro 🔒</span>
+  </div>
+
+  <div style="max-width:440px; margin:0 auto;">
+    <form id="checkoutForm" onsubmit="handleCheckoutSubmit(event)">
+      <input type="hidden" name="plan" id="planInput" value="">
+      <input type="hidden" name="price" id="priceInput" value="">
+
+      <!-- Resumo do Pedido -->
+      <div style="background:#fff; border-radius:12px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+        <div style="padding:16px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-weight:700; font-size:0.9rem; color:#1a202c;">Resumo do pedido</span>
+          <span style="color:#a0aec0; font-size:1.2rem;">⌄</span>
         </div>
-        <div style="margin-bottom:16px;">
-          <label style="display:block; font-size:0.85rem; font-weight:600; color:#4a5568; margin-bottom:4px;">E-mail</label>
-          <input type="email" name="email" required style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.95rem;">
-        </div>
-        <div style="margin-bottom:20px;">
-          <label style="display:block; font-size:0.85rem; font-weight:600; color:#4a5568; margin-bottom:4px;">CPF</label>
-          <input type="text" name="cpf" required style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.95rem;">
-        </div>
-        
-        <div style="margin-bottom:16px;">
-          <label style="display:block; font-size:0.85rem; font-weight:600; color:#4a5568; margin-bottom:8px;">Forma de Pagamento</label>
-          <div style="display:flex; gap:12px;">
-            <label style="flex:1; border:2px solid #22c55e; border-radius:6px; padding:12px; text-align:center; cursor:pointer; background:#f0fdf4;" id="lbl-cartao">
-              <input type="radio" name="payment_method" value="cartao" checked onchange="togglePaymentMethod()" style="display:none;">
-              <span style="font-weight:700; color:#1a202c; font-size:0.9rem;">💳 Cartão</span>
-            </label>
-            <label style="flex:1; border:1px solid #cbd5e1; border-radius:6px; padding:12px; text-align:center; cursor:pointer; background:#fff;" id="lbl-pix">
-              <input type="radio" name="payment_method" value="pix" onchange="togglePaymentMethod()" style="display:none;">
-              <span style="font-weight:700; color:#1a202c; font-size:0.9rem;">💠 PIX</span>
-            </label>
+        <div style="padding:16px; display:flex; gap:16px; align-items:center;">
+          <div style="width:60px; height:60px; background:#f8fafc; border-radius:8px; display:flex; justify-content:center; align-items:center; font-size:1.8rem; border:1px solid #e2e8f0;">🍕</div>
+          <div>
+            <div id="checkoutPlanName" style="font-weight:700; font-size:0.85rem; color:#1a202c; text-transform:uppercase;">PLANO BÁSICO</div>
+            <div id="checkoutPlanPrice" style="font-weight:800; font-size:1.2rem; color:#ff2c55; margin-top:2px;">R$ 49,90</div>
           </div>
         </div>
+      </div>
 
-        <div id="card-fields" style="display:block;">
-          <div style="margin-bottom:16px;">
-            <label style="display:block; font-size:0.85rem; font-weight:600; color:#4a5568; margin-bottom:4px;">Número do Cartão</label>
-            <input type="text" name="card_number" style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.95rem;" placeholder="0000 0000 0000 0000">
+      <!-- Identificação -->
+      <div style="background:#fff; border-radius:12px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.05); padding:16px;">
+        <div style="font-weight:700; font-size:0.9rem; color:#1a202c; margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+          <span style="color:#a0aec0;">👤</span> Identificação
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="position:relative;">
+            <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#a0aec0; font-size:1.1rem;">✉️</span>
+            <input type="email" name="email" placeholder="Seu melhor e-mail" required style="width:100%; padding:12px 12px 12px 44px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.95rem; background:#fff; color:#1a202c; outline:none;">
+          </div>
+        </div>
+        <div>
+          <div style="position:relative; display:flex; gap:8px;">
+            <div style="border:1px solid #e2e8f0; border-radius:8px; padding:12px; display:flex; align-items:center; gap:6px; background:#f8fafc; width:100px; justify-content:center;">
+              <span style="font-size:1.1rem;">🇧🇷</span>
+              <span style="font-weight:600; color:#4a5568; font-size:0.9rem;">+55</span>
+            </div>
+            <input type="text" name="phone" placeholder="(99) 99999-9999" required style="flex:1; padding:12px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.95rem; background:#fff; color:#1a202c; outline:none;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Forma de Pagamento -->
+      <div style="background:#fff; border-radius:12px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.05); padding:16px;">
+        <div style="font-weight:700; font-size:0.9rem; color:#1a202c; margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+          <span style="color:#a0aec0;">💳</span> Forma de pagamento
+        </div>
+        <div style="display:flex; gap:12px; margin-bottom:16px;">
+          <label style="flex:1; border:2px solid #ff2c55; border-radius:8px; padding:12px; text-align:center; cursor:pointer; background:#fff0f2; transition:all 0.2s;" id="lbl-pix">
+            <input type="radio" name="payment_method" value="pix" checked onchange="togglePaymentMethod()" style="display:none;">
+            <span style="font-weight:700; color:#ff2c55; font-size:0.85rem;">$ PIX</span>
+          </label>
+          <label style="flex:1; border:1px solid #e2e8f0; border-radius:8px; padding:12px; text-align:center; cursor:pointer; background:#fff; transition:all 0.2s;" id="lbl-cartao">
+            <input type="radio" name="payment_method" value="cartao" onchange="togglePaymentMethod()" style="display:none;">
+            <span style="font-weight:700; color:#4a5568; font-size:0.85rem;">💳 Cartão de Crédito</span>
+          </label>
+        </div>
+        
+        <!-- PIX INFO -->
+        <div id="pix-fields" style="background:#f8fafc; border-radius:8px; padding:16px; text-align:center; display:block;">
+          <div style="font-weight:700; font-size:0.85rem; color:#1a202c; margin-bottom:8px; text-align:left;">Pagamento somente à vista</div>
+          <p style="margin:0 0 16px 0; font-size:0.8rem; color:#718096; line-height:1.6; text-align:left;">A liberação da compra ocorre após a confirmação do pagamento.<br><br>Ao gerar o código atente para a data de expiração.</p>
+          <div style="font-size:0.8rem; color:#4a5568; margin-bottom:16px; text-align:left;">Pagamento somente à vista: <span id="pix-total" style="font-weight:800; color:#ff2c55;">R$ 49,90</span></div>
+          <button type="submit" id="btn-pix" style="width:100%; background:#ff2c55; color:#fff; border:none; padding:16px; border-radius:8px; font-weight:800; font-size:1rem; cursor:pointer; text-transform:uppercase; transition:all 0.2s; box-shadow:0 4px 14px rgba(255,44,85,0.3);">
+            $ GERAR PIX
+          </button>
+        </div>
+
+        <!-- CARTAO INFO -->
+        <div id="card-fields" style="background:#f8fafc; border-radius:8px; padding:16px; display:none;">
+          <div style="margin-bottom:12px;">
+            <input type="text" name="card_number" style="width:100%; padding:12px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.95rem; outline:none;" placeholder="Número do Cartão">
           </div>
           <div style="display:flex; gap:12px; margin-bottom:16px;">
             <div style="flex:1;">
-              <label style="display:block; font-size:0.85rem; font-weight:600; color:#4a5568; margin-bottom:4px;">Validade</label>
-              <input type="text" name="card_expiry" style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.95rem;" placeholder="MM/AA">
+              <input type="text" name="card_expiry" style="width:100%; padding:12px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.95rem; outline:none;" placeholder="MM/AA">
             </div>
             <div style="flex:1;">
-              <label style="display:block; font-size:0.85rem; font-weight:600; color:#4a5568; margin-bottom:4px;">CVC</label>
-              <input type="text" name="card_cvc" style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.95rem;" placeholder="123">
+              <input type="text" name="card_cvc" style="width:100%; padding:12px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.95rem; outline:none;" placeholder="CVC">
             </div>
           </div>
-        </div>
-        
-        <div id="pix-fields" style="display:none; text-align:center; padding:16px; background:#f0fdf4; border:1px dashed #22c55e; border-radius:8px; margin-bottom:16px;">
-          <p style="margin:0; font-size:0.9rem; color:#166534; font-weight:600;">O código PIX será gerado na próxima etapa após clicar em Pagar.</p>
+          <button type="submit" id="btn-cartao" style="width:100%; background:#ff2c55; color:#fff; border:none; padding:16px; border-radius:8px; font-weight:800; font-size:1rem; cursor:pointer; text-transform:uppercase; transition:all 0.2s; box-shadow:0 4px 14px rgba(255,44,85,0.3);">
+            COMPRAR AGORA
+          </button>
         </div>
 
-        <button type="submit" id="btn-pagar" style="width:100%; background:#22c55e; color:#fff; border:none; padding:16px; border-radius:8px; font-weight:800; font-size:1rem; cursor:pointer; text-transform:uppercase; letter-spacing:0.05em; transition:all 0.2s;">
-          Pagar R$ 49,90
-        </button>
-        <div id="loading-msg" style="display:none; text-align:center; margin-top:12px; font-size:0.9rem; font-weight:600; color:#4a5568;">
-          Processando...
-        </div>
-      </form>
-    </div>
+      </div>
+      
+      <!-- LOADING / FOOTER -->
+      <div id="loading-msg" style="display:none; text-align:center; margin-bottom:16px; font-size:0.9rem; font-weight:600; color:#4a5568;">
+        Processando...
+      </div>
+      
+      <div style="text-align:center; font-size:0.75rem; color:#a0aec0; margin-top:8px;">
+        <p style="margin:0 0 8px 0;">🔒 Pagamento 100% seguro · Site protegido</p>
+        <p style="margin:0; line-height:1.5;">Você está em uma página de checkout segura.<br>A responsabilidade pela oferta é do vendedor.</p>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -921,11 +960,13 @@
     document.getElementById('planInput').value = planName;
     document.getElementById('priceInput').value = price;
     
-    // Update button text to show correct price
-    const btnPagar = document.getElementById('btn-pagar');
-    btnPagar.innerText = `PAGAR R$ ${price.toFixed(2).replace('.', ',')}`;
+    // Update texts
+    const priceStr = `R$ ${price.toFixed(2).replace('.', ',')}`;
+    document.getElementById('checkoutPlanName').innerText = `PLANO ${planName}`;
+    document.getElementById('checkoutPlanPrice').innerText = priceStr;
+    document.getElementById('pix-total').innerText = priceStr;
     
-    document.getElementById('checkoutModal').style.display = 'flex';
+    document.getElementById('checkoutModal').style.display = 'block';
     document.body.style.overflow = 'hidden';
   }
 
@@ -939,11 +980,13 @@
     document.getElementById('card-fields').style.display = isCartao ? 'block' : 'none';
     document.getElementById('pix-fields').style.display = isCartao ? 'none' : 'block';
     
-    document.getElementById('lbl-cartao').style.border = isCartao ? '2px solid #22c55e' : '1px solid #cbd5e1';
-    document.getElementById('lbl-cartao').style.background = isCartao ? '#f0fdf4' : '#fff';
+    document.getElementById('lbl-pix').style.border = !isCartao ? '2px solid #ff2c55' : '1px solid #e2e8f0';
+    document.getElementById('lbl-pix').style.background = !isCartao ? '#fff0f2' : '#fff';
+    document.querySelector('#lbl-pix span').style.color = !isCartao ? '#ff2c55' : '#4a5568';
     
-    document.getElementById('lbl-pix').style.border = !isCartao ? '2px solid #22c55e' : '1px solid #cbd5e1';
-    document.getElementById('lbl-pix').style.background = !isCartao ? '#f0fdf4' : '#fff';
+    document.getElementById('lbl-cartao').style.border = isCartao ? '2px solid #ff2c55' : '1px solid #e2e8f0';
+    document.getElementById('lbl-cartao').style.background = isCartao ? '#fff0f2' : '#fff';
+    document.querySelector('#lbl-cartao span').style.color = isCartao ? '#ff2c55' : '#4a5568';
     
     const cardInputs = document.querySelectorAll('#card-fields input');
     cardInputs.forEach(input => input.required = isCartao);
@@ -955,8 +998,10 @@
   async function handleCheckoutSubmit(e) {
     e.preventDefault();
     
-    const btn = document.getElementById('btn-pagar');
+    const isCartao = document.querySelector('input[name="payment_method"]:checked').value === 'cartao';
+    const btn = isCartao ? document.getElementById('btn-cartao') : document.getElementById('btn-pix');
     const loadingMsg = document.getElementById('loading-msg');
+    
     btn.disabled = true;
     btn.style.opacity = '0.7';
     loadingMsg.style.display = 'block';
@@ -966,7 +1011,6 @@
     const data = Object.fromEntries(formData.entries());
 
     // NOTE: INSIRA AQUI A SUA URL DO WEBHOOK DO MAKE
-    // Exemplo: https://hook.us1.make.com/abc123xyz...
     const MAKE_WEBHOOK_URL = "SUA_URL_DO_WEBHOOK_AQUI";
 
     try {
