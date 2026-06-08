@@ -678,12 +678,56 @@
       TENHA ACESSO IMEDIATO AO <span style="color:#e53e3e;">PIZZACONTROL</span>
     </h2>
 
-    <div style="display: flex; justify-content: center;">
-      <div class="plan-vip hover-card-neon" style="max-width: 420px; width: 100%;">
-        <div class="plan-vip-badge">🔥 OFERTA ESPECIAL</div>
+    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 32px;">
+      
+      <!-- PLANO BÁSICO -->
+      <div class="card-white hover-card" style="max-width: 420px; width: 100%; padding: 32px 24px; border: 2px solid #e2e8f0; border-radius: 16px;">
         <div style="text-align:center;margin-bottom:20px;">
-          <div style="font-size:1.1rem;font-weight:800;color:#e53e3e;margin-bottom:4px;">PLANO BÁSICO</div>
+          <div style="font-size:1.1rem;font-weight:800;color:#4a5568;margin-bottom:4px;">PLANO BÁSICO</div>
           <div style="font-size:0.8rem;color:#718096;">Assinatura Mensal — Cancele quando quiser</div>
+        </div>
+        
+        <ul style="list-style:none;padding:0;margin:0 0 24px;display:flex;flex-direction:column;gap:12px;">
+          <li style="display:flex;align-items:flex-start;gap:10px;">
+            <span class="check-green">✓</span>
+            <span style="color:#4a5568;font-size:0.9rem;">Acesso Completo ao Sistema PizzaControl</span>
+          </li>
+          <li style="display:flex;align-items:flex-start;gap:10px;">
+            <span class="check-green">✓</span>
+            <span style="color:#4a5568;font-size:0.9rem;">Cálculo Automático de Lucro Real</span>
+          </li>
+          <li style="display:flex;align-items:flex-start;gap:10px;">
+            <span class="check-green">✓</span>
+            <span style="color:#4a5568;font-size:0.9rem;">Backup Manual e Dados Locais</span>
+          </li>
+          <li style="display:flex;align-items:flex-start;gap:10px;">
+            <span style="color:#cbd5e1;font-weight:bold;">✗</span>
+            <span style="color:#a0aec0;font-size:0.9rem;text-decoration:line-through;">Suporte Direto por WhatsApp</span>
+          </li>
+          <li style="display:flex;align-items:flex-start;gap:10px;">
+            <span style="color:#cbd5e1;font-weight:bold;">✗</span>
+            <span style="color:#a0aec0;font-size:0.9rem;text-decoration:line-through;">Grupo Exclusivo Pizzaiolos</span>
+          </li>
+        </ul>
+
+        <div style="text-align:center;margin-bottom:20px;">
+          <div class="vip-price" style="font-size:3rem;font-weight:900;color:#1a202c; line-height: 1;">
+            R$ 49,90<span style="font-size:1rem;font-weight:500;color:#718096;">/mês</span>
+          </div>
+          <div style="color:#a0aec0;font-size:0.85rem;margin-top:10px;">O essencial para começar</div>
+        </div>
+
+        <a href="javascript:void(0)" onclick="openCheckoutModal('Básico', 49.90)" class="btn-dark" style="display:block;text-align:center;text-decoration:none;text-transform:uppercase;font-size:1rem;padding:18px 20px;">
+          ASSINAR PLANO BÁSICO
+        </a>
+      </div>
+
+      <!-- PLANO PRO -->
+      <div class="plan-vip hover-card-neon" style="max-width: 420px; width: 100%;">
+        <div class="plan-vip-badge">🔥 OFERTA MAIS VENDIDA</div>
+        <div style="text-align:center;margin-bottom:20px;">
+          <div style="font-size:1.1rem;font-weight:800;color:#e53e3e;margin-bottom:4px;">PLANO PRO</div>
+          <div style="font-size:0.8rem;color:#718096;">Assinatura Mensal — Tudo Liberado</div>
         </div>
         
         <ul style="list-style:none;padding:0;margin:0 0 24px;display:flex;flex-direction:column;gap:12px;">
@@ -697,30 +741,31 @@
           </li>
           <li style="display:flex;align-items:flex-start;gap:10px;">
             <span class="check-green">✓</span>
-            <span style="color:#e2e8f0;font-size:0.9rem;">Backup Manual e Controle Total dos Dados</span>
+            <span style="color:#e2e8f0;font-size:0.9rem;">Backup Manual e Controle de Dados</span>
           </li>
           <li style="display:flex;align-items:flex-start;gap:10px;">
             <span class="check-green">✓</span>
-            <span style="color:#e2e8f0;font-size:0.9rem;">Suporte VIP por WhatsApp</span>
+            <span style="color:#e2e8f0;font-size:0.9rem;font-weight:bold;">Suporte VIP Prioritário por WhatsApp</span>
           </li>
           <li style="display:flex;align-items:flex-start;gap:10px;">
             <span class="check-green">✓</span>
-            <span style="color:#e2e8f0;font-size:0.9rem;">Sem taxas extras ou surpresas</span>
+            <span style="color:#e2e8f0;font-size:0.9rem;font-weight:bold;">Acesso ao Grupo Exclusivo de Pizzaiolos</span>
           </li>
         </ul>
 
         <div style="text-align:center;margin-bottom:20px;">
           <div class="vip-price" style="font-size:3rem;font-weight:900;color:#f6c90e; line-height: 1;">
-            R$ 49,90<span style="font-size:1rem;font-weight:500;color:#718096;">/mês</span>
+            R$ 89,90<span style="font-size:1rem;font-weight:500;color:#718096;">/mês</span>
           </div>
-          <div style="color:#a0aec0;font-size:0.85rem;margin-top:10px;">Menos de R$ 1,70 por dia</div>
+          <div style="color:#a0aec0;font-size:0.85rem;margin-top:10px;">Acesso Prioritário e Mentoria</div>
         </div>
 
-        <a href="javascript:void(0)" onclick="openCheckoutModal()" class="btn-red animate-pulse" style="display:block;text-align:center;text-decoration:none;text-transform:uppercase;font-size:1rem;padding:18px 20px;">
+        <a href="javascript:void(0)" onclick="openCheckoutModal('PRO', 89.90)" class="btn-red animate-pulse" style="display:block;text-align:center;text-decoration:none;text-transform:uppercase;font-size:1rem;padding:18px 20px;">
           QUERO SER PRO
         </a>
         <p style="color:#718096;font-size:0.75rem;text-align:center;margin-top:14px;">🔒 Compra 100% segura · Garantia de 7 dias ou seu dinheiro de volta</p>
       </div>
+      
     </div>
 
     <div class="info-bar" style="margin-top:40px;padding-top:24px;border-top:1px solid #e2e8f0;">
@@ -810,6 +855,8 @@
     </div>
     <div style="padding:24px;">
       <form id="checkoutForm" onsubmit="handleCheckoutSubmit(event)">
+        <input type="hidden" name="plan" id="planInput" value="">
+        <input type="hidden" name="price" id="priceInput" value="">
         <div style="margin-bottom:16px;">
           <label style="display:block; font-size:0.85rem; font-weight:600; color:#4a5568; margin-bottom:4px;">Nome Completo</label>
           <input type="text" name="name" required style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.95rem;">
@@ -870,7 +917,14 @@
 </div>
 
 <script>
-  function openCheckoutModal() {
+  function openCheckoutModal(planName, price) {
+    document.getElementById('planInput').value = planName;
+    document.getElementById('priceInput').value = price;
+    
+    // Update button text to show correct price
+    const btnPagar = document.getElementById('btn-pagar');
+    btnPagar.innerText = `PAGAR R$ ${price.toFixed(2).replace('.', ',')}`;
+    
     document.getElementById('checkoutModal').style.display = 'flex';
     document.body.style.overflow = 'hidden';
   }
