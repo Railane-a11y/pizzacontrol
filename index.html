@@ -677,10 +677,13 @@
     <h2 class="sec-h2" style="text-align:center;color:#1a202c;font-weight:900;font-size:clamp(1.2rem,4vw,1.7rem);margin-bottom:44px;text-transform:uppercase;letter-spacing:-0.01em;line-height:1.3;">
       TENHA ACESSO IMEDIATO AO <span style="color:#e53e3e;">PIZZACONTROL</span>
     </h2>
+    
+    <p style="text-align:center; color:#e53e3e; font-weight:700; font-size:0.9rem; margin-bottom:24px;">
+      ⚠️ IMPORTANTE: No momento do pagamento, utilize o MESMO E-MAIL do seu cadastro para liberação automática.
+    </p>
 
     <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 32px;">
       
-      <!-- PLANO BÁSICO -->
       <div class="card-white hover-card" style="max-width: 420px; width: 100%; padding: 32px 24px; border: 2px solid #e2e8f0; border-radius: 16px;">
         <div style="text-align:center;margin-bottom:20px;">
           <div style="font-size:1.1rem;font-weight:800;color:#4a5568;margin-bottom:4px;">PLANO BÁSICO</div>
@@ -717,12 +720,11 @@
           <div style="color:#a0aec0;font-size:0.85rem;margin-top:10px;">O essencial para começar</div>
         </div>
 
-        <a href="javascript:void(0)" onclick="openCheckoutModal('Básico', 49.90)" class="btn-dark" style="display:block;text-align:center;text-decoration:none;text-transform:uppercase;font-size:1rem;padding:18px 20px;">
+        <a href="https://mpago.la/1RwJxGT" target="_blank" class="btn-dark" style="display:block;text-align:center;text-decoration:none;text-transform:uppercase;font-size:1rem;padding:18px 20px;">
           ASSINAR PLANO BÁSICO
         </a>
       </div>
 
-      <!-- PLANO PRO -->
       <div class="plan-vip hover-card-neon" style="max-width: 420px; width: 100%;">
         <div class="plan-vip-badge">🔥 OFERTA MAIS VENDIDA</div>
         <div style="text-align:center;margin-bottom:20px;">
@@ -760,7 +762,7 @@
           <div style="color:#a0aec0;font-size:0.85rem;margin-top:10px;">Acesso Prioritário e Mentoria</div>
         </div>
 
-        <a href="javascript:void(0)" onclick="openCheckoutModal('PRO', 89.90)" class="btn-red animate-pulse" style="display:block;text-align:center;text-decoration:none;text-transform:uppercase;font-size:1rem;padding:18px 20px;">
+        <a href="https://mpago.la/2h7Mdir" target="_blank" class="btn-red animate-pulse" style="display:block;text-align:center;text-decoration:none;text-transform:uppercase;font-size:1rem;padding:18px 20px;">
           QUERO SER PRO
         </a>
         <p style="color:#718096;font-size:0.75rem;text-align:center;margin-top:14px;">🔒 Compra 100% segura · Garantia de 7 dias ou seu dinheiro de volta</p>
@@ -845,197 +847,6 @@
       if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   });
-</script>
-<!-- Checkout Modal -->
-<div id="checkoutModal" style="display:none; position:fixed; inset:0; z-index:9999; background:#f4f5f7; overflow-y:auto; padding: 24px 16px;">
-  
-  <div style="max-width:440px; margin:0 auto 16px; display:flex; justify-content:space-between; align-items:center;">
-    <button type="button" onclick="closeCheckoutModal()" style="background:none; border:none; font-size:0.9rem; font-weight:600; color:#718096; cursor:pointer;">← Voltar</button>
-    <span style="font-size:0.8rem; color:#a0aec0;">Ambiente Seguro 🔒</span>
-  </div>
-
-  <div style="max-width:440px; margin:0 auto;">
-    <form id="checkoutForm" onsubmit="handleCheckoutSubmit(event)">
-      <input type="hidden" name="plan" id="planInput" value="">
-      <input type="hidden" name="price" id="priceInput" value="">
-
-      <!-- Resumo do Pedido -->
-      <div style="background:#fff; border-radius:12px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-        <div style="padding:16px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-weight:700; font-size:0.9rem; color:#1a202c;">Resumo do pedido</span>
-          <span style="color:#a0aec0; font-size:1.2rem;">⌄</span>
-        </div>
-        <div style="padding:16px; display:flex; gap:16px; align-items:center;">
-          <div style="width:60px; height:60px; background:#f8fafc; border-radius:8px; display:flex; justify-content:center; align-items:center; font-size:1.8rem; border:1px solid #e2e8f0;">🍕</div>
-          <div>
-            <div id="checkoutPlanName" style="font-weight:700; font-size:0.85rem; color:#1a202c; text-transform:uppercase;">PLANO BÁSICO</div>
-            <div id="checkoutPlanPrice" style="font-weight:800; font-size:1.2rem; color:#ff2c55; margin-top:2px;">R$ 49,90</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Identificação -->
-      <div style="background:#fff; border-radius:12px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.05); padding:16px;">
-        <div style="font-weight:700; font-size:0.9rem; color:#1a202c; margin-bottom:16px; display:flex; align-items:center; gap:8px;">
-          <span style="color:#a0aec0;">👤</span> Identificação
-        </div>
-        <div style="margin-bottom:12px;">
-          <div style="position:relative;">
-            <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#a0aec0; font-size:1.1rem;">✉️</span>
-            <input type="email" name="email" placeholder="Seu melhor e-mail" required style="width:100%; padding:12px 12px 12px 44px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.95rem; background:#fff; color:#1a202c; outline:none;">
-          </div>
-        </div>
-        <div>
-          <div style="position:relative; display:flex; gap:8px;">
-            <div style="border:1px solid #e2e8f0; border-radius:8px; padding:12px; display:flex; align-items:center; gap:6px; background:#f8fafc; width:100px; justify-content:center;">
-              <span style="font-size:1.1rem;">🇧🇷</span>
-              <span style="font-weight:600; color:#4a5568; font-size:0.9rem;">+55</span>
-            </div>
-            <input type="text" name="phone" placeholder="(99) 99999-9999" required style="flex:1; padding:12px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.95rem; background:#fff; color:#1a202c; outline:none;">
-          </div>
-        </div>
-      </div>
-
-      <!-- Forma de Pagamento -->
-      <div style="background:#fff; border-radius:12px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.05); padding:16px;">
-        <div style="font-weight:700; font-size:0.9rem; color:#1a202c; margin-bottom:16px; display:flex; align-items:center; gap:8px;">
-          <span style="color:#a0aec0;">💳</span> Forma de pagamento
-        </div>
-        <div style="display:flex; gap:12px; margin-bottom:16px;">
-          <label style="flex:1; border:2px solid #ff2c55; border-radius:8px; padding:12px; text-align:center; cursor:pointer; background:#fff0f2; transition:all 0.2s;" id="lbl-pix">
-            <input type="radio" name="payment_method" value="pix" checked onchange="togglePaymentMethod()" style="display:none;">
-            <span style="font-weight:700; color:#ff2c55; font-size:0.85rem;">$ PIX</span>
-          </label>
-          <label style="flex:1; border:1px solid #e2e8f0; border-radius:8px; padding:12px; text-align:center; cursor:pointer; background:#fff; transition:all 0.2s;" id="lbl-cartao">
-            <input type="radio" name="payment_method" value="cartao" onchange="togglePaymentMethod()" style="display:none;">
-            <span style="font-weight:700; color:#4a5568; font-size:0.85rem;">💳 Cartão de Crédito</span>
-          </label>
-        </div>
-        
-        <!-- PIX INFO -->
-        <div id="pix-fields" style="background:#f8fafc; border-radius:8px; padding:16px; text-align:center; display:block;">
-          <div style="font-weight:700; font-size:0.85rem; color:#1a202c; margin-bottom:8px; text-align:left;">Pagamento somente à vista</div>
-          <p style="margin:0 0 16px 0; font-size:0.8rem; color:#718096; line-height:1.6; text-align:left;">A liberação da compra ocorre após a confirmação do pagamento.<br><br>Ao gerar o código atente para a data de expiração.</p>
-          <div style="font-size:0.8rem; color:#4a5568; margin-bottom:16px; text-align:left;">Pagamento somente à vista: <span id="pix-total" style="font-weight:800; color:#ff2c55;">R$ 49,90</span></div>
-          <button type="submit" id="btn-pix" style="width:100%; background:#ff2c55; color:#fff; border:none; padding:16px; border-radius:8px; font-weight:800; font-size:1rem; cursor:pointer; text-transform:uppercase; transition:all 0.2s; box-shadow:0 4px 14px rgba(255,44,85,0.3);">
-            $ GERAR PIX
-          </button>
-        </div>
-
-        <!-- CARTAO INFO -->
-        <div id="card-fields" style="background:#f8fafc; border-radius:8px; padding:16px; display:none;">
-          <div style="margin-bottom:12px;">
-            <input type="text" name="card_number" style="width:100%; padding:12px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.95rem; outline:none;" placeholder="Número do Cartão">
-          </div>
-          <div style="display:flex; gap:12px; margin-bottom:16px;">
-            <div style="flex:1;">
-              <input type="text" name="card_expiry" style="width:100%; padding:12px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.95rem; outline:none;" placeholder="MM/AA">
-            </div>
-            <div style="flex:1;">
-              <input type="text" name="card_cvc" style="width:100%; padding:12px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.95rem; outline:none;" placeholder="CVC">
-            </div>
-          </div>
-          <button type="submit" id="btn-cartao" style="width:100%; background:#ff2c55; color:#fff; border:none; padding:16px; border-radius:8px; font-weight:800; font-size:1rem; cursor:pointer; text-transform:uppercase; transition:all 0.2s; box-shadow:0 4px 14px rgba(255,44,85,0.3);">
-            COMPRAR AGORA
-          </button>
-        </div>
-
-      </div>
-      
-      <!-- LOADING / FOOTER -->
-      <div id="loading-msg" style="display:none; text-align:center; margin-bottom:16px; font-size:0.9rem; font-weight:600; color:#4a5568;">
-        Processando...
-      </div>
-      
-      <div style="text-align:center; font-size:0.75rem; color:#a0aec0; margin-top:8px;">
-        <p style="margin:0 0 8px 0;">🔒 Pagamento 100% seguro · Site protegido</p>
-        <p style="margin:0; line-height:1.5;">Você está em uma página de checkout segura.<br>A responsabilidade pela oferta é do vendedor.</p>
-      </div>
-    </form>
-  </div>
-</div>
-
-<script>
-  function openCheckoutModal(planName, price) {
-    document.getElementById('planInput').value = planName;
-    document.getElementById('priceInput').value = price;
-    
-    // Update texts
-    const priceStr = `R$ ${price.toFixed(2).replace('.', ',')}`;
-    document.getElementById('checkoutPlanName').innerText = `PLANO ${planName}`;
-    document.getElementById('checkoutPlanPrice').innerText = priceStr;
-    document.getElementById('pix-total').innerText = priceStr;
-    
-    document.getElementById('checkoutModal').style.display = 'block';
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeCheckoutModal() {
-    document.getElementById('checkoutModal').style.display = 'none';
-    document.body.style.overflow = 'auto';
-  }
-
-  function togglePaymentMethod() {
-    const isCartao = document.querySelector('input[name="payment_method"]:checked').value === 'cartao';
-    document.getElementById('card-fields').style.display = isCartao ? 'block' : 'none';
-    document.getElementById('pix-fields').style.display = isCartao ? 'none' : 'block';
-    
-    document.getElementById('lbl-pix').style.border = !isCartao ? '2px solid #ff2c55' : '1px solid #e2e8f0';
-    document.getElementById('lbl-pix').style.background = !isCartao ? '#fff0f2' : '#fff';
-    document.querySelector('#lbl-pix span').style.color = !isCartao ? '#ff2c55' : '#4a5568';
-    
-    document.getElementById('lbl-cartao').style.border = isCartao ? '2px solid #ff2c55' : '1px solid #e2e8f0';
-    document.getElementById('lbl-cartao').style.background = isCartao ? '#fff0f2' : '#fff';
-    document.querySelector('#lbl-cartao span').style.color = isCartao ? '#ff2c55' : '#4a5568';
-    
-    const cardInputs = document.querySelectorAll('#card-fields input');
-    cardInputs.forEach(input => input.required = isCartao);
-  }
-
-  // Initialize requirements
-  togglePaymentMethod();
-
-  async function handleCheckoutSubmit(e) {
-    e.preventDefault();
-    
-    const isCartao = document.querySelector('input[name="payment_method"]:checked').value === 'cartao';
-    const btn = isCartao ? document.getElementById('btn-cartao') : document.getElementById('btn-pix');
-    const loadingMsg = document.getElementById('loading-msg');
-    
-    btn.disabled = true;
-    btn.style.opacity = '0.7';
-    loadingMsg.style.display = 'block';
-
-    const form = e.target;
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
-
-    // NOTE: INSIRA AQUI A SUA URL DO WEBHOOK DO MAKE
-    const MAKE_WEBHOOK_URL = "https://hook.us2.make.com/emuy84mb67pbxrd757xkg6pg8bvo6qa7";
-
-    try {
-      const response = await fetch(MAKE_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
-      if(response.ok) {
-        alert("Pacote (formData) enviado com sucesso para o Webhook do Make!");
-        closeCheckoutModal();
-        form.reset();
-      } else {
-        alert("Erro ao enviar dados. Verifique a URL do Webhook no código do site.");
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Erro de conexão ao tentar enviar o pacote para o Make. Você configurou a URL correta no código?");
-    } finally {
-      btn.disabled = false;
-      btn.style.opacity = '1';
-      loadingMsg.style.display = 'none';
-    }
-  }
 </script>
 
 </body>
