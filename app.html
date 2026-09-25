@@ -1497,7 +1497,7 @@
                 </div>
 
                 <div class="auth-footer" style="text-align: center; margin-top: 25px;">
-                    <a href="https://pizzacontrol.com.br" style="color: var(--primary); text-decoration: none; font-weight: 600; font-size: 0.95em; transition: color 0.3s;" onmouseover="this.style.color='var(--primary-dark)'" onmouseout="this.style.color='var(--primary)'">Ainda não é assinante? Conheça o PizzaControl</a>
+                    <a href="https://pizzacontrol.com.br" style="color: var(--primary); text-decoration: none; font-weight: 600; font-size: 0.95em; transition: color 0.3s;" onmouseover="this.style.color='var(--primary-dark)'" onmouseout="this.style.color='var(--primary)'">Ainda não tem acesso? Conheça o PizzaControl</a>
                 </div>
             </div>
         </div>
@@ -1508,13 +1508,13 @@
         <div class="auth-card">
             <div class="auth-card-header" style="background:linear-gradient(135deg, #e65100, #ff9800)">
                 <div class="auth-logo">🍕 Pizza<span>Control</span></div>
-                <p>Sua assinatura expirou</p>
+                <p>Acesso não encontrado</p>
             </div>
             <div class="auth-card-body" style="text-align:center">
                 <div class="expired-icon">⏰</div>
                 <h3 style="margin-bottom:10px;color:var(--danger)">Acesso Bloqueado</h3>
-                <p class="expired-msg">Sua assinatura do PizzaControl expirou ou não foi encontrada.<br>Renove agora para continuar usando todas as funcionalidades do sistema.</p>
-                <a href="https://ggcheckout.app/checkout/v5/4f5hl0GfYGY1BMhOSzke" class="btn-login btn-login-cta" target="_blank" style="margin-bottom:12px">🔄 Renovar Assinatura (R$ 49,90/mês)</a>
+                <p class="expired-msg">Não encontramos seu acesso ao PizzaControl neste e-mail.<br>Se você acabou de comprar, aguarde alguns minutos — a liberação é automática. Se já passou de 10 minutos, fale com a gente no WhatsApp.<br>Se ainda não é cliente, garanta seu acesso vitalício abaixo.</p>
+                <a href="https://pizzacontrol.com.br" class="btn-login btn-login-cta" target="_blank" style="margin-bottom:12px">🍕 Ver Planos e Garantir Acesso</a>
                 <button class="btn-login" style="background:#eee;color:var(--dark);margin-top:8px" onclick="fazerLogout()">🚪 Sair e trocar de conta</button>
             </div>
         </div>
@@ -2093,7 +2093,7 @@
                     <div class="conta-info">
                         <h4>👤 Minha Conta</h4>
                         <div class="conta-info-item"><span class="label">E-mail:</span><span class="value" id="contaEmail">-</span></div>
-                        <div class="conta-info-item"><span class="label">Assinatura até:</span><span class="value" id="contaVencimento">-</span></div>
+                        <div class="conta-info-item"><span class="label">Plano:</span><span class="value" id="contaVencimento">-</span></div>
                     </div>
                 </div>
             </div>
@@ -2211,11 +2211,11 @@
         if (emailCliente != "") {
             firebase.auth().sendPasswordResetEmail(emailCliente)
                 .then(function() {
-                    alert("Sucesso! O link para criar uma nova senha foi enviado para o seu e-mail.");
+                    alert("Pronto! Enviamos para o seu e-mail um link para criar sua senha. Confira também a caixa de spam.");
                 })
                 .catch(function(error) {
                     if(error.code === 'auth/user-not-found') {
-                        alert("Esse e-mail ainda não tem uma assinatura ativa.");
+                        alert("Não encontramos acesso para esse e-mail. Confira se digitou o mesmo e-mail usado na compra.");
                     } else {
                         alert("Ocorreu um erro: " + error.message);
                     }

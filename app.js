@@ -22,7 +22,11 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const dbFirestore = firebase.firestore();
 let firebaseUser = null;
-let assinaturaDataVencimento = null;
+let planoAtual = null; // 'basico' ou 'pro' — acesso vitalício, sem data de vencimento
+
+// TROQUE aqui pelo link de vendas/checkout que você quer usar nos avisos de upgrade para PRO.
+// Se quiser, pode trocar por um link direto de checkout do plano PRO específico.
+const LINK_UPGRADE_PRO = 'https://pay.cakto.com.br/wx9esqb_1139423'; // Checkout Cakto: Upgrade PRO
 
 const DB_PADRAO = {
     insumos: [],
@@ -133,45 +137,30 @@ function mostrarTela(tela) {
 }
 
 async function verificarAssinatura(uid) {
+    // MODELO ATUAL: acesso vitalício por plano (Básico ou Pro), sem data de vencimento.
+    // O campo "plano" é gravado automaticamente pela automação (Make) no momento da compra.
+    // Se um dia você criar um produto por assinatura recorrente, adicione de volta a checagem
+    // de "dataVencimento" apenas para documentos que tiverem tipo: 'assinatura'.
     try {
         const doc = await dbFirestore.collection('usuarios').doc(uid).get();
         if (!doc.exists) {
-            console.warn('⚠️ Documento do usuário não encontrado no Firestore:', uid);
+            console.warn('⚠️ Documento do usuário não encontrado no Firestore (acesso ainda não liberado):', uid);
             return false;
         }
 
         const dados = doc.data();
-        if (!dados.dataVencimento) {
-            console.warn('⚠️ Campo dataVencimento não encontrado para:', uid);
+        if (!dados.plano) {
+            console.warn('⚠️ Campo "plano" não encontrado para:', uid);
             return false;
         }
 
-        let dataVenc;
-        if (dados.dataVencimento.toDate) {
-            // Firestore Timestamp
-            dataVenc = dados.dataVencimento.toDate();
-        } else {
-            // String YYYY-MM-DD
-            dataVenc = new Date(dados.dataVencimento + 'T23:59:59');
-        }
+        isPro = dados.plano === 'pro';
+        planoAtual = dados.plano;
+        console.log(isPro ? '⭐ Plano: PRO (vitalício)' : '📋 Plano: BÁSICO (vitalício)');
 
-        assinaturaDataVencimento = dataVenc;
-        const agora = new Date();
-        const valido = agora <= dataVenc;
-
-        // Verificar plano do usuário (basico ou pro)
-        if (dados.plano === 'pro') {
-            isPro = true;
-            console.log('⭐ Plano: PRO');
-        } else {
-            isPro = false;
-            console.log('📋 Plano: BÁSICO');
-        }
-
-        console.log('📅 Assinatura:', valido ? '✅ Válida' : '❌ Expirada', '| Vence em:', dataVenc.toLocaleDateString('pt-BR'));
-        return valido;
+        return true; // Documento existe com plano definido = compra confirmada = acesso liberado
     } catch (err) {
-        console.error('❌ Erro ao verificar assinatura:', err);
+        console.error('❌ Erro ao verificar acesso:', err);
         return false;
     }
 }
@@ -225,8 +214,8 @@ function inicializarApp() {
     const contaEmail = document.getElementById('contaEmail');
     const contaVenc = document.getElementById('contaVencimento');
     if (contaEmail && firebaseUser) contaEmail.textContent = firebaseUser.email;
-    if (contaVenc && assinaturaDataVencimento) {
-        contaVenc.textContent = assinaturaDataVencimento.toLocaleDateString('pt-BR');
+    if (contaVenc) {
+        contaVenc.textContent = isPro ? '⭐ PRO (acesso vitalício)' : '📋 Básico (acesso vitalício)';
     }
 }
 
@@ -1965,18 +1954,53 @@ function calcPorMarkup() {
 }
 
 // ===== TRAVA DE PLANOS (BÁSICO vs PRO) =====
-function aplicarTravaPlanos() {
-    if (isPro) return;
+// Abas exclusivas do plano PRO. O plano Básico mantém: dashboard, insumos, fichas, nova-ficha, config.
+const ABAS_EXCLUSIVAS_PRO = ['massa', 'custos', 'produtos', 'precificar'];
 
-    // --- 1. Travar Exportar / Importar ---
+const NOMES_RECURSOS_PRO = {
+    massa: '🥖 Cálculo de Massa por Tamanho',
+    custos: '💼 Rateio de Custo Fixo (o que faz você parar de pagar pra trabalhar)',
+    produtos: '🥤 Cadastro de Bebidas',
+    precificar: '💰 Gerador de Preço, Combos e Meio a Meio',
+    backup: '💾 Backup (Exportar/Importar Dados)'
+};
+
+function aplicarTravaPlanos() {
+    injetarEstilosTravaPlanos();
+
+    if (isPro) return; // Plano PRO tem acesso total, nada a travar.
+
+    // --- 1. Travar as abas inteiras exclusivas do PRO no menu lateral ---
+    document.querySelectorAll('.nav-tab').forEach((tab) => {
+        const pagina = tab.dataset.page;
+        if (!ABAS_EXCLUSIVAS_PRO.includes(pagina)) return;
+
+        tab.classList.add('nav-tab-locked');
+        if (!tab.querySelector('.lock-pro-badge')) {
+            const badge = document.createElement('span');
+            badge.className = 'lock-pro-badge';
+            badge.textContent = '🔒';
+            tab.appendChild(badge);
+        }
+
+        // Fase de captura: intercepta o clique ANTES do listener de navegação normal
+        // (registrado em setupNav), então a página PRO nunca chega a ser exibida.
+        tab.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            mostrarModalUpgrade(pagina);
+        }, true);
+    });
+
+    // --- 2. Travar Exportar / Importar (Backup) ---
     const btnExportar = document.querySelector('button[onclick="exportar()"]');
     if (btnExportar) {
         btnExportar.textContent = '🔒 Recurso PRO';
         btnExportar.className = 'btn btn-secondary';
         btnExportar.removeAttribute('onclick');
-        btnExportar.addEventListener('click', function(e) {
+        btnExportar.addEventListener('click', function (e) {
             e.preventDefault();
-            alert('🔒 O backup (exportar) é um recurso exclusivo do Plano PRO.\n\nFaça upgrade para desbloquear!');
+            mostrarModalUpgrade('backup');
         });
     }
 
@@ -1987,179 +2011,54 @@ function aplicarTravaPlanos() {
         lblImportar.textContent = '🔒 Recurso PRO';
         lblImportar.className = 'btn btn-secondary';
         lblImportar.style.cursor = 'pointer';
-        lblImportar.addEventListener('click', function(e) {
+        lblImportar.addEventListener('click', function (e) {
             e.preventDefault();
-            alert('🔒 A importação de dados é um recurso exclusivo do Plano PRO.\n\nFaça upgrade para desbloquear!');
+            mostrarModalUpgrade('backup');
         });
     }
 
-    // --- 2. Travar Simulador de Combos VIP ---
-    const cardHeaders = document.querySelectorAll('.card-header');
-    let comboCard = null;
-    cardHeaders.forEach(function(header) {
-        if (header.textContent.includes('Simulador de Combos VIP')) {
-            comboCard = header.closest('.card');
-        }
+    // --- 3. Aviso dentro de "Criar Ficha": Custo Fixo e Massa não incluídos no Básico ---
+    injetarAvisoFichaBasico();
+
+    console.log('🔒 Travas do Plano Básico aplicadas às abas:', ABAS_EXCLUSIVAS_PRO.join(', '));
+}
+
+function mostrarModalUpgrade(origem) {
+    const nome = NOMES_RECURSOS_PRO[origem] || 'este recurso';
+    alert('🔒 "' + nome + '" é exclusivo do PizzaControl PRO.\n\nFaça o upgrade agora e pare de vender no prejuízo sem saber!\n\n⚠️ No pagamento, use o MESMO e-mail do seu login (' + (firebaseUser ? firebaseUser.email : '') + ') para liberar na hora.');
+    window.open(LINK_UPGRADE_PRO, '_blank');
+}
+
+function injetarAvisoFichaBasico() {
+    if (document.getElementById('avisoFichaBasico')) return;
+    const resumoBox = document.querySelector('#page-nova-ficha .resumo-box');
+    if (!resumoBox) return;
+
+    const aviso = document.createElement('div');
+    aviso.id = 'avisoFichaBasico';
+    aviso.className = 'aviso-upgrade-pro';
+    aviso.innerHTML = '🔒 Este cálculo <strong>não inclui</strong> seu Custo Fixo real (aluguel, luz, funcionários) nem o custo real da sua Massa. Ative o PRO para ver seu Lucro Real.';
+    aviso.addEventListener('click', function () {
+        mostrarModalUpgrade('custos');
     });
+    resumoBox.appendChild(aviso);
+}
 
-    if (comboCard) {
-        const comboBody = comboCard.querySelector('.card-body');
-        if (comboBody) {
-            comboBody.style.position = 'relative';
-
-            const overlay = document.createElement('div');
-            overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;' +
-                'backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);' +
-                'background:rgba(255,255,255,0.3);z-index:10;' +
-                'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
-                'border-radius:0 0 12px 12px;';
-
-            overlay.addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
-
-            const btnPro = document.createElement('button');
-            btnPro.className = 'btn btn-success';
-            btnPro.textContent = '⭐ Quero ser PRO';
-            btnPro.style.cssText = 'font-size:1.1em;padding:12px 30px;box-shadow:0 4px 15px rgba(76,175,80,0.4);' +
-                'animation:pulse 2s infinite;cursor:pointer;z-index:11;';
-            btnPro.addEventListener('click', function(e) {
-                e.stopPropagation();
-                window.open('https://pizzacontrol.com.br', '_blank');
-            });
-
-            const lockIcon = document.createElement('div');
-            lockIcon.textContent = '🔒';
-            lockIcon.style.cssText = 'font-size:2.5em;margin-bottom:10px;';
-
-            const lockText = document.createElement('p');
-            lockText.textContent = 'Recurso exclusivo do Plano PRO';
-            lockText.style.cssText = 'font-weight:600;color:#333;margin-bottom:15px;font-size:1em;';
-
-            overlay.appendChild(lockIcon);
-            overlay.appendChild(lockText);
-            overlay.appendChild(btnPro);
-            comboBody.appendChild(overlay);
+function injetarEstilosTravaPlanos() {
+    if (document.getElementById('travaPlanosStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'travaPlanosStyles';
+    style.textContent = `
+        .nav-tab-locked { opacity: 0.6; position: relative; }
+        .nav-tab-locked:hover { opacity: 0.9; }
+        .lock-pro-badge { margin-left: 6px; font-size: 0.85em; }
+        .aviso-upgrade-pro {
+            text-align:center; padding:12px 16px; margin-top:14px;
+            background:linear-gradient(135deg,#fff3e0,#ffe0b2); border-radius:8px;
+            border:1px solid #ffcc80; cursor:pointer; font-size:0.9em;
+            color:#e65100; font-weight:600;
         }
-    }
-
-    // --- 3. Travar Simulação de CMV (Cenários) ---
-    const cenariosDiv = document.querySelector('.cenarios');
-    if (cenariosDiv) {
-        cenariosDiv.style.filter = 'blur(4px)';
-        cenariosDiv.style.pointerEvents = 'none';
-        cenariosDiv.style.position = 'relative';
-
-        const parentEl = cenariosDiv.parentElement;
-        if (parentEl) {
-            const aviso = document.createElement('div');
-            aviso.style.cssText = 'text-align:center;padding:12px 20px;margin-top:10px;' +
-                'background:linear-gradient(135deg,#fff3e0,#ffe0b2);border-radius:8px;' +
-                'border:1px solid #ffcc80;cursor:pointer;';
-            aviso.innerHTML = '<span style="font-size:1.1em;font-weight:600;color:#e65100;">🔒 PRO: Ver Metas de CMV</span>';
-            aviso.addEventListener('click', function() {
-                alert('🔒 As metas de CMV são um recurso exclusivo do Plano PRO.\n\nFaça upgrade para desbloquear!');
-            });
-
-            cenariosDiv.insertAdjacentElement('afterend', aviso);
-        }
-    }
-
-    // --- 4. Travar Simulador Meio a Meio ---
-    cardHeaders.forEach(function(header) {
-        if (header.textContent.includes('Simulador Meio a Meio')) {
-            const maMCard = header.closest('.card');
-            if (maMCard) {
-                const maMBody = maMCard.querySelector('.card-body');
-                if (maMBody) {
-                    maMBody.style.position = 'relative';
-
-                    const overlayMaM = document.createElement('div');
-                    overlayMaM.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;' +
-                        'backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);' +
-                        'background:rgba(255,255,255,0.3);z-index:10;' +
-                        'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
-                        'border-radius:0 0 12px 12px;';
-                    overlayMaM.addEventListener('click', function(e) { e.stopPropagation(); });
-
-                    const lockMaM = document.createElement('div');
-                    lockMaM.textContent = '🔒';
-                    lockMaM.style.cssText = 'font-size:2.5em;margin-bottom:10px;';
-
-                    const txtMaM = document.createElement('p');
-                    txtMaM.textContent = 'Recurso exclusivo do Plano PRO';
-                    txtMaM.style.cssText = 'font-weight:600;color:#333;margin-bottom:15px;font-size:1em;';
-
-                    const btnMaM = document.createElement('button');
-                    btnMaM.className = 'btn btn-success';
-                    btnMaM.textContent = '⭐ Quero ser PRO';
-                    btnMaM.style.cssText = 'font-size:1.1em;padding:12px 30px;box-shadow:0 4px 15px rgba(76,175,80,0.4);' +
-                        'animation:pulse 2s infinite;cursor:pointer;z-index:11;';
-                    btnMaM.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        window.open('https://pizzacontrol.com.br', '_blank');
-                    });
-
-                    overlayMaM.appendChild(lockMaM);
-                    overlayMaM.appendChild(txtMaM);
-                    overlayMaM.appendChild(btnMaM);
-                    maMBody.appendChild(overlayMaM);
-                }
-            }
-        }
-    });
-
-    // --- 5. Travar Cadastro de Bebidas e Adicionais ---
-    cardHeaders.forEach(function(header) {
-        if (header.textContent.includes('Bebidas e Adicionais') && !header.textContent.includes('Top')) {
-            const bebCard = header.closest('.card');
-            if (bebCard) {
-                const bebBody = bebCard.querySelector('.card-body');
-                if (bebBody) {
-                    bebBody.style.position = 'relative';
-
-                    const overlayBeb = document.createElement('div');
-                    overlayBeb.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;' +
-                        'backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);' +
-                        'background:rgba(255,255,255,0.3);z-index:10;' +
-                        'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
-                        'border-radius:0 0 12px 12px;';
-                    overlayBeb.addEventListener('click', function(e) { e.stopPropagation(); });
-
-                    const lockBeb = document.createElement('div');
-                    lockBeb.textContent = '🔒';
-                    lockBeb.style.cssText = 'font-size:2.5em;margin-bottom:10px;';
-
-                    const txtBeb = document.createElement('p');
-                    txtBeb.textContent = 'Recurso exclusivo do Plano PRO';
-                    txtBeb.style.cssText = 'font-weight:600;color:#333;margin-bottom:15px;font-size:1em;';
-
-                    const btnBeb = document.createElement('button');
-                    btnBeb.className = 'btn btn-success';
-                    btnBeb.textContent = '⭐ Quero ser PRO';
-                    btnBeb.style.cssText = 'font-size:1.1em;padding:12px 30px;box-shadow:0 4px 15px rgba(76,175,80,0.4);' +
-                        'animation:pulse 2s infinite;cursor:pointer;z-index:11;';
-                    btnBeb.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        window.open('https://pizzacontrol.com.br', '_blank');
-                    });
-
-                    overlayBeb.appendChild(lockBeb);
-                    overlayBeb.appendChild(txtBeb);
-                    overlayBeb.appendChild(btnBeb);
-                    bebBody.appendChild(overlayBeb);
-                }
-            }
-        }
-    });
-
-    // Injetar animação pulse se não existir
-    if (!document.getElementById('proAnimStyles')) {
-        const style = document.createElement('style');
-        style.id = 'proAnimStyles';
-        style.textContent = '@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}';
-        document.head.appendChild(style);
-    }
-
-    console.log('🔒 Travas do Plano Básico aplicadas.');
+        .aviso-upgrade-pro:hover { filter: brightness(0.97); }
+    `;
+    document.head.appendChild(style);
 }
