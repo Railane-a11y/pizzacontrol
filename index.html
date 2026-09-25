@@ -704,7 +704,7 @@
           <div class="vip-price" style="font-size:3rem;font-weight:900;color:#1a202c; line-height: 1;">R$ 9,90</div>
           <div style="color:#a0aec0;font-size:0.85rem;margin-top:10px;">Só o custo das pizzas — sem o lucro real</div>
         </div>
-        <a href="https://pay.cakto.com.br/8rdpouv_1139386" target="_blank" class="btn-dark" style="display:block;text-align:center;text-decoration:none;text-transform:uppercase;font-size:1rem;padding:18px 20px;">
+        <a href="https://pay.cakto.com.br/8rdpouv_1139386" target="_blank" onclick="return abrirOfertaPro(event)" class="btn-dark" style="display:block;text-align:center;text-decoration:none;text-transform:uppercase;font-size:1rem;padding:18px 20px;">
           QUERO O BÁSICO
         </a>
       </div>
@@ -817,5 +817,50 @@
   });
 </script>
 
+
+<!-- POPUP: oferta do PRO ao clicar no Básico -->
+<div id="ofertaPro" role="dialog" aria-modal="true" aria-labelledby="ofertaProTitulo" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#111827;border:2px solid #e53e3e;border-radius:16px;max-width:420px;width:100%;padding:28px 22px;text-align:center;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+    <button type="button" onclick="fecharOfertaPro()" aria-label="Fechar" style="position:absolute;top:8px;right:12px;background:none;border:none;color:#718096;font-size:1.6rem;cursor:pointer;line-height:1;">×</button>
+    <div style="font-size:2.2rem;margin-bottom:6px;">✋🍕</div>
+    <h3 id="ofertaProTitulo" style="color:#fff;font-weight:900;font-size:1.35rem;margin:0 0 10px;text-transform:uppercase;">Espera!</h3>
+    <p style="color:#e2e8f0;font-size:0.95rem;line-height:1.55;margin:0 0 14px;">
+      O Básico mostra o custo da pizza, mas <strong style="color:#f6c90e;">não mostra seu lucro real</strong>: fica sem custo fixo, massa e gerador de preço.
+    </p>
+    <p style="color:#e2e8f0;font-size:0.95rem;line-height:1.55;margin:0 0 16px;">
+      Por isso, aqui vai uma oferta especial: leve o <strong>PizzaControl PRO completo</strong>
+    </p>
+    <div style="margin-bottom:6px;"><span style="color:#718096;text-decoration:line-through;font-size:1rem;">R$ 19,90</span></div>
+    <div style="color:#22c55e;font-weight:900;font-size:2.6rem;line-height:1;margin-bottom:6px;">R$ 15,00</div>
+    <div style="color:#a0aec0;font-size:0.8rem;margin-bottom:20px;">Pagamento único · Acesso vitalício · Só R$ 5,10 a mais que o Básico</div>
+    <a href="https://pay.cakto.com.br/wx9esqb_1139423" target="_blank" class="btn-red animate-pulse" style="display:block;text-align:center;text-decoration:none;text-transform:uppercase;font-size:1rem;padding:16px 18px;margin-bottom:12px;">
+      SIM! QUERO O PRO POR R$ 15
+    </a>
+    <a href="https://pay.cakto.com.br/8rdpouv_1139386" target="_blank" onclick="fecharOfertaPro()" style="display:block;color:#a0aec0;font-size:0.82rem;text-decoration:underline;">
+      Não, obrigado. Quero só o Básico por R$ 9,90
+    </a>
+  </div>
+</div>
+<script>
+  function abrirOfertaPro(e) {
+    var m = document.getElementById('ofertaPro');
+    if (!m) return true; // sem popup, segue direto pro checkout do Básico
+    if (e) e.preventDefault();
+    m.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    return false;
+  }
+  function fecharOfertaPro() {
+    var m = document.getElementById('ofertaPro');
+    if (m) m.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  document.getElementById('ofertaPro').addEventListener('click', function (e) {
+    if (e.target === this) fecharOfertaPro();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') fecharOfertaPro();
+  });
+</script>
 </body>
 </html>
