@@ -1,0 +1,2230 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#d32f2f">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="manifest" href="manifest.json">
+    <title>🍕 PizzaControl - Sistema Completo</title>
+    <!-- Firebase SDK v9 Compat (CDN) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        :root {
+            --primary: #d32f2f;
+            --primary-dark: #b71c1c;
+            --secondary: #ff9800;
+            --success: #2e7d32;
+            --danger: #c62828;
+            --warning: #f57c00;
+            --info: #1976d2;
+            --purple: #7b1fa2;
+            --teal: #00897b;
+            --brown: #795548;
+            --dark: #333;
+            --light: #f5f5f5;
+            --white: #fff;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            --radius: 12px
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh
+        }
+
+        .status-bar {
+            background: #4caf50;
+            color: white;
+            padding: 10px 15px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 9999
+        }
+
+        .status-bar.show {
+            display: block
+        }
+
+        .status-bar.error {
+            background: #f44336
+        }
+
+        .header {
+            background: var(--primary-dark);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px
+        }
+
+        .logo {
+            font-size: 1.6em;
+            font-weight: bold
+        }
+
+        .logo span {
+            color: var(--secondary)
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 8px 15px;
+            border-radius: 8px;
+            text-align: center;
+            min-width: 80px
+        }
+
+        .stat-box small {
+            opacity: 0.8;
+            font-size: 0.7em;
+            display: block
+        }
+
+        .stat-box .valor {
+            font-size: 1.2em;
+            font-weight: bold
+        }
+
+        .btn-logout {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85em;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px
+        }
+
+        .btn-logout:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px)
+        }
+
+        .nav-tabs {
+            background: white;
+            display: flex;
+            overflow-x: auto;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100
+        }
+
+        .nav-tab {
+            padding: 14px 16px;
+            border: none;
+            background: none;
+            font-size: 0.9em;
+            font-weight: 600;
+            color: var(--dark);
+            cursor: pointer;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s
+        }
+
+        .nav-tab:hover {
+            background: var(--light)
+        }
+
+        .nav-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: #ffebee
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 0 15px;
+        }
+
+        .page {
+            display: none
+        }
+
+        .page.active {
+            display: block
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+            overflow: hidden
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 15px 20px;
+            font-weight: bold;
+            font-size: 1.1em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px
+        }
+
+        .card-header.success {
+            background: linear-gradient(135deg, var(--success), #1b5e20)
+        }
+
+        .card-header.info {
+            background: linear-gradient(135deg, var(--info), #0d47a1)
+        }
+
+        .card-header.warning {
+            background: linear-gradient(135deg, var(--warning), #e65100)
+        }
+
+        .card-header.brown {
+            background: linear-gradient(135deg, var(--brown), #4e342e)
+        }
+
+        .card-header.purple {
+            background: linear-gradient(135deg, var(--purple), #4a148c)
+        }
+
+        .card-header.teal {
+            background: linear-gradient(135deg, var(--teal), #004d40)
+        }
+
+        .card-body {
+            padding: 20px
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px
+        }
+
+        .form-group {
+            margin-bottom: 15px
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--dark)
+        }
+
+        .form-group .required {
+            color: var(--danger)
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary)
+        }
+
+        .form-control.large {
+            font-size: 1.2em;
+            padding: 15px;
+            font-weight: bold
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(0.95)
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white
+        }
+
+        .btn-info {
+            background: var(--info);
+            color: white
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white
+        }
+
+        .btn-secondary {
+            background: #757575;
+            color: white
+        }
+
+        .btn-brown {
+            background: var(--brown);
+            color: white
+        }
+
+        .btn-purple {
+            background: var(--purple);
+            color: white
+        }
+
+        .btn-teal {
+            background: var(--teal);
+            color: white
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.85em
+        }
+
+        .btn-block {
+            width: 100%;
+            justify-content: center
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee
+        }
+
+        th {
+            background: var(--dark);
+            color: white;
+            font-weight: 600
+        }
+
+        tr:hover {
+            background: #f9f9f9
+        }
+
+        .actions {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold
+        }
+
+        .badge-success {
+            background: #e8f5e9;
+            color: var(--success)
+        }
+
+        .badge-warning {
+            background: #fff3e0;
+            color: var(--warning)
+        }
+
+        .badge-danger {
+            background: #ffebee;
+            color: var(--danger)
+        }
+
+        .badge-info {
+            background: #e3f2fd;
+            color: var(--info)
+        }
+
+        .badge-size {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            color: white
+        }
+
+        .badge-size.P {
+            background: #4caf50
+        }
+
+        .badge-size.M {
+            background: #2196f3
+        }
+
+        .badge-size.G {
+            background: #ff9800
+        }
+
+        .badge-size.GG {
+            background: #9c27b0
+        }
+
+        .size-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap
+        }
+
+        .size-tab {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s
+        }
+
+        .size-tab.all {
+            background: #333;
+            color: white
+        }
+
+        .size-tab.P {
+            background: #e8f5e9;
+            color: #4caf50
+        }
+
+        .size-tab.M {
+            background: #e3f2fd;
+            color: #2196f3
+        }
+
+        .size-tab.G {
+            background: #fff3e0;
+            color: #ff9800
+        }
+
+        .size-tab.GG {
+            background: #f3e5f5;
+            color: #9c27b0
+        }
+
+        .size-tab.active.all {
+            background: #333
+        }
+
+        .size-tab.active.P {
+            background: #4caf50;
+            color: white
+        }
+
+        .size-tab.active.M {
+            background: #2196f3;
+            color: white
+        }
+
+        .size-tab.active.G {
+            background: #ff9800;
+            color: white
+        }
+
+        .size-tab.active.GG {
+            background: #9c27b0;
+            color: white
+        }
+
+        .size-count {
+            margin-left: 5px;
+            opacity: 0.8
+        }
+
+        .fichas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px
+        }
+
+        .ficha-card {
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+            overflow: hidden;
+            transition: transform 0.3s;
+            border-top: 5px solid #ccc
+        }
+
+        .ficha-card:hover {
+            transform: translateY(-5px)
+        }
+
+        .ficha-card.P {
+            border-top-color: #4caf50
+        }
+
+        .ficha-card.M {
+            border-top-color: #2196f3
+        }
+
+        .ficha-card.G {
+            border-top-color: #ff9800
+        }
+
+        .ficha-card.GG {
+            border-top-color: #9c27b0
+        }
+
+        .ficha-header {
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start
+        }
+
+        .ficha-header h3 {
+            font-size: 1.1em;
+            margin-bottom: 5px
+        }
+
+        .ficha-header small {
+            color: #777
+        }
+
+        .ficha-body {
+            padding: 0 15px 15px
+        }
+
+        .ficha-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            background: var(--light);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px
+        }
+
+        .ficha-stat {
+            text-align: center
+        }
+
+        .ficha-stat small {
+            color: #777;
+            font-size: 0.7em;
+            display: block
+        }
+
+        .ficha-stat .val {
+            font-weight: bold
+        }
+
+        .ficha-stat .val.red {
+            color: var(--danger)
+        }
+
+        .ficha-stat .val.green {
+            color: var(--success)
+        }
+
+        .ficha-stat .val.blue {
+            color: var(--info)
+        }
+
+        .ficha-details {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: #fafafa;
+            border-radius: 5px
+        }
+
+        .ficha-actions {
+            display: flex;
+            gap: 5px
+        }
+
+        .ficha-actions .btn {
+            flex: 1;
+            justify-content: center;
+            font-size: 0.85em
+        }
+
+        .ingredientes-list {
+            background: var(--light);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            max-height: 300px;
+            overflow-y: auto
+        }
+
+        .ingrediente-item {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            flex-wrap: wrap
+        }
+
+        .ingrediente-item select {
+            flex: 2;
+            min-width: 150px
+        }
+
+        .ingrediente-item input {
+            flex: 1;
+            min-width: 80px
+        }
+
+        .ingrediente-item .custo {
+            min-width: 80px;
+            text-align: right;
+            font-weight: bold;
+            color: var(--primary)
+        }
+
+        .resumo-box {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: white;
+            padding: 20px;
+            border-radius: var(--radius);
+            margin-top: 20px
+        }
+
+        .resumo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px
+        }
+
+        .resumo-item {
+            text-align: center;
+            padding: 15px 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px
+        }
+
+        .resumo-item small {
+            opacity: 0.8;
+            font-size: 0.8em;
+            display: block;
+            margin-bottom: 5px
+        }
+
+        .resumo-item .val {
+            font-size: 1.4em;
+            font-weight: bold
+        }
+
+        .resumo-item .val.green {
+            color: #4caf50
+        }
+
+        .resumo-item .val.red {
+            color: #f44336
+        }
+
+        .resumo-item .val.yellow {
+            color: #ff9800
+        }
+
+        .resumo-item .val.blue {
+            color: #42a5f5
+        }
+
+        .cmv-bar {
+            height: 8px;
+            background: #ddd;
+            border-radius: 4px;
+            margin-top: 5px;
+            overflow: hidden
+        }
+
+        .cmv-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s
+        }
+
+        .cmv-fill.good {
+            background: var(--success)
+        }
+
+        .cmv-fill.medium {
+            background: var(--warning)
+        }
+
+        .cmv-fill.bad {
+            background: var(--danger)
+        }
+
+        .custo-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px 15px;
+            background: var(--light);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--info)
+        }
+
+        .custo-item .icon {
+            font-size: 1.5em
+        }
+
+        .custo-item .info {
+            flex: 1
+        }
+
+        .custo-item .info strong {
+            display: block
+        }
+
+        .custo-item .info small {
+            color: #777
+        }
+
+        .custo-item input {
+            width: 130px;
+            text-align: right
+        }
+
+        .massa-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 100px auto;
+            gap: 10px;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px
+        }
+
+        .massa-resultado {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-top: 20px
+        }
+
+        .massa-resultado-item {
+            background: var(--light);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border-top: 4px solid var(--brown)
+        }
+
+        .massa-resultado-item .val {
+            font-size: 1.6em;
+            font-weight: bold;
+            color: var(--brown)
+        }
+
+        .massa-resultado-item small {
+            color: #777;
+            display: block;
+            margin-top: 5px
+        }
+
+        .total-box {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: white;
+            padding: 25px;
+            border-radius: var(--radius);
+            margin-top: 20px
+        }
+
+        .total-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            text-align: center
+        }
+
+        .total-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px
+        }
+
+        .total-item .label {
+            font-size: 0.85em;
+            opacity: 0.8;
+            margin-bottom: 5px
+        }
+
+        .total-item .value {
+            font-size: 1.8em;
+            font-weight: bold
+        }
+
+        .total-item .value.highlight {
+            color: #4caf50
+        }
+
+        .total-item .value.warning {
+            color: #ff9800
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid
+        }
+
+        .alert-info {
+            background: #e3f2fd;
+            color: #1565c0;
+            border-color: #1565c0
+        }
+
+        .alert-success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-color: #2e7d32
+        }
+
+        .alert-warning {
+            background: #fff3e0;
+            color: #e65100;
+            border-color: #e65100
+        }
+
+        .counters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px
+        }
+
+        .counter {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            border-left: 4px solid
+        }
+
+        .counter.P {
+            border-color: #4caf50
+        }
+
+        .counter.M {
+            border-color: #2196f3
+        }
+
+        .counter.G {
+            border-color: #ff9800
+        }
+
+        .counter.GG {
+            border-color: #9c27b0
+        }
+
+        .counter .num {
+            font-size: 2em;
+            font-weight: bold
+        }
+
+        .counter.P .num {
+            color: #4caf50
+        }
+
+        .counter.M .num {
+            color: #2196f3
+        }
+
+        .counter.G .num {
+            color: #ff9800
+        }
+
+        .counter.GG .num {
+            color: #9c27b0
+        }
+
+        .counter small {
+            color: #777
+        }
+
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: #999
+        }
+
+        .empty .icon {
+            font-size: 3em;
+            margin-bottom: 10px
+        }
+
+        .modal-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px
+        }
+
+        .modal-bg.show {
+            display: flex
+        }
+
+        .modal {
+            background: white;
+            border-radius: var(--radius);
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto
+        }
+
+        .modal-header {
+            background: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        .modal-header h3 {
+            margin: 0
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer
+        }
+
+        .modal-body {
+            padding: 20px
+        }
+
+        .search-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap
+        }
+
+        .search-row input {
+            flex: 1;
+            min-width: 200px
+        }
+
+        .calc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px
+        }
+
+        .slider-group {
+            margin: 15px 0
+        }
+
+        .slider-group label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px
+        }
+
+        .slider-group input[type="range"] {
+            width: 100%
+        }
+
+        .slider-val {
+            font-weight: bold;
+            color: var(--primary)
+        }
+
+        .cenarios {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px
+        }
+
+        .cenario {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            border-top: 4px solid
+        }
+
+        .cenario.c1 {
+            border-color: #4caf50
+        }
+
+        .cenario.c2 {
+            border-color: #ff9800
+        }
+
+        .cenario.c3 {
+            border-color: #f44336
+        }
+
+        .cenario .preco {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 10px 0
+        }
+
+        .cenario.c1 .preco {
+            color: #4caf50
+        }
+
+        .cenario.c2 .preco {
+            color: #ff9800
+        }
+
+        .cenario.c3 .preco {
+            color: #f44336
+        }
+
+        .senha-section {
+            background: var(--light);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid var(--info)
+        }
+
+        .senha-section h4 {
+            margin-bottom: 15px;
+            color: var(--dark)
+        }
+
+        .top5-mobile { display: none; }
+        .top5-desktop { width: 100%; display: table; }
+
+        @media(max-width:768px) {
+            .header {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                padding-top: 65px; /* Space for hamburger fixed button */
+            }
+            .header-stats {
+                justify-content: center;
+                width: 100%;
+                gap: 8px;
+            }
+            .header-stats .btn-logout {
+                width: 100%;
+                margin-top: 5px;
+                justify-content: center;
+            }
+
+            /* Hamburger Menu Styles */
+            .menu-toggle {
+                display: block;
+            }
+
+            .nav-tabs {
+                position: fixed;
+                top: 0;
+                left: -280px;
+                width: 280px;
+                height: 100vh;
+                background: white;
+                flex-direction: column;
+                justify-content: flex-start;
+                box-shadow: 2px 0 15px rgba(0,0,0,0.2);
+                padding-top: 60px;
+                padding-bottom: 20px;
+                transition: left 0.3s ease;
+                z-index: 999;
+                overflow-y: auto;
+            }
+
+            .nav-tabs.open {
+                left: 0;
+            }
+
+            .nav-tab {
+                padding: 15px 20px;
+                font-size: 1.1em;
+                border-bottom: 1px solid #eee;
+                border-top: none;
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: flex-start;
+                gap: 15px;
+                min-height: 50px;
+                text-align: left;
+            }
+
+            .nav-tab.active {
+                border-top: none;
+                border-left: 4px solid var(--primary);
+                background: #ffebee;
+            }
+
+            .nav-tab br {
+                display: none;
+            }
+
+            .btn, .form-control, .size-tab, .nav-tab {
+                min-height: 44px; /* Apple/Android touch target minimum */
+            }
+
+            .btn {
+               margin-bottom: 5px; /* Prevent touching buttons */
+               width: 100%; /* Better for mobile thumbs */
+               justify-content: center;
+            }
+            .ficha-actions .btn {
+               width: auto;
+               margin-bottom: 0;
+            }
+
+            .card-body {
+               overflow-x: auto; /* Responsive tables inside cards */
+            }
+
+            .card-body table {
+                min-width: 500px; /* Force minimum width to enable scroll on small screens */
+            }
+            
+            .resumo-grid, .total-grid {
+                grid-template-columns: 1fr; /* Force single column stacked cards on mobile */
+            }
+            
+            .resumo-item, .total-item {
+                margin-bottom: 5px;
+            }
+
+            .top5-list {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+            
+            .top5-mobile-card {
+                background: var(--light);
+                border: 1px solid #ddd;
+                border-left: 5px solid var(--success);
+                padding: 12px;
+                border-radius: 8px;
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .top5-mobile-card .t-title {
+                font-size: 1.15em;
+                font-weight: 800;
+                color: var(--dark);
+                margin-bottom: 5px;
+            }
+            
+            .top5-mobile-card .t-row {
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.9em;
+                color: #555;
+            }
+            
+            .top5-mobile-card .t-profit {
+                font-weight: 800;
+                color: var(--success);
+                font-size: 1.1em;
+                padding-top: 8px;
+                margin-top: 5px;
+                border-top: 1px dashed #ccc;
+            }
+
+            .top5-mobile { display: block; }
+            .top5-desktop { display: none; }
+
+            .form-row {
+                grid-template-columns: 1fr
+            }
+
+            .ingrediente-item {
+                flex-direction: column;
+                align-items: stretch
+            }
+
+            .ingrediente-item select,
+            .ingrediente-item input {
+                width: 100%
+            }
+
+            .massa-grid {
+                grid-template-columns: 1fr
+            }
+
+            .custo-item {
+                flex-wrap: wrap
+            }
+
+            .custo-item input {
+                width: 100%
+            }
+        }
+
+        .menu-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 998;
+            display: none;
+        }
+        .menu-overlay.show {
+            display: block;
+        }
+
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1000;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 1.5em;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        @media(max-width:768px) {
+            .menu-toggle { display: block; }
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+            .card-body {
+                padding: 15px 10px; /* slightly less padding on mobile */
+            }
+        }
+        /* ===== TELAS DE AUTH (Login / Loading / Expired) ===== */
+        .auth-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .auth-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 420px;
+            overflow: hidden;
+        }
+
+        .auth-card-header {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            padding: 30px 25px;
+            text-align: center;
+            color: white;
+        }
+
+        .auth-card-header .auth-logo {
+            font-size: 2.2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .auth-card-header .auth-logo span {
+            color: var(--secondary);
+        }
+
+        .auth-card-header p {
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+
+        .auth-card-body {
+            padding: 30px 25px;
+        }
+
+        .auth-card-body .form-group {
+            margin-bottom: 18px;
+        }
+
+        .auth-card-body .form-group label {
+            font-weight: 600;
+            margin-bottom: 6px;
+            display: block;
+            color: var(--dark);
+        }
+
+        .auth-card-body .form-control {
+            padding: 14px;
+            font-size: 1em;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-login-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-login-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(211,47,47,0.4);
+        }
+
+        .btn-login-cta {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            color: white;
+            margin-top: 12px;
+            text-decoration: none;
+        }
+
+        .btn-login-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255,152,0,0.4);
+        }
+
+        .auth-erro {
+            background: #ffebee;
+            color: var(--danger);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+            font-weight: 600;
+            text-align: center;
+            border-left: 4px solid var(--danger);
+        }
+
+        .auth-divider {
+            text-align: center;
+            margin: 20px 0 15px;
+            color: #999;
+            font-size: 0.85em;
+        }
+
+        .loading-spinner {
+            text-align: center;
+        }
+
+        .loading-spinner .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-spinner p {
+            color: white;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        .expired-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+        }
+
+        .expired-msg {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .conta-info {
+            background: var(--light);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid var(--info);
+        }
+
+        .conta-info h4 {
+            margin-bottom: 15px;
+            color: var(--dark);
+        }
+
+        .conta-info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 0.95em;
+        }
+
+        .conta-info-item:last-child {
+            border-bottom: none;
+        }
+
+        .conta-info-item .label {
+            color: #777;
+        }
+
+        .conta-info-item .value {
+            font-weight: 600;
+            color: var(--dark);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- TELA DE LOADING (visível enquanto Firebase verifica auth) -->
+    <div id="loadingScreen" class="auth-screen" style="display:flex">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>🍕 Carregando PizzaControl...</p>
+        </div>
+    </div>
+
+    <!-- TELA DE LOGIN -->
+    <div id="loginScreen" class="auth-screen" style="display:none">
+        <div class="auth-card">
+            <div class="auth-card-header">
+                <div class="auth-logo">🍕 Pizza<span>Control</span></div>
+                <p>Sistema profissional de gestão para pizzarias</p>
+            </div>
+            <div class="auth-card-body">
+                <div class="auth-erro" id="loginErro"></div>
+                <div class="form-group">
+                    <label>📧 E-mail</label>
+                    <input type="email" class="form-control" id="loginEmail" placeholder="seu@email.com" autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label>🔒 Senha</label>
+                    <input type="password" class="form-control" id="loginSenha" placeholder="Sua senha" autocomplete="current-password">
+                </div>
+                <button class="btn-login btn-login-primary" id="btnLogin" onclick="fazerLoginFirebase()">🔑 Entrar</button>
+                
+                <!-- Botão Recuperar Senha Integrado -->
+                <div style="text-align: center; margin-top: 15px;">
+                    <a href="#" onclick="recuperarSenha(); return false;" style="color: var(--primary); text-decoration: underline; font-weight: 600; font-size: 0.95em;">Esqueci minha senha</a>
+                </div>
+
+                <div class="auth-footer" style="text-align: center; margin-top: 25px;">
+                    <a href="https://pizzacontrol.com.br" style="color: var(--primary); text-decoration: none; font-weight: 600; font-size: 0.95em; transition: color 0.3s;" onmouseover="this.style.color='var(--primary-dark)'" onmouseout="this.style.color='var(--primary)'">Ainda não tem acesso? Conheça o PizzaControl</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TELA DE ASSINATURA EXPIRADA -->
+    <div id="expiredScreen" class="auth-screen" style="display:none">
+        <div class="auth-card">
+            <div class="auth-card-header" style="background:linear-gradient(135deg, #e65100, #ff9800)">
+                <div class="auth-logo">🍕 Pizza<span>Control</span></div>
+                <p>Acesso não encontrado</p>
+            </div>
+            <div class="auth-card-body" style="text-align:center">
+                <div class="expired-icon">⏰</div>
+                <h3 style="margin-bottom:10px;color:var(--danger)">Acesso Bloqueado</h3>
+                <p class="expired-msg">Não encontramos seu acesso ao PizzaControl neste e-mail.<br>Se você acabou de comprar, aguarde alguns minutos — a liberação é automática. Se já passou de 10 minutos, fale com a gente no WhatsApp.<br>Se ainda não é cliente, garanta seu acesso vitalício abaixo.</p>
+                <a href="https://pizzacontrol.com.br" class="btn-login btn-login-cta" target="_blank" style="margin-bottom:12px">🍕 Ver Planos e Garantir Acesso</a>
+                <button class="btn-login" style="background:#eee;color:var(--dark);margin-top:8px" onclick="fazerLogout()">🚪 Sair e trocar de conta</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- APP CONTENT (oculto até validar assinatura Firebase) -->
+    <div id="appContent" style="display:none">
+    <div class="status-bar" id="statusBar"></div>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+    <div class="menu-overlay" id="menuOverlay" onclick="toggleMenu()"></div>
+    <header class="header">
+        <div class="logo">🍕 Pizza<span>Control</span></div>
+        <div class="header-stats">
+            <div class="stat-box"><small>Insumos</small>
+                <div class="valor" id="hdrInsumos">0</div>
+            </div>
+            <div class="stat-box"><small>Fichas</small>
+                <div class="valor" id="hdrFichas">0</div>
+            </div>
+            <div class="stat-box"><small>Custo Fixo</small>
+                <div class="valor" id="hdrCustoFixo">R$0</div>
+            </div>
+            <button class="btn-logout" id="btnLogout" onclick="fazerLogout()">🚪 Sair</button>
+        </div>
+    </header>
+    <nav class="nav-tabs" id="navTabs">
+        <button class="nav-tab active" data-page="dashboard">📊 Dashboard</button>
+        <button class="nav-tab" data-page="insumos">📦 Insumos</button>
+        <button class="nav-tab" data-page="fichas">📋 Fichas</button>
+        <button class="nav-tab" data-page="nova-ficha">➕ Criar Ficha</button>
+        <button class="nav-tab" data-page="massa">🥖 Massa</button>
+        <button class="nav-tab" data-page="custos">💼 Custos Fixos</button>
+        <button class="nav-tab" data-page="produtos">🥤 Bebidas</button>
+        <button class="nav-tab" data-page="precificar">💰 Gerar Preço</button>
+        <button class="nav-tab" data-page="config">⚙️ Configurações</button>
+        
+        <!-- Link Instagram Credibilidade -->
+        <div style="margin-top: auto; padding: 15px 10px;">
+            <a href="https://www.instagram.com/casadaspizzaass/" target="_blank" style="display: flex; align-items: center; gap: 8px; color: #E1306C; text-decoration: none; font-weight: 500; font-family: sans-serif; padding: 10px; background: #fff0f5; border-radius: 8px; transition: 0.3s; border: 1px solid #f8bbd0;">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm3.98-10.822a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+              </svg>
+              <span>Siga o fundador no Instagram</span>
+            </a>
+        </div>
+    </nav>
+    <div class="main-container">
+        <!-- DASHBOARD -->
+        <div class="page active" id="page-dashboard">
+            <div class="card">
+                <div class="card-header">📊 Visão Geral</div>
+                <div class="card-body">
+                    <div class="counters">
+                        <div class="counter P">
+                            <div class="num" id="cntP">0</div><small>Pequenas</small>
+                        </div>
+                        <div class="counter M">
+                            <div class="num" id="cntM">0</div><small>Médias</small>
+                        </div>
+                        <div class="counter G">
+                            <div class="num" id="cntG">0</div><small>Grandes</small>
+                        </div>
+                        <div class="counter GG">
+                            <div class="num" id="cntGG">0</div><small>Gigantes</small>
+                        </div>
+                    </div>
+                    <div class="resumo-box">
+                        <div class="resumo-grid">
+                            <div class="resumo-item"><small>Insumos</small>
+                                <div class="val" id="dashIns">0</div>
+                            </div>
+                            <div class="resumo-item"><small>Fichas</small>
+                                <div class="val" id="dashFic">0</div>
+                            </div>
+                            <div class="resumo-item"><small>Faturamento Total Estimado</small>
+                                <div class="val green" id="dashFat">R$ 0</div>
+                            </div>
+                            <div class="resumo-item"><small>Maior Margem</small>
+                                <div class="val purple" id="dashMaiorMargem">-</div>
+                            </div>
+                            <div class="resumo-item"><small>Custo Fixo/Pizza</small>
+                                <div class="val yellow" id="dashCF">R$ 0</div>
+                            </div>
+                            <div class="resumo-item"><small>Massa M</small>
+                                <div class="val" id="dashMassaM">R$ 0</div>
+                            </div>
+                            <div class="resumo-item"><small>Massa G</small>
+                                <div class="val" id="dashMassaG">R$ 0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header success">🏆 Top 5 Pizzas Mais Lucrativas</div>
+                <div class="card-body">
+                    <div id="topLista">
+                        <div class="empty">Cadastre fichas para ver o ranking</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header" style="background:linear-gradient(135deg, #00796b, #00897b)">🥤 Top Produtos Prontos (Bebidas e Adicionais)</div>
+                <div class="card-body">
+                    <div id="topProdutosLista">
+                        <div class="empty">Cadastre produtos prontos para ver o ranking</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- INSUMOS -->
+        <div class="page" id="page-insumos">
+            <div class="card">
+                <div class="card-header">📦 Insumos <button class="btn btn-warning btn-sm"
+                        onclick="abrirModalInsumo()">+ Novo</button></div>
+                <div class="card-body">
+                    <div class="search-row"><input type="text" class="form-control" placeholder="🔍 Buscar insumo..."
+                            id="buscaIns" oninput="filtrarInsumos()"></div>
+                    <div style="overflow-x:auto">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Categoria</th>
+                                    <th>Un</th>
+                                    <th>Qtd Emb</th>
+                                    <th>Preço Emb</th>
+                                    <th>Custo/Un</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tblInsumos"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- FICHAS -->
+        <div class="page" id="page-fichas">
+            <div class="card">
+                <div class="card-header">📋 Fichas Técnicas</div>
+                <div class="card-body">
+                    <div class="search-row"><input type="text" class="form-control" placeholder="🔍 Buscar ficha..."
+                            id="buscaFic" oninput="filtrarFichas()"></div>
+                    <div class="size-tabs"><button class="size-tab all active"
+                            onclick="filtrarTamanho('all',this)">Todas <span class="size-count"
+                                id="cntAll">0</span></button><button class="size-tab P"
+                            onclick="filtrarTamanho('P',this)">P <span class="size-count"
+                                id="cntTabP">0</span></button><button class="size-tab M"
+                            onclick="filtrarTamanho('M',this)">M <span class="size-count"
+                                id="cntTabM">0</span></button><button class="size-tab G"
+                            onclick="filtrarTamanho('G',this)">G <span class="size-count"
+                                id="cntTabG">0</span></button><button class="size-tab GG"
+                            onclick="filtrarTamanho('GG',this)">GG <span class="size-count"
+                                id="cntTabGG">0</span></button></div>
+                    <div class="fichas-grid" id="fichasGrid"></div>
+                </div>
+            </div>
+        </div>
+        <!-- NOVA FICHA -->
+        <div class="page" id="page-nova-ficha">
+            <div class="card">
+                <div class="card-header" id="fichaHeader">➕ Nova Ficha Técnica</div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group"><label>Nome da Pizza <span class="required">*</span></label><input
+                                type="text" class="form-control" id="ficNome" placeholder="Ex: Calabresa"></div>
+                        <div class="form-group"><label>Categoria</label><select class="form-control" id="ficCat">
+                                <option>Tradicional</option>
+                                <option>Especial</option>
+                                <option>Premium</option>
+                                <option>Doce</option>
+                            </select></div>
+                        <div class="form-group"><label>Tamanho</label><select class="form-control" id="ficTam"
+                                onchange="calcFicha()">
+                                <option value="P">Pequena (P)</option>
+                                <option value="M">Média (M)</option>
+                                <option value="G" selected>Grande (G)</option>
+                                <option value="GG">Gigante (GG)</option>
+                            </select></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Preço de Venda (R$) <span class="required">*</span></label><input
+                                type="number" class="form-control" id="ficPreco" placeholder="45.00" step="0.01"
+                                oninput="calcFicha()"></div>
+                        <div class="form-group"><label>Incluir Massa?</label><select class="form-control" id="ficMassa"
+                                onchange="calcFicha()">
+                                <option value="1">✅ Sim</option>
+                                <option value="0">❌ Não</option>
+                            </select></div>
+                    </div>
+                    <h4 style="margin:20px 0 10px">🧀 Ingredientes (sem a massa)</h4>
+                    <div class="ingredientes-list" id="ficIngLista"></div>
+                    <button class="btn btn-info" onclick="addIngFicha()">+ Ingrediente</button>
+                    <div class="resumo-box">
+                        <h4 style="text-align:center;margin-bottom:15px">📊 Resumo Completo</h4>
+                        <div class="resumo-grid">
+                            <div class="resumo-item"><small>Ingredientes</small>
+                                <div class="val red" id="resIng">R$ 0</div>
+                            </div>
+                            <div class="resumo-item"><small>Massa</small>
+                                <div class="val red" id="resMassa">R$ 0</div>
+                            </div>
+                            <div class="resumo-item"><small>Custo Fixo</small>
+                                <div class="val red" id="resCF">R$ 0</div>
+                            </div>
+                            <div class="resumo-item"><small>CUSTO TOTAL</small>
+                                <div class="val red" id="resTotal">R$ 0</div>
+                            </div>
+                            <div class="resumo-item"><small>Preço Venda</small>
+                                <div class="val blue" id="resVenda">R$ 0</div>
+                            </div>
+                            <div class="resumo-item"><small>LUCRO REAL</small>
+                                <div class="val green" id="resLucro">R$ 0</div>
+                            </div>
+                            <div class="resumo-item"><small>CMV</small>
+                                <div class="val" id="resCMV">0%</div>
+                                <div class="cmv-bar">
+                                    <div class="cmv-fill good" id="cmvBar"></div>
+                                </div>
+                            </div>
+                            <div class="resumo-item"><small>Margem</small>
+                                <div class="val green" id="resMargem">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:15px;margin-top:20px"><button class="btn btn-success btn-block"
+                            onclick="salvarFicha()">💾 Salvar Ficha</button><button class="btn btn-secondary"
+                            onclick="limparFicha()">🗑️ Limpar</button></div>
+                </div>
+            </div>
+        </div>
+        <!-- MASSA -->
+        <div class="page" id="page-massa">
+            <div class="alert alert-info">🥖 Cadastre os ingredientes da sua receita de massa.</div>
+            <div class="card">
+                <div class="card-header brown">🥖 Receita da Massa</div>
+                <div class="card-body">
+                    <h4 style="margin-bottom:15px">📝 Ingredientes da Receita</h4>
+                    <div class="ingredientes-list" id="massaIngLista" style="max-height:none"></div>
+                    <button class="btn btn-brown" onclick="addIngMassa()">+ Ingrediente</button>
+                    <hr style="margin:25px 0">
+                    <div class="form-group"><label style="font-size:1.1em">⚖️ Peso TOTAL dessa receita (em
+                            gramas)</label><input type="number" class="form-control large" id="massaPesoTotal"
+                            placeholder="Ex: 3000" value="3000" oninput="calcMassa()"><small style="color:#777">Informe
+                            a soma de todos os ingredientes em gramas.</small></div>
+                    <hr style="margin:25px 0">
+                    <h4 style="margin-bottom:15px">🍕 Quantos GRAMAS de massa cada pizza usa:</h4>
+                    <div class="form-row">
+                        <div class="form-group"><label>🟢 Pequena (P)</label><input type="number" class="form-control"
+                                id="pesoP" value="200" oninput="calcMassa()"><small style="color:#777">gramas</small>
+                        </div>
+                        <div class="form-group"><label>🔵 Média (M)</label><input type="number" class="form-control"
+                                id="pesoM" value="300" oninput="calcMassa()"><small style="color:#777">gramas</small>
+                        </div>
+                        <div class="form-group"><label>🟠 Grande (G)</label><input type="number" class="form-control"
+                                id="pesoG" value="400" oninput="calcMassa()"><small style="color:#777">gramas</small>
+                        </div>
+                        <div class="form-group"><label>🟣 Gigante (GG)</label><input type="number" class="form-control"
+                                id="pesoGG" value="500" oninput="calcMassa()"><small style="color:#777">gramas</small>
+                        </div>
+                    </div>
+                    <div class="total-box">
+                        <h4 style="text-align:center;margin-bottom:20px">📊 Resultado do Cálculo</h4>
+                        <div class="total-grid">
+                            <div class="total-item">
+                                <div class="label">Custo Total da Receita</div>
+                                <div class="value" id="massaCustoTotal">R$ 0,00</div>
+                            </div>
+                            <div class="total-item">
+                                <div class="label">Peso Total</div>
+                                <div class="value" id="massaPesoTotalRes">0 g</div>
+                            </div>
+                            <div class="total-item">
+                                <div class="label">Custo por Grama</div>
+                                <div class="value highlight" id="massaCustoGrama">R$ 0,0000</div>
+                            </div>
+                        </div>
+                    </div>
+                    <h4 style="margin:25px 0 15px;text-align:center">💰 Custo da Massa por Tamanho</h4>
+                    <div class="massa-resultado">
+                        <div class="massa-resultado-item" style="border-top-color:#4caf50"><small>🟢 Pequena</small>
+                            <div class="val" id="massaCustoP" style="color:#4caf50">R$ 0,00</div><small
+                                id="massaInfoP">0g × R$0</small>
+                        </div>
+                        <div class="massa-resultado-item" style="border-top-color:#2196f3"><small>🔵 Média</small>
+                            <div class="val" id="massaCustoM" style="color:#2196f3">R$ 0,00</div><small
+                                id="massaInfoM">0g × R$0</small>
+                        </div>
+                        <div class="massa-resultado-item" style="border-top-color:#ff9800"><small>🟠 Grande</small>
+                            <div class="val" id="massaCustoG" style="color:#ff9800">R$ 0,00</div><small
+                                id="massaInfoG">0g × R$0</small>
+                        </div>
+                        <div class="massa-resultado-item" style="border-top-color:#9c27b0"><small>🟣 Gigante</small>
+                            <div class="val" id="massaCustoGG" style="color:#9c27b0">R$ 0,00</div><small
+                                id="massaInfoGG">0g × R$0</small>
+                        </div>
+                    </div>
+                    <div class="alert alert-success" style="margin-top:20px"><strong>📌 Exemplo:</strong> Receita custa
+                        R$ 30 e pesa 3000g → Custo = R$ 0,01/g<br>• Pizza M (300g): 300 × 0,01 = <strong>R$
+                            3,00</strong><br>• Pizza G (400g): 400 × 0,01 = <strong>R$ 4,00</strong></div>
+                    <button class="btn btn-success btn-block" style="margin-top:20px" onclick="salvarMassa()">💾 Salvar
+                        Massa</button>
+                </div>
+            </div>
+        </div>
+        <!-- CUSTOS FIXOS -->
+        <div class="page" id="page-custos">
+            <div class="alert alert-info">💼 Informe seus gastos fixos mensais e quantas pizzas vende por mês.</div>
+            <div class="card">
+                <div class="card-header info">💼 Custos Fixos Mensais</div>
+                <div class="card-body">
+                    <div class="custo-item">
+                        <div class="icon">🏠</div>
+                        <div class="info"><strong>Aluguel</strong><small>Valor mensal</small></div><input type="number"
+                            class="form-control" id="cfAluguel" placeholder="0" oninput="calcCustos()">
+                    </div>
+                    <div class="custo-item">
+                        <div class="icon">⚡</div>
+                        <div class="info"><strong>Energia</strong><small>Conta de luz</small></div><input type="number"
+                            class="form-control" id="cfEnergia" placeholder="0" oninput="calcCustos()">
+                    </div>
+                    <div class="custo-item">
+                        <div class="icon">🔥</div>
+                        <div class="info"><strong>Gás</strong><small>Gás de cozinha</small></div><input type="number"
+                            class="form-control" id="cfGas" placeholder="0" oninput="calcCustos()">
+                    </div>
+                    <div class="custo-item">
+                        <div class="icon">💧</div>
+                        <div class="info"><strong>Água</strong><small>Conta de água</small></div><input type="number"
+                            class="form-control" id="cfAgua" placeholder="0" oninput="calcCustos()">
+                    </div>
+                    <div class="custo-item">
+                        <div class="icon">📶</div>
+                        <div class="info"><strong>Internet</strong><small>Internet/Telefone</small></div><input
+                            type="number" class="form-control" id="cfInternet" placeholder="0" oninput="calcCustos()">
+                    </div>
+                    <div class="custo-item">
+                        <div class="icon">👨‍🍳</div>
+                        <div class="info"><strong>Funcionários</strong><small>Salários + encargos</small></div><input
+                            type="number" class="form-control" id="cfFunc" placeholder="0" oninput="calcCustos()">
+                    </div>
+                    <div class="custo-item">
+                        <div class="icon">⛽</div>
+                        <div class="info"><strong>Combustível</strong><small>Gasolina/Transporte</small></div><input
+                            type="number" class="form-control" id="cfGasolina" placeholder="0" oninput="calcCustos()">
+                    </div>
+                    <div class="custo-item">
+                        <div class="icon">📦</div>
+                        <div class="info"><strong>Embalagens</strong><small>Caixas, sacolas</small></div><input
+                            type="number" class="form-control" id="cfEmb" placeholder="0" oninput="calcCustos()">
+                    </div>
+                    <div class="custo-item">
+                        <div class="icon">📱</div>
+                        <div class="info"><strong>Marketing</strong><small>Anúncios</small></div><input type="number"
+                            class="form-control" id="cfMkt" placeholder="0" oninput="calcCustos()">
+                    </div>
+                    <div class="custo-item">
+                        <div class="icon">📋</div>
+                        <div class="info"><strong>Contador/Impostos</strong><small>MEI, contador</small></div><input
+                            type="number" class="form-control" id="cfContador" placeholder="0" oninput="calcCustos()">
+                    </div>
+                    <div class="custo-item">
+                        <div class="icon">➕</div>
+                        <div class="info"><strong>Outros</strong><small>Demais gastos</small></div><input type="number"
+                            class="form-control" id="cfOutros" placeholder="0" oninput="calcCustos()">
+                    </div>
+                    <hr style="margin:25px 0">
+                    <div class="form-group"><label style="font-size:1.1em">🍕 Quantas pizzas você vende por
+                            mês?</label><input type="number" class="form-control large" id="cfPizzas" value="300"
+                            oninput="calcCustos()"></div>
+                    <div class="total-box">
+                        <h4 style="text-align:center;margin-bottom:20px">📊 Resultado</h4>
+                        <div class="total-grid">
+                            <div class="total-item">
+                                <div class="label">Total Custos/Mês</div>
+                                <div class="value" id="cfTotal">R$ 0</div>
+                            </div>
+                            <div class="total-item">
+                                <div class="label">Custo por Pizza</div>
+                                <div class="value highlight" id="cfPorPizza">R$ 0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-success btn-block" style="margin-top:20px" onclick="salvarCustos()">💾 Salvar
+                        Custos</button>
+                </div>
+            </div>
+        </div>
+        <!-- BEBIDAS E ADICIONAIS -->
+        <div class="page" id="page-produtos">
+            <div class="alert alert-info">🥤 Cadastre bebidas, cervejas, doces e adicionais. Esses itens serão usados no <strong>Simulador de Combos</strong>.</div>
+            <div class="card">
+                <div class="card-header" style="background:linear-gradient(135deg, #00796b, #26a69a)">🥤 Bebidas e Adicionais <button class="btn btn-warning btn-sm" onclick="abrirModalProduto()">+ Novo</button></div>
+                <div class="card-body">
+                    <div class="search-row"><input type="text" class="form-control" placeholder="🔍 Buscar produto..." id="buscaProd" oninput="filtrarProdutosBusca()"></div>
+                    <div class="size-tabs">
+                        <button class="size-tab all prod-cat-tab active" onclick="filtrarProdutos('all',this)">Todos <span class="size-count" id="cntProdAll">0</span></button>
+                        <button class="size-tab prod-cat-tab" style="border-color:#2196f3" onclick="filtrarProdutos('Bebida',this)">🥤 Bebidas <span class="size-count" id="cntProdBeb">0</span></button>
+                        <button class="size-tab prod-cat-tab" style="border-color:#ff9800" onclick="filtrarProdutos('Cerveja',this)">🍺 Cervejas <span class="size-count" id="cntProdCerv">0</span></button>
+                        <button class="size-tab prod-cat-tab" style="border-color:#e91e63" onclick="filtrarProdutos('Doce',this)">🍫 Doces <span class="size-count" id="cntProdDoce">0</span></button>
+                        <button class="size-tab prod-cat-tab" style="border-color:#9c27b0" onclick="filtrarProdutos('Adicional',this)">➕ Adicionais <span class="size-count" id="cntProdAdic">0</span></button>
+                    </div>
+                    <div style="overflow-x:auto">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Categoria</th>
+                                    <th>Custo</th>
+                                    <th>Venda</th>
+                                    <th>Lucro</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tblProdutos"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- PRECIFICAR -->
+        <div class="page" id="page-precificar">
+            <div class="alert alert-info">💰 Use as calculadoras para encontrar o preço ideal. CMV recomendado:
+                <strong>25% a 35%</strong></div>
+            <div class="calc-grid">
+                <div class="card">
+                    <div class="card-header warning">📊 Calcular por CMV</div>
+                    <div class="card-body">
+                        <div class="form-group"><label>Custo Total (R$)</label><input type="number" class="form-control"
+                                id="calcCusto" placeholder="18.00" oninput="calcPorCMV()"></div>
+                        <div class="slider-group"><label><span>CMV Desejado:</span><span class="slider-val"
+                                    id="calcCMVVal">30%</span></label><input type="range" id="calcCMV" min="15" max="50"
+                                value="30" oninput="calcPorCMV()"></div>
+                        
+                        <hr style="margin:20px 0">
+                        <div class="form-row">
+                            <div class="form-group"><label>Markup (Multiplicador)</label><input type="number" class="form-control" id="calcMarkup" value="3" step="0.1" oninput="calcPorMarkup()"></div>
+                            <div class="form-group"><label>Impostos Totais (%)</label><input type="number" class="form-control" id="calcImposto" value="6" oninput="calcPorMarkup()"></div>
+                        </div>
+                        <div class="resumo-box">
+                            <div style="text-align:center"><small>Preço Sugerido (CMV/Markup)</small>
+                                <div style="font-size:2em;font-weight:bold;color:#4caf50" id="calcPreco">R$ 0,00</div>
+                                <small id="calcLucro">Lucro Bruto: R$ 0,00</small><br>
+                                <small id="calcLucroReal" style="color:var(--info); font-weight:bold">Lucro Líquido (Pós Imposto): R$ 0,00 (-)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header purple">📋 Precificar Ficha</div>
+                    <div class="card-body">
+                        <div class="form-group"><label>Selecione uma Ficha</label><select class="form-control"
+                                id="calcFicha" onchange="calcComFicha()">
+                                <option value="">-- Selecione --</option>
+                            </select></div>
+                        <div id="calcFichaRes" style="display:none">
+                            <table style="margin:15px 0;font-size:0.9em">
+                                <tr>
+                                    <td>Ingredientes:</td>
+                                    <td style="text-align:right" id="cfIng">R$ 0</td>
+                                </tr>
+                                <tr>
+                                    <td>Massa:</td>
+                                    <td style="text-align:right" id="cfMassaVal">R$ 0</td>
+                                </tr>
+                                <tr>
+                                    <td>Custo Fixo:</td>
+                                    <td style="text-align:right" id="cfFixo">R$ 0</td>
+                                </tr>
+                                <tr style="font-weight:bold;border-top:2px solid #333">
+                                    <td>TOTAL:</td>
+                                    <td style="text-align:right;color:var(--danger)" id="cfTot">R$ 0</td>
+                                </tr>
+                            </table>
+                            <div class="cenarios">
+                                <div class="cenario c1"><small>CMV 35%</small>
+                                    <div class="preco" id="cfP35">R$ 0</div>
+                                </div>
+                                <div class="cenario c2"><small>CMV 30%</small>
+                                    <div class="preco" id="cfP30">R$ 0</div>
+                                </div>
+                                <div class="cenario c3"><small>CMV 25%</small>
+                                    <div class="preco" id="cfP25">R$ 0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- SIMULADOR MEIO A MEIO -->
+            <div class="card" style="margin-top:20px">
+                <div class="card-header" style="background:linear-gradient(135deg, #e65100, #ff9800)">🍕 Simulador Meio a Meio (2 Sabores)</div>
+                <div class="card-body">
+                    <div class="alert alert-info" style="margin-bottom:15px">
+                        📐 <strong>Regra:</strong> O preço cobrado é <strong>sempre o do sabor mais caro</strong>. O custo real é a <strong>soma da metade</strong> dos ingredientes de cada sabor.
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>🍕 Sabor A (1ª metade)</label>
+                            <select class="form-control" id="maMSaborA" onchange="calcMeioAMeio()">
+                                <option value="">-- Selecione --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>🍕 Sabor B (2ª metade)</label>
+                            <select class="form-control" id="maMSaborB" onchange="calcMeioAMeio()">
+                                <option value="">-- Selecione --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="maMResultado" style="display:none"></div>
+                </div>
+            </div>
+            <!-- SIMULADOR DE COMBOS VIP -->
+            <div class="card" style="margin-top:20px">
+                <div class="card-header" style="background:linear-gradient(135deg, #1565c0, #42a5f5)">🎯 Simulador de Combos VIP</div>
+                <div class="card-body">
+                    <div class="alert alert-info" style="margin-bottom:15px">
+                        🍕 Monte um combo <strong>Pizza + Bebida + Adicional</strong> e descubra o lucro real, mesmo com desconto promocional.
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>🍕 Pizza (Ficha Técnica)</label>
+                            <select class="form-control" id="comboPizza" onchange="calcCombo()">
+                                <option value="">-- Selecione a Pizza --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>🥤 Bebida</label>
+                            <select class="form-control" id="comboBebida" onchange="calcCombo()">
+                                <option value="">-- Selecione a Bebida --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:15px">
+                        <label style="font-weight:bold;margin-bottom:8px;display:block">➕ Adicionais / Doces (opcional)</label>
+                        <div id="comboAdicionaisContainer"></div>
+                        <button class="btn btn-info btn-sm" onclick="addComboAdicional()" style="margin-top:8px">+ Incluir Adicional</button>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>🏷️ Preço Promocional do Combo (R$)</label>
+                            <input type="number" class="form-control" id="comboPrecoPromo" placeholder="Ex: 49.90" step="0.01" oninput="calcCombo()">
+                            <small style="color:#777">Deixe vazio para usar a soma dos preços individuais</small>
+                        </div>
+                    </div>
+                    <div id="comboResultado" style="display:none"></div>
+                </div>
+            </div>
+        </div>
+        <!-- CONFIG -->
+        <div class="page" id="page-config">
+            <div class="card">
+                <div class="card-header purple">⚙️ Configurações Gerais da Pizzaria</div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group"><label>Nome da Pizzaria</label><input type="text" class="form-control" id="configNome" placeholder="Minha Pizzaria"></div>
+                        <div class="form-group"><label>Meta de Vendas Mensal (Receita R$)</label><input type="number" class="form-control" id="configMeta" placeholder="15000"></div>
+                    </div>
+                    <button class="btn btn-success" onclick="salvarConfig()">💾 Salvar Configurações</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">💾 Dados & Backup</div>
+                <div class="card-body">
+                    <div style="display:flex;gap:15px;flex-wrap:wrap"><button class="btn btn-primary"
+                            onclick="exportar()">📥 Exportar Dados</button><label class="btn btn-warning"
+                            style="cursor:pointer">📤 Importar<input type="file" accept=".json"
+                                onchange="importar(event)" style="display:none"></label><button class="btn btn-danger"
+                            onclick="limparTudo()">🗑️ Limpar Tudo</button><button class="btn btn-teal"
+                            onclick="testarStorage()">🔧 Testar Storage</button></div>
+                    <div class="alert alert-warning" style="margin-top:20px">⚠️ <strong>Importante:</strong> Faça backup
+                        regularmente exportando seus dados!</div>
+                    <div class="conta-info">
+                        <h4>👤 Minha Conta</h4>
+                        <div class="conta-info-item"><span class="label">E-mail:</span><span class="value" id="contaEmail">-</span></div>
+                        <div class="conta-info-item"><span class="label">Plano:</span><span class="value" id="contaVencimento">-</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- MODAL INSUMO -->
+    <div class="modal-bg" id="modalIns">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalInsTitle">📦 Novo Insumo</h3><button class="modal-close"
+                    onclick="fecharModal('modalIns')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="insId">
+                <div class="form-row">
+                    <div class="form-group"><label>Nome <span class="required">*</span></label><input type="text"
+                            class="form-control" id="insNome"></div>
+                    <div class="form-group"><label>Categoria</label><select class="form-control" id="insCat">
+                            <option>Queijos</option>
+                            <option>Carnes</option>
+                            <option>Vegetais</option>
+                            <option>Molhos</option>
+                            <option>Massas</option>
+                            <option>Outros</option>
+                        </select></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Unidade</label><select class="form-control" id="insUn">
+                            <option value="g">Gramas (g)</option>
+                            <option value="kg">Kilos (kg)</option>
+                            <option value="ml">Mililitros (ml)</option>
+                            <option value="L">Litros (L)</option>
+                            <option value="un">Unidade (un)</option>
+                        </select></div>
+                    <div class="form-group"><label>Qtd Embalagem <span class="required">*</span></label><input
+                            type="number" class="form-control" id="insQtd" placeholder="1000"></div>
+                    <div class="form-group"><label>Preço Embalagem <span class="required">*</span></label><input
+                            type="number" class="form-control" id="insPreco" placeholder="35.00" step="0.01"></div>
+                </div>
+                <div class="alert alert-info" id="insPreview">💡 Preencha para ver o custo unitário</div>
+                <button class="btn btn-success btn-block" onclick="salvarInsumo()">💾 Salvar Insumo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PRODUTO PRONTO -->
+    <div class="modal-bg" id="modalProd">
+        <div class="modal">
+            <div class="modal-header" style="background:linear-gradient(135deg, #00796b, #26a69a)">
+                <h3 id="modalProdTitle">🥤 Novo Produto</h3><button class="modal-close" onclick="fecharModal('modalProd')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="prodId">
+                <div class="form-row">
+                    <div class="form-group"><label>Nome do Produto <span class="required">*</span></label><input type="text" class="form-control" id="prodNome" placeholder="Ex: Coca-Cola 2L"></div>
+                    <div class="form-group"><label>Categoria</label><select class="form-control" id="prodCat">
+                            <option value="Bebida">🥤 Bebida (Refrigerante/Suco)</option>
+                            <option value="Cerveja">🍺 Cerveja</option>
+                            <option value="Doce">🍫 Doce / Sobremesa</option>
+                            <option value="Adicional">➕ Adicional (Borda, Extra)</option>
+                        </select></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Preço de Custo (Compra) <span class="required">*</span></label><input type="number" class="form-control" id="prodCusto" placeholder="4.50" step="0.01" oninput="previewProduto()"></div>
+                    <div class="form-group"><label>Preço de Venda <span class="required">*</span></label><input type="number" class="form-control" id="prodVenda" placeholder="8.00" step="0.01" oninput="previewProduto()"></div>
+                </div>
+                <div class="alert alert-info" id="prodPreview">💡 Preencha custo e venda para ver</div>
+                <button class="btn btn-success btn-block" onclick="salvarProduto()">💾 Salvar Produto</button>
+            </div>
+        </div>
+    </div>
+
+    </div><!-- /appContent -->
+
+    <script src="app.js?v=3.0.0"></script>
+    
+    <!-- Botão Suporte WhatsApp -->
+    <a href="https://wa.me/5598970260090?text=Fala%20Marllon!%20Preciso%20de%20uma%20ajuda%20aqui%20no%20PizzaControl." class="btn-whatsapp-flutuante" target="_blank">
+      <svg viewBox="0 0 32 32" class="whatsapp-ico">
+        <path d="M16 2a13 13 0 0 0-11 20.8l-2.2 6.6 6.8-2.2A13 13 0 1 0 16 2zm0 24a10.8 10.8 0 0 1-5.5-1.5l-.4-.2-4.1 1.3 1.4-4-.3-.4A10.8 10.8 0 1 1 16 26zm6-8.2c-.3-.2-2-.9-2.3-1-.3-.1-.5-.2-.7.1-.2.4-.9 1-1.1 1.3-.2.3-.4.3-.7.2-.3-.2-1.4-.5-2.7-1.7-1-1-1.7-1.6-1.9-1.9-.2-.3 0-.5.2-.6.2-.1.3-.3.5-.5.2-.2.2-.4.4-.6.1-.2.1-.4 0-.5-.1-.2-.7-1.7-1-2.4-.2-.6-.4-.5-.6-.5h-.5c-.2 0-.6.1-.9.4-.3.3-1.1 1-1.1 2.6s1.2 3.1 1.3 3.3c.2.2 2.3 3.5 5.5 4.9.8.3 1.4.5 1.9.6.6.2 1.1.2 1.5.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2-.1-.2-.3-.3-.6-.5z" fill="white"/>
+      </svg>
+    </a>
+    
+    <style>
+      .btn-whatsapp-flutuante {
+        position: fixed;
+        width: 60px;
+        height: 60px;
+        bottom: 25px;
+        right: 25px;
+        background-color: #25d366;
+        color: #FFF;
+        border-radius: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+        transition: transform 0.3s;
+      }
+      .btn-whatsapp-flutuante:hover {
+        transform: scale(1.1);
+      }
+      .whatsapp-ico {
+        width: 35px;
+        height: 35px;
+      }
+    </style>
+
+    <!-- Função Inteligente de Recuperação de Senha do Firebase -->
+    <script>
+    function recuperarSenha() {
+        var emailCliente = document.getElementById("loginEmail").value; 
+
+        if (emailCliente != "") {
+            firebase.auth().sendPasswordResetEmail(emailCliente)
+                .then(function() {
+                    alert("Sucesso! O link para criar uma nova senha foi enviado para o seu e-mail.");
+                })
+                .catch(function(error) {
+                    if(error.code === 'auth/user-not-found') {
+                        alert("Esse e-mail ainda não tem uma assinatura ativa.");
+                    } else {
+                        alert("Ocorreu um erro: " + error.message);
+                    }
+                });
+        } else {
+            alert("Por favor, digite o seu e-mail na caixinha acima e clique em 'Esqueci minha senha' de novo.");
+        }
+    }
+    </script>
+</body>
+
+</html>
