@@ -1,0 +1,44 @@
+rules_version = '2';
+
+// ATENÇÃO — REGRA DE SEGURANÇA CRÍTICA
+//
+// Antes desta correção, a regra do projeto era:
+//   allow read, write: if request.auth != null;
+// Isso permitia que QUALQUER usuário autenticado (ou seja, qualquer pessoa
+// que criasse login no sistema) lesse E ESCREVESSE no documento de
+// QUALQUER outro cliente — inclusive o próprio. Na prática, um cliente do
+// plano Básico podia abrir o console do navegador e mudar o campo "plano"
+// para "pro" para liberar acesso total de graça, ou até apagar o cadastro
+// de outros clientes.
+//
+// A regra abaixo corrige isso:
+// - Cada usuário só consegue LER o próprio documento (necessário para o
+//   app verificar o plano e liberar o acesso).
+// - NINGUÉM consegue escrever nada pelo navegador/app — nem no próprio
+//   documento, nem no de outra pessoa.
+// - A automação (Make) continua funcionando normalmente, porque ela grava
+//   no Firestore usando uma conta de serviço/API key de administrador, que
+//   não passa por estas regras. As regras abaixo só valem para acessos
+//   feitos pelo app, pelo navegador do cliente.
+//
+// COMO PUBLICAR ESTA REGRA (escolha uma opção):
+//   Opção A (mais simples): copie o conteúdo do bloco "service cloud.firestore"
+//   abaixo e cole em: Firebase Console > Firestore Database > Regras > Publicar.
+//
+//   Opção B (linha de comando, se usar Firebase CLI):
+//   firebase deploy --only firestore:rules
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /usuarios/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    // Qualquer outra coleção fica bloqueada por padrão (nega tudo que não
+    // foi explicitamente liberado acima).
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
