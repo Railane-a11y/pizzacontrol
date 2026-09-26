@@ -58,7 +58,9 @@ const DB_PADRAO = {
         nomePizzaria: '',
         meta: 15000
     },
-    produtosProntos: []
+    produtosProntos: [],
+    // Taxas cobradas sobre o valor de cada venda (%) e meta de lucro real (%)
+    taxas: { imposto: 0, cartao: 0, app: 0, vendasApp: 0, metaLucro: 15 }
 };
 
 let DB = clonar(DB_PADRAO);
@@ -474,7 +476,17 @@ function normalizarDados(raw) {
         if (ins) ing.unidade = unidadeBase(ins.unidade);
     }));
 
-    return { versao: VERSAO_DADOS, insumos, fichas, custos, massa, config, produtosProntos };
+    const tx = origem.taxas || {};
+    const limitar = (v, max) => Math.min(Math.max(numero(v), 0), max);
+    const taxas = {
+        imposto: limitar(tx.imposto, 60),
+        cartao: limitar(tx.cartao, 30),
+        app: limitar(tx.app, 50),
+        vendasApp: limitar(tx.vendasApp, 100),
+        metaLucro: tx.metaLucro === undefined ? 15 : limitar(tx.metaLucro, 80)
+    };
+
+    return { versao: VERSAO_DADOS, insumos, fichas, custos, massa, config, produtosProntos, taxas };
 }
 
 function obterPrimeiroValor(keys) {
@@ -719,6 +731,15 @@ function salvarInsumo() {
     }
 
     const custoUn = calcCustoUnBase(preco, qtd, un);
+    const insAntigo = editId ? DB.insumos.find((i) => i.id === editId) : null;
+    const custoAntigo = insAntigo ? insAntigo.custoUn || 0 : 0;
+    const antes = {};
+    if (insAntigo) {
+        DB.fichas.forEach((f) => {
+            atualizarCustosDaFicha(f);
+            antes[f.id] = { lucro: f.lucro, custo: f.custoTotal, margem: f.margemReal };
+        });
+    }
     const insumoData = {
         id: editId || gerarId(),
         nome,
@@ -741,6 +762,60 @@ function salvarInsumo() {
     persistirDados(false);
     fecharModal('modalIns');
     sincronizarUI();
+
+    if (insAntigo && custoAntigo > 0 && Math.abs(custoUn - custoAntigo) / custoAntigo > 0.001) {
+        mostrarAvisoMudancaPreco(insumoData, custoAntigo, antes);
+    }
+}
+
+function mostrarAvisoMudancaPreco(ins, custoAntigo, antes) {
+    const afetadas = DB.fichas
+        .filter((f) => antes[f.id] && Math.abs(f.custoTotal - antes[f.id].custo) > 0.004)
+        .map((f) => ({ f, antes: antes[f.id] }));
+    if (afetadas.length === 0) return;
+
+    const variacao = ((ins.custoUn - custoAntigo) / custoAntigo) * 100;
+    const subiu = variacao > 0;
+    const meta = metaLucroFracao() * 100;
+    const caiuAbaixo = isPro ? afetadas.filter((a) => a.antes.margem >= meta - 0.05 && a.f.margemReal < meta - 0.05).length : 0;
+    const abaixoTotal = isPro ? DB.fichas.filter((f) => f.margemReal < meta - 0.05).length : 0;
+    const somaDif = afetadas.reduce((acc, a) => acc + (a.f.lucro - a.antes.lucro), 0);
+
+    const linhas = afetadas.sort((a, b) => (a.f.lucro - a.antes.lucro) - (b.f.lucro - b.antes.lucro)).slice(0, 6).map((a) =>
+        `<li style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #eee"><span>${esc(a.f.nome)} (${a.f.tamanho})</span><span style="white-space:nowrap">${brl(a.antes.lucro)} → <b style="color:${a.f.lucro < a.antes.lucro ? '#c62828' : '#2e7d32'}">${brl(a.f.lucro)}</b></span></li>`
+    ).join('');
+
+    fecharModalUpgrade();
+    const overlay = document.createElement('div');
+    overlay.id = 'modalUpgradePro';
+    overlay.className = 'mup-overlay';
+    overlay.innerHTML = `
+        <div class="mup-card" role="dialog" aria-modal="true" aria-labelledby="avisoPrecoTitulo">
+            <button type="button" class="mup-fechar" aria-label="Fechar">✕</button>
+            <div class="mup-topo" style="${subiu ? '' : 'background:linear-gradient(135deg,#2e7d32,#1b5e20)'}">
+                <div class="mup-cadeado">${subiu ? '📈' : '📉'}</div>
+                <h2 id="avisoPrecoTitulo" class="mup-titulo">${esc(ins.nome)} ${subiu ? 'subiu' : 'baixou'} ${pct(Math.abs(variacao))}</h2>
+            </div>
+            <div class="mup-corpo">
+                <p class="mup-texto"><strong>${afetadas.length} ${afetadas.length === 1 ? 'pizza foi afetada' : 'pizzas foram afetadas'}.</strong> Vendendo uma de cada, você passa a lucrar ${brl(Math.abs(somaDif))} ${somaDif < 0 ? 'a menos' : 'a mais'}.</p>
+                <ul style="list-style:none;padding:0;margin:0 0 14px;font-size:0.9rem">${linhas}</ul>
+                ${afetadas.length > 6 ? `<p style="font-size:0.8rem;color:#777;margin:-6px 0 12px">e mais ${afetadas.length - 6}.</p>` : ''}
+                ${isPro && abaixoTotal > 0 ? `<div class="mup-email" style="margin-bottom:14px"><div class="mup-email-titulo">⚠️ ${caiuAbaixo > 0 ? caiuAbaixo + (caiuAbaixo === 1 ? ' pizza ficou' : ' pizzas ficaram') + ' abaixo da sua meta agora. ' : ''}${abaixoTotal} no total ${abaixoTotal === 1 ? 'está' : 'estão'} abaixo da meta de ${pct(meta, 0)}.</div></div>
+                <button type="button" class="mup-cta" id="avisoVerMeta" style="width:100%;border:0;cursor:pointer">VER O PREÇO CERTO DE CADA UMA</button>` : ''}
+                <button type="button" class="mup-depois">Ok, entendi</button>
+            </div>
+        </div>`;
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) fecharModalUpgrade(); });
+    overlay.querySelector('.mup-fechar').addEventListener('click', fecharModalUpgrade);
+    overlay.querySelector('.mup-depois').addEventListener('click', fecharModalUpgrade);
+    const btnMeta = overlay.querySelector('#avisoVerMeta');
+    if (btnMeta) btnMeta.addEventListener('click', () => {
+        fecharModalUpgrade();
+        document.querySelector('.nav-tab[data-page="dashboard"]')?.click();
+        setTimeout(() => document.getElementById('cardMeta')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    });
+    document.addEventListener('keydown', fecharModalUpgradeEsc);
+    document.body.appendChild(overlay);
 }
 
 function excluirInsumo(id) {
@@ -830,6 +905,7 @@ function loadCustosUI() {
     document.getElementById('cfOutros').value = c.outros || '';
     document.getElementById('cfPizzas').value = c.pizzas || 300;
     calcCustos();
+    loadTaxasUI();
 }
 
 function loadConfigUI() {
@@ -910,6 +986,61 @@ function calcularCustoFixoPorPizza() {
     }
 
     return total / quantidadePizzasMensal;
+}
+
+// ===== TAXAS SOBRE A VENDA E META DE LUCRO =====
+// Taxa média (fração) descontada de cada venda:
+// imposto em todas + comissão do app na parte vendida pelo app + maquininha no restante.
+function taxaMediaVenda(t = DB.taxas) {
+    if (!t) return 0;
+    const parteApp = Math.min(Math.max(numero(t.vendasApp), 0), 100) / 100;
+    return (numero(t.imposto) + numero(t.app) * parteApp + numero(t.cartao) * (1 - parteApp)) / 100;
+}
+
+function metaLucroFracao() {
+    return numero(DB.taxas && DB.taxas.metaLucro, 15) / 100;
+}
+
+// Preço que cobre todos os custos, as taxas e ainda deixa a meta de lucro real.
+function calcPrecoIdeal(custoTotal) {
+    const divisor = 1 - taxaMediaVenda() - metaLucroFracao();
+    return divisor > 0.05 ? custoTotal / divisor : null;
+}
+
+function loadTaxasUI() {
+    const t = DB.taxas || {};
+    const campos = { txImposto: t.imposto, txCartao: t.cartao, txApp: t.app, txVendasApp: t.vendasApp, txMeta: t.metaLucro };
+    Object.entries(campos).forEach(([id, v]) => {
+        const el = document.getElementById(id);
+        if (el) el.value = v || (id === 'txMeta' ? 15 : '');
+    });
+    calcTaxasPreview();
+}
+
+function lerTaxasUI() {
+    const v = (id) => parseFloat(document.getElementById(id)?.value) || 0;
+    return { imposto: v('txImposto'), cartao: v('txCartao'), app: v('txApp'), vendasApp: Math.min(v('txVendasApp'), 100), metaLucro: v('txMeta') };
+}
+
+function calcTaxasPreview() {
+    const el = document.getElementById('txMedia');
+    if (!el) return;
+    const t = lerTaxasUI();
+    const media = taxaMediaVenda(t) * 100;
+    el.textContent = pct(media);
+    const aviso = document.getElementById('txAviso');
+    if (aviso) {
+        const sobra = 100 - media - t.metaLucro;
+        aviso.textContent = sobra <= 5
+            ? '⚠️ Taxas + meta passam de 95% do preço. Revise os valores.'
+            : 'De cada R$ 100 vendidos, ' + brl(media) + ' vão para taxas e impostos.';
+    }
+}
+
+function salvarTaxas() {
+    DB.taxas = lerTaxasUI();
+    persistirDados(true, '✅ Taxas e meta salvas!');
+    sincronizarUI();
 }
 
 // ===== MASSA =====
@@ -1081,7 +1212,15 @@ function calcFicha() {
     const custoFixo = calcularCustoFixoPorPizza();
     const custoTotal = custoIng + custoMassa + custoFixo;
     const venda = parseFloat(document.getElementById('ficPreco').value) || 0;
-    const lucro = venda - custoTotal;
+    const taxas = venda * taxaMediaVenda();
+    const lucro = venda - custoTotal - taxas;
+    const resTaxas = document.getElementById('resTaxas');
+    if (resTaxas) resTaxas.textContent = brl(taxas);
+    const resIdeal = document.getElementById('resIdeal');
+    if (resIdeal) {
+        const ideal = calcPrecoIdeal(custoTotal);
+        resIdeal.textContent = ideal && custoIng > 0 ? brl(ideal) : '-';
+    }
     // CMV = custo da mercadoria (ingredientes + massa). Custo fixo NÃO entra no CMV.
     const cmv = venda > 0 ? ((custoIng + custoMassa) / venda) * 100 : 0;
     const margem = venda > 0 ? (lucro / venda) * 100 : 0;
@@ -1166,7 +1305,7 @@ function salvarFicha() {
         custoMassa,
         custoFixo,
         custoTotal,
-        lucro: preco - custoTotal,
+        lucro: preco - custoTotal - preco * taxaMediaVenda(),
         cmv: ((custoIng + custoMassa) / preco) * 100
     };
 
@@ -1262,7 +1401,10 @@ function atualizarCustosDaFicha(f) {
     f.custoMassa = f.incMassa !== false ? getCustoMassa(f.tamanho) : 0;
     f.custoFixo = calcularCustoFixoPorPizza();
     f.custoTotal = (f.custoIng || 0) + f.custoMassa + f.custoFixo;
-    f.lucro = f.precoVenda - f.custoTotal;
+    f.taxas = f.precoVenda * taxaMediaVenda();
+    f.lucro = f.precoVenda - f.custoTotal - f.taxas;
+    f.margemReal = f.precoVenda > 0 ? (f.lucro / f.precoVenda) * 100 : 0;
+    f.precoIdeal = calcPrecoIdeal(f.custoTotal);
     f.cmv = f.precoVenda > 0 ? (((f.custoIng || 0) + f.custoMassa) / f.precoVenda) * 100 : 0;
 }
 
@@ -1296,7 +1438,7 @@ function renderFichas() {
     grid.innerHTML = fichas
         .map(
             (f) =>
-                `<div class="ficha-card ${f.tamanho}"><div class="ficha-header"><div><h3>${esc(f.nome)}</h3><small>${esc(f.categoria)}</small></div><span class="badge-size ${f.tamanho}">${f.tamanho}</span></div><div class="ficha-body"><div class="ficha-stats"><div class="ficha-stat"><small>Custo</small><div class="val red">${brl(f.custoTotal)}</div></div><div class="ficha-stat"><small>Venda</small><div class="val blue">${brl(f.precoVenda)}</div></div><div class="ficha-stat"><small>Lucro</small><div class="val green">${brl(f.lucro)}</div></div></div><div class="ficha-details">Ing: ${brl((f.custoIng || 0))} | Massa: ${brl(f.custoMassa)} | Fixo: ${brl(f.custoFixo)} | CMV: ${pct(f.cmv)}</div><div class="ficha-actions"><button class="btn btn-warning btn-sm" onclick="editarFicha('${f.id}')">✏️</button><button class="btn btn-purple btn-sm" onclick="duplicarFicha('${f.id}')">📋</button><button class="btn btn-danger btn-sm" onclick="excluirFicha('${f.id}')">🗑️</button></div></div></div>`
+                `<div class="ficha-card ${f.tamanho}"><div class="ficha-header"><div><h3>${esc(f.nome)}</h3><small>${esc(f.categoria)}</small></div><span class="badge-size ${f.tamanho}">${f.tamanho}</span></div><div class="ficha-body"><div class="ficha-stats"><div class="ficha-stat"><small>Custo</small><div class="val red">${brl(f.custoTotal)}</div></div><div class="ficha-stat"><small>Venda</small><div class="val blue">${brl(f.precoVenda)}</div></div><div class="ficha-stat"><small>Lucro real</small><div class="val ${f.lucro >= 0 ? 'green' : 'red'}">${brl(f.lucro)}</div></div></div><div class="ficha-details">Ing: ${brl((f.custoIng || 0))} | Massa: ${brl(f.custoMassa)} | Fixo: ${brl(f.custoFixo)}${f.taxas > 0 ? ' | Taxas: ' + brl(f.taxas) : ''} | CMV: ${pct(f.cmv)}</div><div class="ficha-actions"><button class="btn btn-warning btn-sm" onclick="editarFicha('${f.id}')">✏️</button><button class="btn btn-purple btn-sm" onclick="duplicarFicha('${f.id}')">📋</button><button class="btn btn-danger btn-sm" onclick="excluirFicha('${f.id}')">🗑️</button></div></div></div>`
         )
         .join('');
 }
@@ -1385,7 +1527,54 @@ function renderDashboard() {
         topLista.innerHTML = '<div class="empty">Cadastre fichas</div>';
     }
 
+    renderAbaixoDaMeta();
     renderRankingProdutosProntos();
+}
+
+function renderAbaixoDaMeta() {
+    const box = document.getElementById('metaLista');
+    const cont = document.getElementById('metaContador');
+    if (!box) return;
+
+    if (!isPro) {
+        if (cont) cont.textContent = '🔒 PRO';
+        box.innerHTML = '<div class="aviso-upgrade-pro" id="metaTeaser">🔒 No PRO você vê quais pizzas estão abaixo da sua meta de lucro e o preço certo de cada uma, já com custo fixo, massa e taxas.</div>';
+        document.getElementById('metaTeaser').addEventListener('click', () => mostrarModalUpgrade('precificar'));
+        return;
+    }
+
+    const meta = metaLucroFracao() * 100;
+    if (DB.fichas.length === 0) {
+        if (cont) cont.textContent = '';
+        box.innerHTML = '<div class="empty">Cadastre fichas para ver quais pizzas estão abaixo da meta.</div>';
+        return;
+    }
+
+    const semCustos = calcularCustoFixoPorPizza() === 0;
+    const semTaxas = taxaMediaVenda() === 0;
+    const dica = semCustos || semTaxas
+        ? '<div class="alert alert-info" style="margin-bottom:12px">💡 Para o lucro ser real, preencha ' + (semCustos ? 'os <strong>Custos Fixos</strong>' : '') + (semCustos && semTaxas ? ' e ' : '') + (semTaxas ? 'as <strong>taxas</strong> (imposto, maquininha, app)' : '') + ' na aba Custos Fixos.</div>'
+        : '';
+
+    const abaixo = DB.fichas.filter((f) => f.margemReal < meta - 0.05).sort((a, b) => a.margemReal - b.margemReal);
+    if (cont) cont.textContent = abaixo.length ? abaixo.length + ' abaixo' : '✅';
+
+    if (abaixo.length === 0) {
+        box.innerHTML = dica + '<div class="alert alert-success" style="margin:0">✅ Todas as ' + DB.fichas.length + ' pizzas estão na sua meta de ' + pct(meta, 0) + ' de lucro real.</div>';
+        return;
+    }
+
+    const linhas = abaixo.map((f) => {
+        const ideal = f.precoIdeal;
+        const dif = ideal ? ideal - f.precoVenda : 0;
+        return `<div class="meta-item">
+            <div class="meta-nome"><strong>${esc(f.nome)}</strong> <span class="badge-size ${f.tamanho}">${f.tamanho}</span><br>
+                <small>Cobra ${brl(f.precoVenda)} · lucro real <b style="color:${f.lucro >= 0 ? '#e65100' : 'var(--danger)'}">${brl(f.lucro)} (${pct(f.margemReal)})</b></small></div>
+            <div class="meta-ideal"><small>Preço para a meta</small><strong>${ideal ? brl(ideal) : '-'}</strong>${ideal ? `<small class="meta-dif">+${brl(dif)}</small>` : ''}</div>
+        </div>`;
+    }).join('');
+
+    box.innerHTML = dica + '<p style="margin:0 0 12px;color:#555">Sua meta: <strong>' + pct(meta, 0) + ' de lucro real</strong> em cada pizza. Estas estão abaixo:</p>' + linhas;
 }
 
 function renderRankingProdutosProntos() {
@@ -1463,9 +1652,26 @@ function calcComFicha() {
     // Preço pelo CMV: divide só o custo da mercadoria (ingredientes + massa).
     // Embaixo mostra o lucro real nesse preço, já descontando o custo fixo.
     const custoMercadoria = (f.custoIng || 0) + custoMassa;
+    const taxa = taxaMediaVenda();
+    const cfTaxasEl = document.getElementById('cfTaxasPct');
+    if (cfTaxasEl) cfTaxasEl.textContent = pct(taxa * 100) + ' do preço';
+    const metaBox = document.getElementById('cfMeta');
+    if (metaBox) {
+        const ideal = calcPrecoIdeal(custoTotal);
+        if (ideal) {
+            const dif = ideal - f.precoVenda;
+            metaBox.innerHTML = '🎯 <strong>Preço para sua meta de ' + pct(metaLucroFracao() * 100, 0) + ' de lucro real: ' + brl(ideal) + '</strong><br><small>Hoje você cobra ' + brl(f.precoVenda) +
+                (Math.abs(dif) < 0.5 ? ' e já está na meta. ✅' : dif > 0 ? ': faltam ' + brl(dif) + ' por pizza.' : ': ' + brl(-dif) + ' acima da meta. ✅') + '</small>';
+            metaBox.className = 'alert ' + (dif > 0.5 ? 'alert-warning' : 'alert-success');
+        } else {
+            metaBox.innerHTML = '⚠️ Taxas + meta de lucro passam de 95% do preço. Revise em Custos Fixos.';
+            metaBox.className = 'alert alert-warning';
+        }
+        metaBox.style.display = 'block';
+    }
     [['cfP35', 0.35], ['cfP30', 0.3], ['cfP25', 0.25]].forEach(([elId, alvo]) => {
         const preco = custoMercadoria / alvo;
-        const lucro = preco - custoTotal;
+        const lucro = preco - custoTotal - preco * taxa;
         document.getElementById(elId).innerHTML = brl(preco) +
             '<small style="display:block;font-size:0.5em;font-weight:600;margin-top:4px;color:' + (lucro >= 0 ? 'inherit' : '#c62828') + '">Lucro real: ' + brl(lucro) + '</small>';
     });
@@ -1539,8 +1745,9 @@ function calcMeioAMeio() {
     // Custo Total de Produção
     const custoTotalProducao = custoIngMeioAMeio + custoMassa + custoFixo;
 
-    // Lucro Real
-    const lucroReal = precoVenda - custoTotalProducao;
+    // Lucro Real (já descontando taxas sobre a venda)
+    const taxasVenda = precoVenda * taxaMediaVenda();
+    const lucroReal = precoVenda - custoTotalProducao - taxasVenda;
 
     // CMV e Margem
     const cmv = precoVenda > 0 ? ((custoIngMeioAMeio + custoMassa) / precoVenda) * 100 : 0;
@@ -1574,6 +1781,7 @@ function calcMeioAMeio() {
             </tr>
             <tr><td style="padding:6px">Massa:</td><td></td><td style="text-align:right;padding:6px">${brl(custoMassa)}</td></tr>
             <tr><td style="padding:6px">Custo Fixo:</td><td></td><td style="text-align:right;padding:6px">${brl(custoFixo)}</td></tr>
+            ${taxasVenda > 0 ? `<tr><td style="padding:6px">Taxas sobre a venda (${pct(taxaMediaVenda() * 100)}):</td><td></td><td style="text-align:right;padding:6px">${brl(taxasVenda)}</td></tr>` : ''}
             <tr style="font-weight:bold;border-top:2px solid #333;background:#fff3e0">
                 <td style="padding:8px">CUSTO TOTAL PRODUÇÃO:</td>
                 <td></td>
@@ -1848,7 +2056,8 @@ function calcCombo() {
     const desconto = somaVendasIndividuais - precoFinal;
     const descontoPerc = somaVendasIndividuais > 0 ? (desconto / somaVendasIndividuais) * 100 : 0;
 
-    const lucroReal = precoFinal - custoTotalCombo;
+    const taxasCombo = precoFinal * taxaMediaVenda();
+    const lucroReal = precoFinal - custoTotalCombo - taxasCombo;
     const margem = precoFinal > 0 ? (lucroReal / precoFinal) * 100 : 0;
     const custoMercadoriaCombo = (pizza.custoIng || 0) + (pizza.custoMassa || 0) + custoBebida + custoAdicionaisTotal;
     const cmv = precoFinal > 0 ? (custoMercadoriaCombo / precoFinal) * 100 : 0;
@@ -1894,6 +2103,7 @@ function calcCombo() {
                 <td></td>
                 <td style="text-align:right;padding:8px;color:var(--danger);font-size:1.1em">${brl(custoTotalCombo)}</td>
             </tr>
+            ${taxasCombo > 0 ? `<tr><td style="padding:6px">Taxas sobre a venda (${pct(taxaMediaVenda() * 100)}):</td><td></td><td style="text-align:right;padding:6px;font-weight:bold">${brl(taxasCombo)}</td></tr>` : ''}
         </table>
         <table style="width:100%;margin:10px 0;font-size:0.9em">
             <tr style="background:#e8f5e9"><td colspan="2" style="padding:8px;font-weight:bold">💰 Preços de Venda Individuais</td></tr>
@@ -2098,6 +2308,10 @@ function aplicarTravaPlanos() {
     // --- 3. No Básico o lucro da ficha não inclui custo fixo: o rótulo diz isso ---
     const rotuloLucro = document.getElementById('resLucro')?.previousElementSibling;
     if (rotuloLucro) rotuloLucro.textContent = 'LUCRO (sem custo fixo)';
+    ['resTaxas', 'resIdeal'].forEach((id) => {
+        const item = document.getElementById(id)?.closest('.resumo-item');
+        if (item) item.style.display = 'none';
+    });
 
     // --- 4. Aviso dentro de "Criar Ficha": Custo Fixo e Massa não incluídos no Básico ---
     injetarAvisoFichaBasico();
@@ -2209,6 +2423,13 @@ function injetarEstilosTravaPlanos() {
             color:#e65100; font-weight:600;
         }
         .aviso-upgrade-pro:hover { filter: brightness(0.97); }
+        .meta-item { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid #eee; }
+        .meta-item:last-child { border-bottom:0; }
+        .meta-nome small { color:#666; }
+        .meta-ideal { text-align:right; white-space:nowrap; }
+        .meta-ideal small { display:block; color:#777; font-size:0.75rem; }
+        .meta-ideal strong { display:block; color:#2e7d32; font-size:1.15rem; }
+        .meta-ideal .meta-dif { color:#e65100; font-weight:700; font-size:0.8rem; }
         .mup-overlay {
             position:fixed; inset:0; z-index:99999; background:rgba(15,15,25,0.72);
             display:flex; align-items:center; justify-content:center; padding:16px;
@@ -2260,4 +2481,4 @@ function injetarEstilosTravaPlanos() {
         @keyframes mupSobe { from { transform:translateY(20px); opacity:0; } to { transform:none; opacity:1; } }
     `;
     document.head.appendChild(style);
-}
+}s
