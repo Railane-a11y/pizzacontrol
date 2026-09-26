@@ -1471,6 +1471,38 @@
             .massa-item { flex-direction: column; align-items: stretch; }
             .qtd-wrap { width: 100%; }
         }
+        /* Ficha com vários tamanhos */
+        .tam-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .tam-chip { display: inline-flex; align-items: center; gap: 6px; border: 2px solid #ddd; border-radius: 999px; padding: 8px 14px; cursor: pointer; font-weight: 700; background: #fff; user-select: none; }
+        .tam-chip.on { border-color: var(--primary, #e53935); background: #fff5f5; color: var(--primary, #e53935); }
+        .tam-chip input { accent-color: var(--primary, #e53935); }
+        .precos-tam { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+        .preco-tam { display: flex; align-items: center; gap: 8px; }
+        .preco-tam span { font-weight: 800; min-width: 26px; }
+        .ingrediente-item.ing-tam { display: block; background: #f8f9fa; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+        .ing-topo { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+        .ing-topo select { flex: 1; min-width: 0; }
+        .qtd-tams { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+        .qtd-tam { display: block; margin: 0; }
+        .qtd-tam-nome { display: block; font-weight: 800; font-size: 0.8em; color: #555; margin-bottom: 3px; }
+        .qtd-tam .qtd-wrap { width: 100%; }
+        .custo-tam { display: block; min-height: 1.2em; color: var(--danger, #c62828); font-weight: 700; font-size: 0.8em; margin-top: 3px; }
+        .ing-acoes { display: flex; flex-wrap: wrap; gap: 10px; }
+        .res-tams { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+        .res-tam { background: rgba(255,255,255,0.06); border-radius: 10px; padding: 12px; }
+        .res-tam-cab { font-weight: 800; margin-bottom: 8px; }
+        .res-linha { display: flex; justify-content: space-between; gap: 8px; font-size: 0.9em; padding: 2px 0; }
+        .res-linha.res-total { border-top: 1px dashed rgba(255,255,255,0.3); margin-top: 4px; padding-top: 6px; }
+        .res-lucro { text-align: center; margin: 10px 0 4px; }
+        .res-lucro small { display: block; opacity: 0.8; font-size: 0.78em; }
+        .res-lucro strong { display: block; font-size: 1.5em; }
+        .res-lucro.pos strong { color: #66bb6a; }
+        .res-lucro.neg strong { color: #ef5350; }
+        .res-meta { text-align: center; font-size: 0.85em; color: #90caf9; }
+        .ingrediente-item.ing-tam .ing-topo { flex-direction: row !important; align-items: center !important; }
+        .ingrediente-item.ing-tam .ing-topo select { flex: 1 1 auto; width: auto !important; min-width: 0; }
+        .ingrediente-item.ing-tam .ing-topo .btn { flex: 0 0 auto; width: auto !important; padding: 10px 14px; }
+        .ingrediente-item.ing-tam .qtd-tam input { width: 100% !important; }
     </style>
 </head>
 
@@ -1702,7 +1734,7 @@
                 <div class="card-header" id="fichaHeader">➕ Nova Ficha Técnica</div>
                 <div class="card-body">
                     <div class="form-row">
-                        <div class="form-group"><label>Nome da Pizza <span class="required">*</span></label><input
+                        <div class="form-group"><label>Nome do sabor <span class="required">*</span></label><input
                                 type="text" class="form-control" id="ficNome" placeholder="Ex: Calabresa"></div>
                         <div class="form-group"><label>Categoria</label><select class="form-control" id="ficCat">
                                 <option>Tradicional</option>
@@ -1710,64 +1742,38 @@
                                 <option>Premium</option>
                                 <option>Doce</option>
                             </select></div>
-                        <div class="form-group"><label>Tamanho</label><select class="form-control" id="ficTam"
-                                onchange="calcFicha()">
-                                <option value="P">Pequena (P)</option>
-                                <option value="M">Média (M)</option>
-                                <option value="G" selected>Grande (G)</option>
-                                <option value="GG">Gigante (GG)</option>
-                            </select></div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group"><label>Preço de Venda (R$) <span class="required">*</span></label><input
-                                type="number" class="form-control" id="ficPreco" placeholder="45.00" step="0.01"
-                                oninput="calcFicha()"></div>
-                        <div class="form-group"><label>Incluir Massa?</label><select class="form-control" id="ficMassa"
+                        <div class="form-group"><label>Incluir massa?</label><select class="form-control" id="ficMassa"
                                 onchange="calcFicha()">
                                 <option value="1">✅ Sim</option>
                                 <option value="0">❌ Não</option>
                             </select></div>
                     </div>
-                    <h4 style="margin:20px 0 10px">🧀 Ingredientes (sem a massa)</h4>
-                    <div class="ingredientes-list" id="ficIngLista"></div>
-                    <button class="btn btn-info" onclick="addIngFicha()">+ Ingrediente</button>
-                    <div class="resumo-box">
-                        <h4 style="text-align:center;margin-bottom:15px">📊 Resumo Completo</h4>
-                        <div class="resumo-grid">
-                            <div class="resumo-item"><small>Ingredientes</small>
-                                <div class="val red" id="resIng">R$ 0</div>
-                            </div>
-                            <div class="resumo-item"><small>Massa</small>
-                                <div class="val red" id="resMassa">R$ 0</div>
-                            </div>
-                            <div class="resumo-item"><small>Custo Fixo</small>
-                                <div class="val red" id="resCF">R$ 0</div>
-                            </div>
-                            <div class="resumo-item"><small>Taxas sobre a venda</small>
-                                <div class="val red" id="resTaxas">R$ 0</div>
-                            </div>
-                            <div class="resumo-item"><small>CUSTO TOTAL</small>
-                                <div class="val red" id="resTotal">R$ 0</div>
-                            </div>
-                            <div class="resumo-item"><small>Preço Venda</small>
-                                <div class="val blue" id="resVenda">R$ 0</div>
-                            </div>
-                            <div class="resumo-item"><small>LUCRO REAL</small>
-                                <div class="val green" id="resLucro">R$ 0</div>
-                            </div>
-                            <div class="resumo-item"><small>CMV</small>
-                                <div class="val" id="resCMV">0%</div>
-                                <div class="cmv-bar">
-                                    <div class="cmv-fill good" id="cmvBar"></div>
-                                </div>
-                            </div>
-                            <div class="resumo-item"><small>Margem</small>
-                                <div class="val green" id="resMargem">0%</div>
-                            </div>
-                            <div class="resumo-item"><small>🎯 Preço para sua meta</small>
-                                <div class="val blue" id="resIdeal">-</div>
-                            </div>
+                    <div class="form-group"><label>Tamanhos que você vende deste sabor</label>
+                        <div class="tam-chips" id="ficTamanhos">
+                            <label class="tam-chip"><input type="checkbox" value="P" onchange="aplicarVisibilidadeTamanhos();calcFicha()"> Pequena</label>
+                            <label class="tam-chip"><input type="checkbox" value="M" onchange="aplicarVisibilidadeTamanhos();calcFicha()"> Média</label>
+                            <label class="tam-chip"><input type="checkbox" value="G" onchange="aplicarVisibilidadeTamanhos();calcFicha()" checked> Grande</label>
+                            <label class="tam-chip"><input type="checkbox" value="GG" onchange="aplicarVisibilidadeTamanhos();calcFicha()"> Gigante</label>
                         </div>
+                    </div>
+                    <div class="form-group"><label>Preço de venda <span class="required">*</span></label>
+                        <div class="precos-tam">
+                            <label class="preco-tam" data-tam="P"><span>P</span><input type="number" class="form-control" id="ficPreco_P" placeholder="0,00" step="0.01" inputmode="decimal" oninput="calcFicha()"></label>
+                            <label class="preco-tam" data-tam="M"><span>M</span><input type="number" class="form-control" id="ficPreco_M" placeholder="0,00" step="0.01" inputmode="decimal" oninput="calcFicha()"></label>
+                            <label class="preco-tam" data-tam="G"><span>G</span><input type="number" class="form-control" id="ficPreco_G" placeholder="0,00" step="0.01" inputmode="decimal" oninput="calcFicha()"></label>
+                            <label class="preco-tam" data-tam="GG"><span>GG</span><input type="number" class="form-control" id="ficPreco_GG" placeholder="0,00" step="0.01" inputmode="decimal" oninput="calcFicha()"></label>
+                        </div>
+                    </div>
+                    <h4 style="margin:20px 0 4px">🧀 Ingredientes (sem a massa)</h4>
+                    <p style="color:#666;font-size:0.9em;margin:0 0 12px">Coloque quanto vai de cada ingrediente em cada tamanho.</p>
+                    <div class="ingredientes-list" id="ficIngLista" style="max-height:none"></div>
+                    <div class="ing-acoes">
+                        <button class="btn btn-info" onclick="addIngFicha()">+ Ingrediente</button>
+                        <button class="btn btn-secondary" id="btnProporcional" onclick="preencherProporcional()" title="Usa o peso da massa de cada tamanho (aba Massa) para calcular as quantidades">⚖️ Preencher os outros tamanhos</button>
+                    </div>
+                    <div class="resumo-box">
+                        <h4 style="text-align:center;margin-bottom:15px">📊 Resumo por tamanho</h4>
+                        <div class="res-tams" id="ficResumoTabela"></div>
                     </div>
                     <div style="display:flex;gap:15px;margin-top:20px"><button class="btn btn-success btn-block"
                             onclick="salvarFicha()">💾 Salvar Ficha</button><button class="btn btn-secondary"
@@ -2223,7 +2229,7 @@
 
     </div><!-- /appContent -->
 
-    <script src="app.js?v=3.3.0"></script>
+    <script src="app.js?v=3.4.0"></script>
     
     <!-- Botão Suporte WhatsApp -->
     <a href="https://wa.me/5598970260090?text=Fala%20Marllon!%20Preciso%20de%20uma%20ajuda%20aqui%20no%20PizzaControl." class="btn-whatsapp-flutuante" target="_blank">
