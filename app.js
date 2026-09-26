@@ -149,8 +149,9 @@ async function verificarAssinatura(uid) {
         }
 
         const dados = doc.data();
-        if (!dados.plano) {
-            console.warn('⚠️ Campo "plano" não encontrado para:', uid);
+        // Só libera planos válidos. "reembolsado" (ou qualquer outro valor) = sem acesso.
+        if (dados.plano !== 'basico' && dados.plano !== 'pro') {
+            console.warn('⚠️ Plano sem acesso ativo para:', uid, '| plano =', dados.plano);
             return false;
         }
 
