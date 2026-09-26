@@ -53,13 +53,14 @@
   <tr><td>Nome, e-mail, telefone e CPF/CNPJ</td><td>Informados por você no checkout da Cakto</td><td>Processar o pagamento, emitir comprovante e liberar seu acesso</td></tr>
   <tr><td>E-mail de login e senha</td><td>Criados na liberação do acesso</td><td>Permitir que você entre no sistema. A senha é guardada de forma criptografada pelo Google Firebase; nós não temos acesso a ela</td></tr>
   <tr><td>Plano contratado e número do pedido</td><td>Gerados automaticamente após a compra</td><td>Saber quais recursos liberar e atender pedidos de reembolso</td></tr>
+  <tr><td>Dados da sua pizzaria: insumos, fichas técnicas, custos, taxas e preços</td><td>Cadastrados por você no sistema</td><td>Fazer os cálculos e deixar seus dados disponíveis em qualquer aparelho em que você entrar com seu login</td></tr>
   <tr><td>Contato por WhatsApp</td><td>Quando você nos chama</td><td>Prestar suporte</td></tr>
 </table></div>
 <p>Dados de pagamento, como número de cartão, são tratados apenas pela Cakto. Nós nunca recebemos nem guardamos esses dados.</p>
 
-<h2>3. Os dados da sua pizzaria ficam no seu aparelho</h2>
-<div class="destaque">Insumos, fichas técnicas, custos, preços e demais informações que você cadastra no sistema ficam salvos <strong>somente no navegador do seu aparelho</strong>. Eles não são enviados para os nossos servidores e nós não temos acesso a eles.</div>
-<p>Isso significa que, se você limpar os dados do navegador, trocar de aparelho ou desinstalar o navegador, essas informações podem ser perdidas. No Plano PRO, a função de Backup permite exportar e importar seus dados.</p>
+<h2>3. Onde ficam os dados da sua pizzaria</h2>
+<div class="destaque">Insumos, fichas técnicas, custos, taxas e preços que você cadastra ficam salvos <strong>na sua conta</strong>, no banco de dados do Google Firebase, e também em uma cópia no navegador do aparelho que você usa. Assim, você cadastra no computador e consulta no celular, e não perde nada se trocar de aparelho.</div>
+<p>As regras do banco de dados permitem que <strong>somente você</strong>, entrando com seu login, leia e altere esses dados. Como responsáveis pelo sistema, só consultamos seus dados se você pedir ajuda no suporte e autorizar.</p>
 
 <h2>4. Por que podemos tratar seus dados (base legal)</h2>
 <ul>
@@ -72,7 +73,7 @@
 <p>Não vendemos seus dados. Compartilhamos apenas com os serviços necessários para o PizzaControl funcionar:</p>
 <ul>
   <li><strong>Cakto:</strong> plataforma de pagamento que processa sua compra.</li>
-  <li><strong>Google Firebase:</strong> guarda seu login e seu plano, e envia o e-mail para criar ou redefinir a senha.</li>
+  <li><strong>Google Firebase:</strong> guarda seu login, seu plano e os dados da sua pizzaria, e envia o e-mail para criar ou redefinir a senha.</li>
   <li><strong>Make:</strong> ferramenta de automação que recebe o aviso de compra da Cakto e libera seu acesso.</li>
   <li><strong>GitHub Pages:</strong> hospeda o site e pode registrar dados técnicos de acesso, como endereço IP.</li>
   <li><strong>Autoridades públicas:</strong> somente quando houver obrigação legal ou ordem judicial.</li>
@@ -82,12 +83,13 @@
 <h2>6. Por quanto tempo guardamos</h2>
 <ul>
   <li>Dados de login e plano: enquanto seu acesso existir. Após reembolso ou chargeback, o cadastro é mantido marcado como inativo para evitar fraudes e permitir uma nova compra.</li>
+  <li>Dados da sua pizzaria: enquanto sua conta existir, ou até você pedir a exclusão.</li>
   <li>Registros de compra: pelo prazo exigido pela legislação fiscal e de defesa do consumidor.</li>
   <li>Você pode pedir a exclusão a qualquer momento (veja o item 8). Guardaremos apenas o que a lei nos obrigar.</li>
 </ul>
 
 <h2>7. Segurança</h2>
-<p>O acesso ao sistema é protegido por login e senha. As regras do nosso banco de dados permitem que cada cliente veja somente o próprio cadastro, e nenhum cliente pode alterar o próprio plano. Nenhum sistema é 100% invulnerável; se ocorrer um incidente de segurança que possa causar risco a você, vamos avisar você e a Autoridade Nacional de Proteção de Dados (ANPD), como manda a lei.</p>
+<p>O acesso ao sistema é protegido por login e senha. As regras do nosso banco de dados permitem que cada cliente veja e altere somente os próprios dados, e nenhum cliente pode alterar o próprio plano. Nenhum sistema é 100% invulnerável; se ocorrer um incidente de segurança que possa causar risco a você, vamos avisar você e a Autoridade Nacional de Proteção de Dados (ANPD), como manda a lei.</p>
 
 <h2>8. Seus direitos</h2>
 <p>Pela LGPD, você pode, a qualquer momento e sem custo:</p>
@@ -102,7 +104,7 @@
 <p>Para exercer qualquer direito, fale com a gente pelo e-mail ou WhatsApp do item 1. Respondemos em até 15 dias.</p>
 
 <h2>9. Cookies e armazenamento local</h2>
-<p>O sistema usa o armazenamento local do navegador (localStorage) para guardar os dados da sua pizzaria e manter você conectado. Os serviços de login do Google Firebase também podem usar armazenamento local para manter sua sessão.</p>
+<p>O sistema usa o armazenamento local do navegador (localStorage) para guardar uma cópia dos dados da sua pizzaria, o que permite continuar usando se a internet cair, e para manter você conectado. Os serviços de login do Google Firebase também podem usar armazenamento local para manter sua sessão.</p>
 
 <h2>10. Menores de idade</h2>
 <p>O PizzaControl é destinado a donos e gestores de pizzarias. Não coletamos intencionalmente dados de menores de 18 anos.</p>

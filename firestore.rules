@@ -1,45 +1,38 @@
 rules_version = '2';
 
-// ATENÇÃO — REGRA DE SEGURANÇA CRÍTICA
+// REGRAS DE SEGURANÇA DO PIZZACONTROL
 //
-// Antes desta correção, a regra do projeto era:
-//   allow read, write: if request.auth != null;
-// Isso permitia que QUALQUER usuário autenticado (ou seja, qualquer pessoa
-// que criasse login no sistema) lesse E ESCREVESSE no documento de
-// QUALQUER outro cliente — inclusive o próprio. Na prática, um cliente do
-// plano Básico podia abrir o console do navegador e mudar o campo "plano"
-// para "pro" para liberar acesso total de graça, ou até apagar o cadastro
-// de outros clientes.
+// usuarios/{uid}       -> cadastro e plano do cliente. Gravado SÓ pelo Make (conexão de
+//                         administrador, que não passa por estas regras). O cliente só lê o próprio.
+// dadosClientes/{uid}  -> dados da pizzaria (insumos, fichas, custos...), sincronizados entre
+//                         os aparelhos do cliente. Cada cliente lê e grava SÓ o próprio documento,
+//                         e só enquanto o plano estiver ativo ("basico" ou "pro").
+// Qualquer outra coleção: bloqueada.
 //
-// A regra abaixo corrige isso:
-// - Cada usuário só consegue LER o próprio documento (necessário para o
-//   app verificar o plano e liberar o acesso).
-// - NINGUÉM consegue escrever nada pelo navegador/app — nem no próprio
-//   documento, nem no de outra pessoa.
-// - ATENÇÃO: o cenário do Make ativo hoje ("Integration Webhooks, HTTP")
-//   grava no Firestore usando o token do PRÓPRIO CLIENTE (Bearer idToken).
-//   Esse tipo de acesso PASSA por estas regras. Se você publicar esta regra
-//   antes de ajustar o Make, novos compradores ficam SEM ACESSO.
-//   ORDEM CORRETA: 1) ajustar o Make para gravar com a conexão Google do
-//   dono do projeto (módulo Google Cloud Firestore), 2) testar uma compra,
-//   3) só então publicar esta regra.
-//
-// COMO PUBLICAR ESTA REGRA (escolha uma opção):
-//   Opção A (mais simples): copie o conteúdo do bloco "service cloud.firestore"
-//   abaixo e cole em: Firebase Console > Firestore Database > Regras > Publicar.
-//
-//   Opção B (linha de comando, se usar Firebase CLI):
-//   firebase deploy --only firestore:rules
+// COMO PUBLICAR: copie tudo e cole em Firebase Console > Firestore Database > Regras > Publicar.
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
     match /usuarios/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if false;
     }
 
-    // Qualquer outra coleção fica bloqueada por padrão (nega tudo que não
-    // foi explicitamente liberado acima).
+    match /dadosClientes/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && get(/databases/$(database)/documents/usuarios/$(userId)).data.plano in ['basico', 'pro']
+        && request.resource.data.keys().hasOnly(['db', 'atualizadoEm', 'dispositivo', 'versaoApp'])
+        && request.resource.data.db is string
+        && request.resource.data.db.size() < 700000
+        && request.resource.data.atualizadoEm is int;
+
+      allow delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

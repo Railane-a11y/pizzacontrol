@@ -221,6 +221,8 @@ function inicializarApp() {
     if (contaVenc) {
         contaVenc.textContent = isPro ? '⭐ PRO (acesso vitalício)' : '📋 Básico (acesso vitalício)';
     }
+
+    iniciarNuvem();
 }
 
 async function fazerLoginFirebase() {
@@ -272,6 +274,290 @@ function numero(valor, fallback = 0) {
     const n = Number(valor);
     return Number.isFinite(n) ? n : fallback;
 }
+
+// ===== NUVEM (Firestore) =====
+// Os dados ficam no aparelho (funciona sem internet) E numa cópia na conta do cliente.
+// Vale sempre a versão alterada por último. Na primeira sincronização de um aparelho que
+// já tem dados diferentes dos da nuvem, o cliente escolhe qual manter (a outra vira cópia).
+const COLECAO_NUVEM = 'dadosClientes';
+const VERSAO_APP = '3.3.0';
+const LIMITE_NUVEM = 700000; // limite seguro de tamanho do documento
+let nuvemPronta = false;
+let nuvemTimer = null;
+let nuvemUnsub = null;
+let nuvemEstado = 'local';
+
+function idDispositivo() {
+    let id = localStorage.getItem('pcDispositivo');
+    if (!id) {
+        id = gerarId();
+        localStorage.setItem('pcDispositivo', id);
+    }
+    return id;
+}
+
+function refNuvem() {
+    return firebaseUser ? dbFirestore.collection(COLECAO_NUVEM).doc(firebaseUser.uid) : null;
+}
+
+function chaveSincronizado() {
+    return 'pcSincronizado_' + (firebaseUser ? firebaseUser.uid : '');
+}
+
+function mostrarEstadoNuvem(estado) {
+    nuvemEstado = estado;
+    const el = document.getElementById('nuvemStatus');
+    if (!el) return;
+    const textos = {
+        sincronizando: '⏳',
+        salvo: '✅ Salvo',
+        offline: '📴 Offline',
+        erro: '⚠️ Erro',
+        local: '…'
+    };
+    el.textContent = textos[estado] || '…';
+    const box = document.getElementById('nuvemBox');
+    if (box) box.title = explicacaoNuvem();
+}
+
+function explicacaoNuvem() {
+    return {
+        sincronizando: 'Enviando suas alterações para a nuvem...',
+        salvo: 'Tudo salvo na nuvem. Seus dados aparecem em qualquer aparelho com o seu login.',
+        offline: 'Sem internet. Suas alterações estão salvas neste aparelho e vão para a nuvem quando a conexão voltar.',
+        erro: 'Não foi possível salvar na nuvem agora. Suas alterações estão salvas neste aparelho e o sistema vai tentar de novo.',
+        local: 'Conectando à nuvem...'
+    }[nuvemEstado] || '';
+}
+
+function temDados(d) {
+    if (!d) return false;
+    const c = d.custos || {};
+    const custos = ['aluguel', 'energia', 'gas', 'agua', 'internet', 'func', 'gasolina', 'emb', 'mkt', 'contador', 'outros'].some((k) => numero(c[k]) > 0);
+    return (d.insumos || []).length > 0 || (d.fichas || []).length > 0 || (d.produtosProntos || []).length > 0 ||
+        ((d.massa && d.massa.ingredientes) || []).length > 0 || custos;
+}
+
+function conteudoIgual(a, b) {
+    const limpar = (d) => JSON.stringify({ ...d, atualizadoEm: 0 });
+    return limpar(a) === limpar(b);
+}
+
+function resumoDados(d) {
+    const n = (qtd, um, varios) => qtd + ' ' + (qtd === 1 ? um : varios);
+    return n((d.insumos || []).length, 'insumo', 'insumos') + ', ' + n((d.fichas || []).length, 'ficha', 'fichas');
+}
+
+function dataAlteracao(ts) {
+    return numero(ts) > 1e12 ? 'salva em ' + new Date(numero(ts)).toLocaleString('pt-BR') : 'data não registrada';
+}
+
+function agendarSalvarNuvem() {
+    if (!nuvemPronta || !firebaseUser) return;
+    clearTimeout(nuvemTimer);
+    mostrarEstadoNuvem('sincronizando');
+    nuvemTimer = setTimeout(salvarNuvemAgora, 1500);
+}
+
+async function salvarNuvemAgora() {
+    clearTimeout(nuvemTimer);
+    nuvemTimer = null;
+    const ref = refNuvem();
+    if (!nuvemPronta || !ref) return false;
+
+    const json = JSON.stringify(DB);
+    if (json.length > LIMITE_NUVEM) {
+        mostrarEstadoNuvem('erro');
+        status('⚠️ Seus dados ficaram grandes demais para a nuvem. Eles continuam salvos neste aparelho. Fale com o suporte.', true);
+        return false;
+    }
+    if (!navigator.onLine) {
+        mostrarEstadoNuvem('offline');
+        return false;
+    }
+
+    mostrarEstadoNuvem('sincronizando');
+    try {
+        await ref.set({
+            db: json,
+            atualizadoEm: DB.atualizadoEm || Date.now(),
+            dispositivo: idDispositivo(),
+            versaoApp: VERSAO_APP
+        });
+        localStorage.setItem(chaveSincronizado(), '1');
+        mostrarEstadoNuvem('salvo');
+        return true;
+    } catch (err) {
+        console.error('Erro ao salvar na nuvem:', err);
+        mostrarEstadoNuvem(navigator.onLine ? 'erro' : 'offline');
+        return false;
+    }
+}
+
+function aplicarDadosDaNuvem(json, atualizadoEm) {
+    DB = normalizarDados(JSON.parse(json));
+    DB.atualizadoEm = atualizadoEm;
+    persistirDados(false, undefined, false);
+    renderAll();
+    loadMassaUI();
+    loadCustosUI();
+    loadConfigUI();
+    refreshIngSelects();
+    refreshMassaSelects();
+    loadFichasSelect();
+}
+
+function guardarCopia(d, origem) {
+    try {
+        localStorage.setItem(STORAGE_KEY + '_copia_' + origem + '_' + Date.now(), JSON.stringify(d));
+    } catch (e) {
+        console.warn('Não foi possível guardar a cópia:', e);
+    }
+}
+
+function perguntarQualManter(local, nuvem) {
+    return new Promise((resolve) => {
+        const dataNuvem = dataAlteracao(nuvem.atualizadoEm);
+        const dataLocal = dataAlteracao(local.atualizadoEm);
+        fecharModalUpgrade();
+        const overlay = document.createElement('div');
+        overlay.id = 'modalUpgradePro';
+        overlay.className = 'mup-overlay';
+        overlay.innerHTML = `
+            <div class="mup-card" role="dialog" aria-modal="true" aria-labelledby="escolhaTitulo">
+                <div class="mup-topo" style="background:linear-gradient(135deg,#1565c0,#0d47a1)">
+                    <div class="mup-cadeado">☁️</div>
+                    <h2 id="escolhaTitulo" class="mup-titulo">Qual versão dos seus dados você quer usar?</h2>
+                </div>
+                <div class="mup-corpo">
+                    <p class="mup-texto">Agora seus dados ficam salvos na nuvem e aparecem em todos os seus aparelhos. Encontramos duas versões diferentes:</p>
+                    <button type="button" class="mup-cta" id="escolhaNuvem" style="width:100%;border:0;cursor:pointer;margin-bottom:10px;text-align:left">☁️ Da nuvem<br><small style="font-weight:600">${esc(resumoDados(nuvem))} · ${esc(dataNuvem)}</small></button>
+                    <button type="button" class="mup-cta" id="escolhaLocal" style="width:100%;border:0;cursor:pointer;text-align:left;background:linear-gradient(135deg,#455a64,#263238)">📱 Deste aparelho<br><small style="font-weight:600">${esc(resumoDados(local))} · ${esc(dataLocal)}</small></button>
+                    <p class="mup-rodape">A versão que você não escolher fica guardada como cópia neste aparelho. Nada é apagado.</p>
+                </div>
+            </div>`;
+        document.body.appendChild(overlay);
+        overlay.querySelector('#escolhaNuvem').addEventListener('click', () => { overlay.remove(); resolve('nuvem'); });
+        overlay.querySelector('#escolhaLocal').addEventListener('click', () => { overlay.remove(); resolve('local'); });
+    });
+}
+
+async function iniciarNuvem() {
+    pararNuvem();
+    const ref = refNuvem();
+    if (!ref) return;
+    mostrarEstadoNuvem('local');
+
+    let doc;
+    try {
+        doc = await ref.get();
+    } catch (err) {
+        console.error('Erro ao buscar dados da nuvem:', err);
+        mostrarEstadoNuvem(navigator.onLine ? 'erro' : 'offline');
+        // Tenta de novo quando a internet voltar
+        window.addEventListener('online', iniciarNuvem, { once: true });
+        return;
+    }
+
+    const local = clonar(DB);
+    const jaSincronizou = localStorage.getItem(chaveSincronizado()) === '1';
+
+    if (!doc.exists) {
+        nuvemPronta = true;
+        if (temDados(local)) await salvarNuvemAgora();
+        else { localStorage.setItem(chaveSincronizado(), '1'); mostrarEstadoNuvem('salvo'); }
+    } else {
+        const dados = doc.data();
+        let nuvem;
+        try {
+            nuvem = normalizarDados(JSON.parse(dados.db));
+        } catch (e) {
+            console.error('Dados da nuvem inválidos:', e);
+            nuvemPronta = true;
+            await salvarNuvemAgora();
+            ouvirNuvem();
+            return;
+        }
+        nuvem.atualizadoEm = numero(dados.atualizadoEm);
+
+        if (!temDados(local) || conteudoIgual(local, nuvem)) {
+            aplicarDadosDaNuvem(dados.db, nuvem.atualizadoEm);
+            localStorage.setItem(chaveSincronizado(), '1');
+            nuvemPronta = true;
+            mostrarEstadoNuvem('salvo');
+        } else if (jaSincronizou) {
+            nuvemPronta = true;
+            if (nuvem.atualizadoEm > numero(local.atualizadoEm)) {
+                aplicarDadosDaNuvem(dados.db, nuvem.atualizadoEm);
+                mostrarEstadoNuvem('salvo');
+            } else if (numero(local.atualizadoEm) > nuvem.atualizadoEm) {
+                await salvarNuvemAgora(); // alterações feitas sem internet
+            } else {
+                mostrarEstadoNuvem('salvo');
+            }
+        } else if (!temDados(nuvem)) {
+            nuvemPronta = true;
+            await salvarNuvemAgora();
+        } else {
+            const escolha = await perguntarQualManter(local, nuvem);
+            if (escolha === 'nuvem') {
+                guardarCopia(local, 'aparelho');
+                aplicarDadosDaNuvem(dados.db, nuvem.atualizadoEm);
+                localStorage.setItem(chaveSincronizado(), '1');
+                nuvemPronta = true;
+                mostrarEstadoNuvem('salvo');
+                status('☁️ Usando os dados da nuvem. A versão deste aparelho foi guardada como cópia.');
+            } else {
+                guardarCopia(nuvem, 'nuvem');
+                nuvemPronta = true;
+                persistirDados(false); // marca como a versão mais recente
+                await salvarNuvemAgora();
+                status('📱 Usando os dados deste aparelho. A versão da nuvem foi guardada como cópia.');
+            }
+        }
+    }
+
+    ouvirNuvem();
+}
+
+// Recebe na hora as alterações feitas em outro aparelho
+function ouvirNuvem() {
+    const ref = refNuvem();
+    if (!ref || nuvemUnsub) return;
+    nuvemUnsub = ref.onSnapshot((doc) => {
+        if (!doc.exists || (doc.metadata && doc.metadata.hasPendingWrites)) return;
+        const d = doc.data();
+        if (d.dispositivo === idDispositivo()) return;
+        if (numero(d.atualizadoEm) > numero(DB.atualizadoEm) && !nuvemTimer) {
+            try {
+                aplicarDadosDaNuvem(d.db, numero(d.atualizadoEm));
+                mostrarEstadoNuvem('salvo');
+                status('🔄 Dados atualizados com as mudanças feitas em outro aparelho.');
+            } catch (e) {
+                console.error('Erro ao aplicar dados da nuvem:', e);
+            }
+        }
+    }, (err) => {
+        console.error('Erro ao ouvir a nuvem:', err);
+    });
+}
+
+function pararNuvem() {
+    if (nuvemUnsub) {
+        try { nuvemUnsub(); } catch (e) {}
+    }
+    nuvemUnsub = null;
+    nuvemPronta = false;
+    clearTimeout(nuvemTimer);
+    nuvemTimer = null;
+}
+
+window.addEventListener('online', () => {
+    if (nuvemPronta && nuvemEstado !== 'salvo') salvarNuvemAgora();
+});
+window.addEventListener('offline', () => {
+    if (nuvemPronta) mostrarEstadoNuvem('offline');
+});
 
 // ===== FORMATAÇÃO, SEGURANÇA E UNIDADES =====
 function brl(v) {
@@ -486,7 +772,7 @@ function normalizarDados(raw) {
         metaLucro: tx.metaLucro === undefined ? 15 : limitar(tx.metaLucro, 80)
     };
 
-    return { versao: VERSAO_DADOS, insumos, fichas, custos, massa, config, produtosProntos, taxas };
+    return { versao: VERSAO_DADOS, atualizadoEm: Math.round(numero(origem.atualizadoEm)), insumos, fichas, custos, massa, config, produtosProntos, taxas };
 }
 
 function obterPrimeiroValor(keys) {
@@ -502,7 +788,7 @@ function carregarDados() {
 
     if (!encontrado) {
         DB = clonar(DB_PADRAO);
-        persistirDados(false);
+        persistirDados(false, undefined, false);
         return;
     }
 
@@ -511,20 +797,22 @@ function carregarDados() {
         DB = normalizarDados(raw);
 
         if (encontrado.key !== STORAGE_KEY || numero(raw.versao) < VERSAO_DADOS) {
-            persistirDados(false);
+            persistirDados(false, undefined, false);
         }
     } catch (err) {
         console.error('Erro ao carregar dados locais:', err);
         try { localStorage.setItem(STORAGE_KEY + '_corrompido_' + Date.now(), encontrado.valor); } catch (e) {}
         DB = clonar(DB_PADRAO);
-        persistirDados(false);
+        persistirDados(false, undefined, false);
     }
 }
 
-function persistirDados(mostrarStatus = true, mensagem = '💾 Dados salvos no navegador!') {
+function persistirDados(mostrarStatus = true, mensagem = '💾 Dados salvos!', marcarAlteracao = true) {
     try {
+        if (marcarAlteracao) DB.atualizadoEm = Date.now();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
         if (mostrarStatus) status(mensagem);
+        if (marcarAlteracao) agendarSalvarNuvem();
         return true;
     } catch (err) {
         console.error('Falha ao salvar localStorage:', err);
@@ -537,7 +825,9 @@ function salvarDados() {
     persistirDados(true);
 }
 
-function fazerLogout() {
+async function fazerLogout() {
+    await salvarNuvemAgora();
+    pararNuvem();
     auth.signOut();
     // onAuthStateChanged mostra a tela de login automaticamente
 }
@@ -659,7 +949,10 @@ function toggleMenu() {
     }
 }
 
+let navConfigurado = false;
 function setupNav() {
+    if (navConfigurado) return; // evita listeners duplicados se a pessoa sair e entrar de novo
+    navConfigurado = true;
     document.querySelectorAll('.nav-tab').forEach((tab) => {
         tab.addEventListener('click', () => {
             document.querySelectorAll('.nav-tab').forEach((t) => t.classList.remove('active'));
@@ -2481,4 +2774,4 @@ function injetarEstilosTravaPlanos() {
         @keyframes mupSobe { from { transform:translateY(20px); opacity:0; } to { transform:none; opacity:1; } }
     `;
     document.head.appendChild(style);
-}s
+}

@@ -1548,6 +1548,9 @@
             <div class="stat-box"><small>Custo Fixo</small>
                 <div class="valor" id="hdrCustoFixo">R$0</div>
             </div>
+            <div class="stat-box" id="nuvemBox" style="cursor:pointer" onclick="status(explicacaoNuvem())"><small>Nuvem</small>
+                <div class="valor" id="nuvemStatus" style="font-size:0.95em">…</div>
+            </div>
             <button class="btn-logout" id="btnLogout" onclick="fazerLogout()">🚪 Sair</button>
         </div>
     </header>
@@ -2220,7 +2223,7 @@
 
     </div><!-- /appContent -->
 
-    <script src="app.js?v=3.2.0"></script>
+    <script src="app.js?v=3.3.0"></script>
     
     <!-- Botão Suporte WhatsApp -->
     <a href="https://wa.me/5598970260090?text=Fala%20Marllon!%20Preciso%20de%20uma%20ajuda%20aqui%20no%20PizzaControl." class="btn-whatsapp-flutuante" target="_blank">
