@@ -1619,6 +1619,14 @@
                     </div>
                 </div>
             </div>
+            <div class="card" id="cardMeta">
+                <div class="card-header warning" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+                    <span>🎯 Pizzas abaixo da sua meta</span><span id="metaContador" style="font-size:0.85em"></span>
+                </div>
+                <div class="card-body">
+                    <div id="metaLista"></div>
+                </div>
+            </div>
             <div class="card">
                 <div class="card-header success">🏆 Top 5 Pizzas Mais Lucrativas</div>
                 <div class="card-body">
@@ -1732,6 +1740,9 @@
                             <div class="resumo-item"><small>Custo Fixo</small>
                                 <div class="val red" id="resCF">R$ 0</div>
                             </div>
+                            <div class="resumo-item"><small>Taxas sobre a venda</small>
+                                <div class="val red" id="resTaxas">R$ 0</div>
+                            </div>
                             <div class="resumo-item"><small>CUSTO TOTAL</small>
                                 <div class="val red" id="resTotal">R$ 0</div>
                             </div>
@@ -1749,6 +1760,9 @@
                             </div>
                             <div class="resumo-item"><small>Margem</small>
                                 <div class="val green" id="resMargem">0%</div>
+                            </div>
+                            <div class="resumo-item"><small>🎯 Preço para sua meta</small>
+                                <div class="val blue" id="resIdeal">-</div>
                             </div>
                         </div>
                     </div>
@@ -1885,7 +1899,7 @@
                     </div>
                     <div class="custo-item">
                         <div class="icon">📋</div>
-                        <div class="info"><strong>Contador/Impostos</strong><small>MEI, contador</small></div><input
+                        <div class="info"><strong>Contador/Impostos fixos</strong><small>Contador, DAS do MEI</small></div><input
                             type="number" class="form-control" id="cfContador" placeholder="0" oninput="calcCustos()">
                     </div>
                     <div class="custo-item">
@@ -1912,6 +1926,28 @@
                     </div>
                     <button class="btn btn-success btn-block" style="margin-top:20px" onclick="salvarCustos()">💾 Salvar
                         Custos</button>
+                </div>
+            </div>
+            <div class="card" id="cardTaxas">
+                <div class="card-header warning">🧾 Taxas sobre a venda e meta de lucro</div>
+                <div class="card-body">
+                    <p style="color:#555;margin:0 0 16px">São os valores que saem de <strong>cada venda</strong> em porcentagem. Eles entram no lucro real de todas as pizzas.</p>
+                    <div class="custo-item"><div class="icon">🏛️</div><div class="info"><strong>Imposto sobre a venda (%)</strong><small>Ex.: Simples Nacional. Se é MEI com DAS fixo, deixe 0</small></div><input type="number" class="form-control" id="txImposto" placeholder="0" step="0.1" inputmode="decimal" oninput="calcTaxasPreview()"></div>
+                    <div class="custo-item"><div class="icon">💳</div><div class="info"><strong>Taxa da maquininha (%)</strong><small>Média entre débito, crédito e Pix</small></div><input type="number" class="form-control" id="txCartao" placeholder="0" step="0.1" inputmode="decimal" oninput="calcTaxasPreview()"></div>
+                    <div class="custo-item"><div class="icon">🛵</div><div class="info"><strong>Comissão do app de delivery (%)</strong><small>Ex.: iFood, somando comissão e pagamento online</small></div><input type="number" class="form-control" id="txApp" placeholder="0" step="0.1" inputmode="decimal" oninput="calcTaxasPreview()"></div>
+                    <div class="custo-item"><div class="icon">📲</div><div class="info"><strong>Vendas pelo app (% do total)</strong><small>Quanto dos seus pedidos vem do app</small></div><input type="number" class="form-control" id="txVendasApp" placeholder="0" step="1" inputmode="decimal" oninput="calcTaxasPreview()"></div>
+                    <hr style="margin:20px 0">
+                    <div class="custo-item"><div class="icon">🎯</div><div class="info"><strong>Meta de lucro real (%)</strong><small>Quanto quer que sobre limpo de cada pizza</small></div><input type="number" class="form-control" id="txMeta" value="15" step="1" inputmode="decimal" oninput="calcTaxasPreview()"></div>
+                    <div class="total-box">
+                        <div class="total-grid">
+                            <div class="total-item">
+                                <div class="label">Taxa média por venda</div>
+                                <div class="value highlight" id="txMedia">0,0%</div>
+                            </div>
+                        </div>
+                        <p id="txAviso" style="text-align:center;margin:12px 0 0;font-size:0.9em"></p>
+                    </div>
+                    <button class="btn btn-success btn-block" style="margin-top:20px" onclick="salvarTaxas()">💾 Salvar taxas e meta</button>
                 </div>
             </div>
         </div>
@@ -1996,11 +2032,16 @@
                                     <td>Custo Fixo:</td>
                                     <td style="text-align:right" id="cfFixo">R$ 0</td>
                                 </tr>
+                                <tr>
+                                    <td>Taxas sobre a venda:</td>
+                                    <td style="text-align:right" id="cfTaxasPct">0%</td>
+                                </tr>
                                 <tr style="font-weight:bold;border-top:2px solid #333">
                                     <td>CUSTO TOTAL (com custo fixo):</td>
                                     <td style="text-align:right;color:var(--danger)" id="cfTot">R$ 0</td>
                                 </tr>
                             </table>
+                            <div id="cfMeta" class="alert alert-success" style="display:none"></div>
                             <div class="cenarios">
                                 <div class="cenario c1"><small>CMV 35%</small>
                                     <div class="preco" id="cfP35">R$ 0</div>
@@ -2179,7 +2220,7 @@
 
     </div><!-- /appContent -->
 
-    <script src="app.js?v=3.1.0"></script>
+    <script src="app.js?v=3.2.0"></script>
     
     <!-- Botão Suporte WhatsApp -->
     <a href="https://wa.me/5598970260090?text=Fala%20Marllon!%20Preciso%20de%20uma%20ajuda%20aqui%20no%20PizzaControl." class="btn-whatsapp-flutuante" target="_blank">
