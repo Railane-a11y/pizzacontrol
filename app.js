@@ -29,6 +29,7 @@ let planoAtual = null; // 'basico' ou 'pro' — acesso vitalício, sem data de v
 const LINK_UPGRADE_PRO = 'https://pay.cakto.com.br/wx9esqb_1139423'; // Checkout Cakto: Upgrade PRO
 
 const DB_PADRAO = {
+    versao: 2,
     insumos: [],
     fichas: [],
     custos: {
@@ -270,6 +271,51 @@ function numero(valor, fallback = 0) {
     return Number.isFinite(n) ? n : fallback;
 }
 
+// ===== FORMATAÇÃO, SEGURANÇA E UNIDADES =====
+function brl(v) {
+    return 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function pct(v, casas = 1) {
+    return (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas }) + '%';
+}
+
+function esc(t) {
+    return String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// Versão 2 dos dados: quantidades SEMPRE na unidade base (g, ml ou un).
+// Insumo comprado em kg ou L tem o custo convertido para grama ou mililitro.
+const VERSAO_DADOS = 2;
+const FATOR_UNIDADE = { kg: 1000, L: 1000 };
+
+function fatorUnidade(un) {
+    return FATOR_UNIDADE[un] || 1;
+}
+
+function unidadeBase(un) {
+    if (un === 'kg') return 'g';
+    if (un === 'L') return 'ml';
+    return un || 'g';
+}
+
+function calcCustoUnBase(precoEmb, qtdEmb, un) {
+    const base = numero(qtdEmb) * fatorUnidade(un);
+    return base > 0 ? numero(precoEmb) / base : 0;
+}
+
+function custoNaUnidadeCompra(ins) {
+    return (ins.custoUn || 0) * fatorUnidade(ins.unidade);
+}
+
+function atualizarUnidadeLinha(sel) {
+    const linha = sel.closest('.ingrediente-item, .massa-item');
+    if (!linha) return;
+    const span = linha.querySelector('.qtd-un');
+    const ins = DB.insumos.find((i) => i.id == sel.value);
+    if (span) span.textContent = ins ? unidadeBase(ins.unidade) : '';
+}
+
 function validarFormatoPin(pin) {
     return /^\d{4,6}$/.test(pin);
 }
@@ -322,12 +368,13 @@ function normalizarDados(raw) {
         ? origem.insumos.map((i) => {
               const qtdEmb = numero(i.qtdEmb);
               const precoEmb = numero(i.precoEmb);
-              const custoUn = numero(i.custoUn, qtdEmb > 0 ? precoEmb / qtdEmb : 0);
+              const unidade = i.unidade || 'g';
+              const custoUn = calcCustoUnBase(precoEmb, qtdEmb, unidade);
               return {
                   id: String(i.id || gerarId()),
                   nome: (i.nome || '').trim(),
                   categoria: i.categoria || 'Outros',
-                  unidade: i.unidade || 'g',
+                  unidade,
                   qtdEmb,
                   precoEmb,
                   custoUn
@@ -409,7 +456,25 @@ function normalizarDados(raw) {
           }))
         : [];
 
-    return { insumos, fichas, custos, massa, config, produtosProntos };
+    // MIGRAÇÃO v1 -> v2: antes, a quantidade de um insumo comprado em kg/L era digitada em kg/L.
+    // Agora é sempre em g/ml. Valores abaixo de 50 só fazem sentido em kg/L, então são convertidos.
+    // Valores a partir de 50 já estavam em gramas (o custo aparecia absurdo) e ficam como estão.
+    if (numero(origem.versao) < VERSAO_DADOS) {
+        const unidadePorId = {};
+        insumos.forEach((i) => { unidadePorId[i.id] = i.unidade; });
+        const converter = (ing) => {
+            const fator = fatorUnidade(unidadePorId[ing.insumoId]);
+            if (fator > 1 && ing.quantidade > 0 && ing.quantidade < 50) ing.quantidade = ing.quantidade * fator;
+        };
+        fichas.forEach((f) => f.ingredientes.forEach(converter));
+        massa.ingredientes.forEach(converter);
+    }
+    fichas.forEach((f) => f.ingredientes.forEach((ing) => {
+        const ins = insumos.find((i) => i.id === ing.insumoId);
+        if (ins) ing.unidade = unidadeBase(ins.unidade);
+    }));
+
+    return { versao: VERSAO_DADOS, insumos, fichas, custos, massa, config, produtosProntos };
 }
 
 function obterPrimeiroValor(keys) {
@@ -433,11 +498,12 @@ function carregarDados() {
         const raw = JSON.parse(encontrado.valor);
         DB = normalizarDados(raw);
 
-        if (encontrado.key !== STORAGE_KEY) {
+        if (encontrado.key !== STORAGE_KEY || numero(raw.versao) < VERSAO_DADOS) {
             persistirDados(false);
         }
     } catch (err) {
         console.error('Erro ao carregar dados locais:', err);
+        try { localStorage.setItem(STORAGE_KEY + '_corrompido_' + Date.now(), encontrado.valor); } catch (e) {}
         DB = clonar(DB_PADRAO);
         persistirDados(false);
     }
@@ -554,7 +620,7 @@ function renderHeader() {
 
     if (hdrInsumos) hdrInsumos.textContent = DB.insumos.length;
     if (hdrFichas) hdrFichas.textContent = DB.fichas.length;
-    if (hdrCustoFixo) hdrCustoFixo.textContent = 'R$ ' + calcularCustoFixoPorPizza().toFixed(2);
+    if (hdrCustoFixo) hdrCustoFixo.textContent = brl(calcularCustoFixoPorPizza());
 }
 
 function sincronizarUI() {
@@ -593,7 +659,13 @@ function setupNav() {
                 refreshMassaSelects();
                 calcMassa();
             }
-            if (tab.dataset.page === 'precificar') { loadFichasSelect(); loadFichasSelectMeioAMeio(); loadComboSelects(); }
+            if (tab.dataset.page === 'precificar') {
+                loadFichasSelect();
+                loadFichasSelectMeioAMeio();
+                loadComboSelects();
+                calcMeioAMeio();
+                calcCombo();
+            }
             if (tab.dataset.page === 'produtos') renderProdutosProntos();
             if (tab.dataset.page === 'fichas') renderFichas();
             if (tab.dataset.page === 'dashboard') renderDashboard();
@@ -646,7 +718,7 @@ function salvarInsumo() {
         return;
     }
 
-    const custoUn = preco / qtd;
+    const custoUn = calcCustoUnBase(preco, qtd, un);
     const insumoData = {
         id: editId || gerarId(),
         nome,
@@ -672,7 +744,18 @@ function salvarInsumo() {
 }
 
 function excluirInsumo(id) {
-    if (!confirm('Excluir insumo?')) return;
+    const ins = DB.insumos.find((i) => i.id === id);
+    const fichasUsando = DB.fichas.filter((f) => (f.ingredientes || []).some((ing) => ing.insumoId === id));
+    const naMassa = (DB.massa.ingredientes || []).some((ing) => ing.insumoId === id);
+    let aviso = 'Excluir "' + (ins ? ins.nome : 'insumo') + '"?';
+    if (fichasUsando.length || naMassa) {
+        aviso += '\n\n⚠️ Ele será retirado de:';
+        if (naMassa) aviso += '\n• Receita da massa';
+        fichasUsando.slice(0, 10).forEach((f) => { aviso += '\n• ' + f.nome + ' (' + f.tamanho + ')'; });
+        if (fichasUsando.length > 10) aviso += '\n• e mais ' + (fichasUsando.length - 10) + ' fichas';
+        aviso += '\n\nO custo dessas pizzas vai mudar.';
+    }
+    if (!confirm(aviso)) return;
 
     DB.insumos = DB.insumos.filter((i) => i.id !== id);
     DB.massa.ingredientes = (DB.massa.ingredientes || []).filter((ing) => ing.insumoId !== id);
@@ -700,7 +783,7 @@ function renderInsumos() {
     tbody.innerHTML = DB.insumos
         .map(
             (i) =>
-                `<tr><td><strong>${i.nome}</strong></td><td><span class="badge badge-info">${i.categoria}</span></td><td>${i.unidade}</td><td>${i.qtdEmb}</td><td>R$ ${(i.precoEmb || 0).toFixed(2)}</td><td><strong style="color:var(--primary)">R$ ${(i.custoUn || 0).toFixed(4)}</strong></td><td class="actions"><button class="btn btn-info btn-sm" onclick="abrirModalInsumo('${i.id}')">✏️</button><button class="btn btn-danger btn-sm" onclick="excluirInsumo('${i.id}')">🗑️</button></td></tr>`
+                `<tr><td><strong>${esc(i.nome)}</strong></td><td><span class="badge badge-info">${esc(i.categoria)}</span></td><td>${esc(i.unidade)}</td><td>${String(i.qtdEmb).replace('.', ',')}</td><td>${brl(i.precoEmb)}</td><td><strong style="color:var(--primary)">${brl(custoNaUnidadeCompra(i))}/${esc(i.unidade)}</strong></td><td class="actions"><button class="btn btn-info btn-sm" onclick="abrirModalInsumo('${i.id}')">✏️</button><button class="btn btn-danger btn-sm" onclick="excluirInsumo('${i.id}')">🗑️</button></td></tr>`
         )
         .join('');
 }
@@ -726,7 +809,9 @@ function previewInsumo() {
     const preco = parseFloat(document.getElementById('insPreco').value) || 0;
     const un = document.getElementById('insUn').value;
     document.getElementById('insPreview').innerHTML =
-        qtd > 0 && preco > 0 ? '💡 Custo: <strong>R$ ' + (preco / qtd).toFixed(4) + '</strong>/' + un : '💡 Preencha para ver';
+        qtd > 0 && preco > 0
+            ? '💡 Custo: <strong>' + brl(preco / qtd) + '</strong>/' + un + (fatorUnidade(un) > 1 ? ' (nas fichas você digita em ' + unidadeBase(un) + ')' : '')
+            : '💡 Preencha para ver';
 }
 
 // ===== CUSTOS FIXOS =====
@@ -773,8 +858,8 @@ function calcCustos() {
     const total = Object.values(vals).reduce((a, b) => a + b, 0) - vals.pizzas;
     Object.assign(DB.custos, vals);
 
-    document.getElementById('cfTotal').textContent = 'R$ ' + total.toFixed(2);
-    document.getElementById('cfPorPizza').textContent = 'R$ ' + calcularCustoFixoPorPizza().toFixed(2);
+    document.getElementById('cfTotal').textContent = brl(total);
+    document.getElementById('cfPorPizza').textContent = brl(calcularCustoFixoPorPizza());
 
     renderFichas();
     renderDashboard();
@@ -849,8 +934,9 @@ function loadMassaUI() {
 function refreshMassaSelects() {
     document.querySelectorAll('#massaIngLista select').forEach((sel) => {
         const val = sel.value;
-        sel.innerHTML = '<option value="">Selecione...</option>' + DB.insumos.map((i) => `<option value="${i.id}">${i.nome}</option>`).join('');
+        sel.innerHTML = '<option value="">Selecione...</option>' + DB.insumos.map((i) => `<option value="${i.id}">${esc(i.nome)}</option>`).join('');
         sel.value = val;
+        atualizarUnidadeLinha(sel);
     });
 }
 
@@ -858,9 +944,10 @@ function addIngMassa(insId = null, qtd = null) {
     const lista = document.getElementById('massaIngLista');
     const div = document.createElement('div');
     div.className = 'massa-item';
-    div.innerHTML = `<select class="form-control" onchange="calcMassa()"><option value="">Selecione...</option>${DB.insumos
-        .map((i) => `<option value="${i.id}" ${insId == i.id ? 'selected' : ''}>${i.nome}</option>`)
-        .join('')}</select><input type="number" class="form-control" placeholder="Qtd (g)" value="${qtd || ''}" oninput="calcMassa()"><span class="custo">R$ 0</span><button class="btn btn-danger btn-sm" onclick="this.parentElement.remove();calcMassa()">✕</button>`;
+    const insM = DB.insumos.find((i) => i.id == insId);
+    div.innerHTML = `<select class="form-control" onchange="atualizarUnidadeLinha(this);calcMassa()"><option value="">Selecione...</option>${DB.insumos
+        .map((i) => `<option value="${i.id}" ${insId == i.id ? 'selected' : ''}>${esc(i.nome)}</option>`)
+        .join('')}</select><div class="qtd-wrap"><input type="number" class="form-control" placeholder="Qtd" inputmode="decimal" value="${qtd || ''}" oninput="calcMassa()"><span class="qtd-un">${insM ? unidadeBase(insM.unidade) : ''}</span></div><span class="custo">R$ 0</span><button class="btn btn-danger btn-sm" onclick="this.parentElement.remove();calcMassa()">✕</button>`;
     lista.appendChild(div);
     if (qtd) setTimeout(calcMassa, 50);
 }
@@ -879,7 +966,7 @@ function calcMassa() {
             if (ins) {
                 const custo = (ins.custoUn || 0) * qtd;
                 custoTotal += custo;
-                span.textContent = 'R$ ' + custo.toFixed(2);
+                span.textContent = brl(custo);
             }
         } else {
             span.textContent = 'R$ 0';
@@ -893,17 +980,17 @@ function calcMassa() {
     const pesoG = parseFloat(document.getElementById('pesoG').value) || 0;
     const pesoGG = parseFloat(document.getElementById('pesoGG').value) || 0;
 
-    document.getElementById('massaCustoTotal').textContent = 'R$ ' + custoTotal.toFixed(2);
+    document.getElementById('massaCustoTotal').textContent = brl(custoTotal);
     document.getElementById('massaPesoTotalRes').textContent = pesoTotal + ' g';
-    document.getElementById('massaCustoGrama').textContent = 'R$ ' + cpg.toFixed(4);
-    document.getElementById('massaCustoP').textContent = 'R$ ' + (cpg * pesoP).toFixed(2);
-    document.getElementById('massaCustoM').textContent = 'R$ ' + (cpg * pesoM).toFixed(2);
-    document.getElementById('massaCustoG').textContent = 'R$ ' + (cpg * pesoG).toFixed(2);
-    document.getElementById('massaCustoGG').textContent = 'R$ ' + (cpg * pesoGG).toFixed(2);
-    document.getElementById('massaInfoP').textContent = pesoP + 'g × R$' + cpg.toFixed(4);
-    document.getElementById('massaInfoM').textContent = pesoM + 'g × R$' + cpg.toFixed(4);
-    document.getElementById('massaInfoG').textContent = pesoG + 'g × R$' + cpg.toFixed(4);
-    document.getElementById('massaInfoGG').textContent = pesoGG + 'g × R$' + cpg.toFixed(4);
+    document.getElementById('massaCustoGrama').textContent = 'R$ ' + cpg.toFixed(4).replace('.', ',');
+    document.getElementById('massaCustoP').textContent = brl((cpg * pesoP));
+    document.getElementById('massaCustoM').textContent = brl((cpg * pesoM));
+    document.getElementById('massaCustoG').textContent = brl((cpg * pesoG));
+    document.getElementById('massaCustoGG').textContent = brl((cpg * pesoGG));
+    document.getElementById('massaInfoP').textContent = pesoP + 'g × R$ ' + cpg.toFixed(4).replace('.', ',');
+    document.getElementById('massaInfoM').textContent = pesoM + 'g × R$ ' + cpg.toFixed(4).replace('.', ',');
+    document.getElementById('massaInfoG').textContent = pesoG + 'g × R$ ' + cpg.toFixed(4).replace('.', ',');
+    document.getElementById('massaInfoGG').textContent = pesoGG + 'g × R$ ' + cpg.toFixed(4).replace('.', ',');
 }
 
 function salvarMassa() {
@@ -949,8 +1036,9 @@ function refreshIngSelects() {
         const val = sel.value;
         sel.innerHTML =
             '<option value="">Selecione...</option>' +
-            DB.insumos.map((i) => `<option value="${i.id}">${i.nome} (R$${(i.custoUn || 0).toFixed(4)}/${i.unidade})</option>`).join('');
+            DB.insumos.map((i) => `<option value="${i.id}">${esc(i.nome)} (${brl(custoNaUnidadeCompra(i))}/${esc(i.unidade)})</option>`).join('');
         sel.value = val;
+        atualizarUnidadeLinha(sel);
     });
 }
 
@@ -958,9 +1046,10 @@ function addIngFicha(insId = null, qtd = null) {
     const lista = document.getElementById('ficIngLista');
     const div = document.createElement('div');
     div.className = 'ingrediente-item';
-    div.innerHTML = `<select class="form-control" onchange="calcFicha()"><option value="">Selecione...</option>${DB.insumos
-        .map((i) => `<option value="${i.id}" ${insId == i.id ? 'selected' : ''}>${i.nome} (R$${(i.custoUn || 0).toFixed(4)}/${i.unidade})</option>`)
-        .join('')}</select><input type="number" class="form-control" placeholder="Qtd" value="${qtd || ''}" oninput="calcFicha()"><span class="custo">R$ 0</span><button class="btn btn-danger btn-sm" onclick="this.parentElement.remove();calcFicha()">✕</button>`;
+    const insF = DB.insumos.find((i) => i.id == insId);
+    div.innerHTML = `<select class="form-control" onchange="atualizarUnidadeLinha(this);calcFicha()"><option value="">Selecione...</option>${DB.insumos
+        .map((i) => `<option value="${i.id}" ${insId == i.id ? 'selected' : ''}>${esc(i.nome)} (${brl(custoNaUnidadeCompra(i))}/${esc(i.unidade)})</option>`)
+        .join('')}</select><div class="qtd-wrap"><input type="number" class="form-control" placeholder="Qtd" inputmode="decimal" value="${qtd || ''}" oninput="calcFicha()"><span class="qtd-un">${insF ? unidadeBase(insF.unidade) : ''}</span></div><span class="custo">R$ 0</span><button class="btn btn-danger btn-sm" onclick="this.parentElement.remove();calcFicha()">✕</button>`;
     lista.appendChild(div);
     if (qtd) setTimeout(calcFicha, 50);
 }
@@ -979,7 +1068,7 @@ function calcFicha() {
             if (ins) {
                 const custo = (ins.custoUn || 0) * qtd;
                 custoIng += custo;
-                span.textContent = 'R$ ' + custo.toFixed(2);
+                span.textContent = brl(custo);
             }
         } else {
             span.textContent = 'R$ 0';
@@ -993,18 +1082,19 @@ function calcFicha() {
     const custoTotal = custoIng + custoMassa + custoFixo;
     const venda = parseFloat(document.getElementById('ficPreco').value) || 0;
     const lucro = venda - custoTotal;
-    const cmv = venda > 0 ? (custoTotal / venda) * 100 : 0;
+    // CMV = custo da mercadoria (ingredientes + massa). Custo fixo NÃO entra no CMV.
+    const cmv = venda > 0 ? ((custoIng + custoMassa) / venda) * 100 : 0;
     const margem = venda > 0 ? (lucro / venda) * 100 : 0;
 
-    document.getElementById('resIng').textContent = 'R$ ' + custoIng.toFixed(2);
-    document.getElementById('resMassa').textContent = 'R$ ' + custoMassa.toFixed(2);
-    document.getElementById('resCF').textContent = 'R$ ' + custoFixo.toFixed(2);
-    document.getElementById('resTotal').textContent = 'R$ ' + custoTotal.toFixed(2);
-    document.getElementById('resVenda').textContent = 'R$ ' + venda.toFixed(2);
-    document.getElementById('resLucro').textContent = 'R$ ' + lucro.toFixed(2);
+    document.getElementById('resIng').textContent = brl(custoIng);
+    document.getElementById('resMassa').textContent = brl(custoMassa);
+    document.getElementById('resCF').textContent = brl(custoFixo);
+    document.getElementById('resTotal').textContent = brl(custoTotal);
+    document.getElementById('resVenda').textContent = brl(venda);
+    document.getElementById('resLucro').textContent = brl(lucro);
     document.getElementById('resLucro').className = 'val ' + (lucro >= 0 ? 'green' : 'red');
-    document.getElementById('resCMV').textContent = cmv.toFixed(1) + '%';
-    document.getElementById('resMargem').textContent = margem.toFixed(1) + '%';
+    document.getElementById('resCMV').textContent = pct(cmv) + '';
+    document.getElementById('resMargem').textContent = pct(margem) + '';
 
     const bar = document.getElementById('cmvBar');
     bar.style.width = Math.min(cmv, 100) + '%';
@@ -1077,7 +1167,7 @@ function salvarFicha() {
         custoFixo,
         custoTotal,
         lucro: preco - custoTotal,
-        cmv: (custoTotal / preco) * 100
+        cmv: ((custoIng + custoMassa) / preco) * 100
     };
 
     if (editandoFichaId) {
@@ -1173,7 +1263,7 @@ function atualizarCustosDaFicha(f) {
     f.custoFixo = calcularCustoFixoPorPizza();
     f.custoTotal = (f.custoIng || 0) + f.custoMassa + f.custoFixo;
     f.lucro = f.precoVenda - f.custoTotal;
-    f.cmv = f.precoVenda > 0 ? (f.custoTotal / f.precoVenda) * 100 : 0;
+    f.cmv = f.precoVenda > 0 ? (((f.custoIng || 0) + f.custoMassa) / f.precoVenda) * 100 : 0;
 }
 
 function renderFichas() {
@@ -1206,7 +1296,7 @@ function renderFichas() {
     grid.innerHTML = fichas
         .map(
             (f) =>
-                `<div class="ficha-card ${f.tamanho}"><div class="ficha-header"><div><h3>${f.nome}</h3><small>${f.categoria}</small></div><span class="badge-size ${f.tamanho}">${f.tamanho}</span></div><div class="ficha-body"><div class="ficha-stats"><div class="ficha-stat"><small>Custo</small><div class="val red">R$ ${f.custoTotal.toFixed(2)}</div></div><div class="ficha-stat"><small>Venda</small><div class="val blue">R$ ${f.precoVenda.toFixed(2)}</div></div><div class="ficha-stat"><small>Lucro</small><div class="val green">R$ ${f.lucro.toFixed(2)}</div></div></div><div class="ficha-details">Ing: R$${(f.custoIng || 0).toFixed(2)} | Massa: R$${f.custoMassa.toFixed(2)} | Fixo: R$${f.custoFixo.toFixed(2)} | CMV: ${f.cmv.toFixed(1)}%</div><div class="ficha-actions"><button class="btn btn-warning btn-sm" onclick="editarFicha('${f.id}')">✏️</button><button class="btn btn-purple btn-sm" onclick="duplicarFicha('${f.id}')">📋</button><button class="btn btn-danger btn-sm" onclick="excluirFicha('${f.id}')">🗑️</button></div></div></div>`
+                `<div class="ficha-card ${f.tamanho}"><div class="ficha-header"><div><h3>${esc(f.nome)}</h3><small>${esc(f.categoria)}</small></div><span class="badge-size ${f.tamanho}">${f.tamanho}</span></div><div class="ficha-body"><div class="ficha-stats"><div class="ficha-stat"><small>Custo</small><div class="val red">${brl(f.custoTotal)}</div></div><div class="ficha-stat"><small>Venda</small><div class="val blue">${brl(f.precoVenda)}</div></div><div class="ficha-stat"><small>Lucro</small><div class="val green">${brl(f.lucro)}</div></div></div><div class="ficha-details">Ing: ${brl((f.custoIng || 0))} | Massa: ${brl(f.custoMassa)} | Fixo: ${brl(f.custoFixo)} | CMV: ${pct(f.cmv)}</div><div class="ficha-actions"><button class="btn btn-warning btn-sm" onclick="editarFicha('${f.id}')">✏️</button><button class="btn btn-purple btn-sm" onclick="duplicarFicha('${f.id}')">📋</button><button class="btn btn-danger btn-sm" onclick="excluirFicha('${f.id}')">🗑️</button></div></div></div>`
         )
         .join('');
 }
@@ -1249,13 +1339,13 @@ function renderDashboard() {
     if (cntGG) cntGG.textContent = cnt.GG;
     if (dashIns) dashIns.textContent = DB.insumos.length;
     if (dashFic) dashFic.textContent = DB.fichas.length;
-    if (dashCF) dashCF.textContent = 'R$ ' + calcularCustoFixoPorPizza().toFixed(2);
-    if (dashMassaM) dashMassaM.textContent = 'R$ ' + getCustoMassa('M').toFixed(2);
-    if (dashMassaG) dashMassaG.textContent = 'R$ ' + getCustoMassa('G').toFixed(2);
+    if (dashCF) dashCF.textContent = brl(calcularCustoFixoPorPizza());
+    if (dashMassaM) dashMassaM.textContent = brl(getCustoMassa('M'));
+    if (dashMassaG) dashMassaG.textContent = brl(getCustoMassa('G'));
 
-    const fatCat = DB.fichas.reduce((acc, f) => acc + (f.precoVenda || 0), 0);
+    const lucroMedio = DB.fichas.length ? DB.fichas.reduce((acc, f) => acc + (f.lucro || 0), 0) / DB.fichas.length : 0;
     const dashFatElem = document.getElementById('dashFat');
-    if (dashFatElem) dashFatElem.textContent = 'R$ ' + fatCat.toFixed(2);
+    if (dashFatElem) dashFatElem.textContent = brl(lucroMedio);
 
     let maiorMargemTxt = '-';
     if (DB.fichas.length > 0) {
@@ -1265,7 +1355,7 @@ function renderDashboard() {
             return margemB - margemA;
         });
         if (topMargem[0] && topMargem[0].precoVenda > 0) {
-            maiorMargemTxt = topMargem[0].nome + ' (' + ((topMargem[0].lucro / topMargem[0].precoVenda) * 100).toFixed(1) + '%)';
+            maiorMargemTxt = topMargem[0].nome + ' (' + pct(((topMargem[0].lucro / topMargem[0].precoVenda) * 100)) + ')';
         }
     }
     const dashMargemElem = document.getElementById('dashMaiorMargem');
@@ -1280,13 +1370,13 @@ function renderDashboard() {
         const htmlTable = `<table class="top5-desktop"><thead><tr><th>🍕 Pizza</th><th>$$ Venda</th><th>📈 Lucro</th></tr></thead><tbody>${top
             .map(
                 (f) =>
-                    `<tr><td><strong>${f.nome}</strong><br><small style="color:#777">Custo: R$ ${f.custoTotal.toFixed(2)}</small></td><td>R$ ${f.precoVenda.toFixed(2)}</td><td style="color:var(--success);font-weight:bold">R$ ${f.lucro.toFixed(2)}</td></tr>`
+                    `<tr><td><strong>${esc(f.nome)}</strong><br><small style="color:#777">Custo: ${brl(f.custoTotal)}</small></td><td>${brl(f.precoVenda)}</td><td style="color:var(--success);font-weight:bold">${brl(f.lucro)}</td></tr>`
             )
             .join('')}</tbody></table>`;
         const htmlCards = `<div class="top5-mobile"><div class="top5-list">${top
             .map(
                 (f) =>
-                    `<div class="top5-mobile-card"><div class="t-title">${f.nome}</div><div class="t-row"><span>Custo: R$ ${f.custoTotal.toFixed(2)}</span></div><div class="t-row"><span>$$ Venda: R$ ${f.precoVenda.toFixed(2)}</span></div><div class="t-profit">💰 Lucro: R$ ${f.lucro.toFixed(2)}</div></div>`
+                    `<div class="top5-mobile-card"><div class="t-title">${esc(f.nome)}</div><div class="t-row"><span>Custo: ${brl(f.custoTotal)}</span></div><div class="t-row"><span>$$ Venda: ${brl(f.precoVenda)}</span></div><div class="t-profit">💰 Lucro: ${brl(f.lucro)}</div></div>`
             )
             .join('')}</div></div>`;
 
@@ -1316,12 +1406,12 @@ function renderRankingProdutosProntos() {
 
     const htmlTable = `<table class="top5-desktop"><thead><tr><th>🥤 Produto</th><th>Categoria</th><th>💰 Lucro</th><th>📊 Margem</th></tr></thead><tbody>${ranking
         .map(p =>
-            `<tr><td><strong>${p.nome}</strong><br><small style="color:#777">Custo: R$ ${p.precoCusto.toFixed(2)} | Venda: R$ ${p.precoVenda.toFixed(2)}</small></td><td><span class="badge badge-info">${p.icon} ${p.categoria}</span></td><td style="color:${p.lucro >= 0 ? 'var(--success)' : 'var(--danger)'};font-weight:bold">R$ ${p.lucro.toFixed(2)}</td><td style="font-weight:bold">${p.margem.toFixed(1)}%</td></tr>`
+            `<tr><td><strong>${esc(p.nome)}</strong><br><small style="color:#777">Custo: ${brl(p.precoCusto)} | Venda: ${brl(p.precoVenda)}</small></td><td><span class="badge badge-info">${p.icon} ${p.categoria}</span></td><td style="color:${p.lucro >= 0 ? 'var(--success)' : 'var(--danger)'};font-weight:bold">${brl(p.lucro)}</td><td style="font-weight:bold">${pct(p.margem)}</td></tr>`
         ).join('')}</tbody></table>`;
 
     const htmlCards = `<div class="top5-mobile"><div class="top5-list">${ranking
         .map(p =>
-            `<div class="top5-mobile-card" style="border-left-color:#00897b"><div class="t-title">${p.icon} ${p.nome}</div><div class="t-row"><span style="color:#777">${p.categoria}</span></div><div class="t-row"><span>Custo: R$ ${p.precoCusto.toFixed(2)}</span><span>Venda: R$ ${p.precoVenda.toFixed(2)}</span></div><div class="t-profit" style="color:${p.lucro >= 0 ? 'var(--success)' : 'var(--danger)'}">💰 Lucro: R$ ${p.lucro.toFixed(2)} | Margem: ${p.margem.toFixed(1)}%</div></div>`
+            `<div class="top5-mobile-card" style="border-left-color:#00897b"><div class="t-title">${p.icon} ${esc(p.nome)}</div><div class="t-row"><span style="color:#777">${p.categoria}</span></div><div class="t-row"><span>Custo: ${brl(p.precoCusto)}</span><span>Venda: ${brl(p.precoVenda)}</span></div><div class="t-profit" style="color:${p.lucro >= 0 ? 'var(--success)' : 'var(--danger)'}">💰 Lucro: ${brl(p.lucro)} | Margem: ${pct(p.margem)}</div></div>`
         ).join('')}</div></div>`;
 
     container.innerHTML = htmlTable + htmlCards;
@@ -1332,7 +1422,11 @@ function loadFichasSelect() {
     const select = document.getElementById('calcFicha');
     if (!select) return;
 
-    select.innerHTML = '<option value="">-- Selecione --</option>' + DB.fichas.map((f) => `<option value="${f.id}">${f.nome} (${f.tamanho})</option>`).join('');
+    const anterior = select.value;
+    select.innerHTML = '<option value="">-- Selecione --</option>' + DB.fichas.map((f) => `<option value="${f.id}">${esc(f.nome)} (${f.tamanho})</option>`).join('');
+    select.value = DB.fichas.some((f) => f.id === anterior) ? anterior : '';
+    // Recalcula na hora com os preços atuais (ou esconde o resultado se a ficha não existe mais)
+    calcComFicha();
 }
 
 function calcPorCMV() {
@@ -1341,8 +1435,8 @@ function calcPorCMV() {
     document.getElementById('calcCMVVal').textContent = cmv + '%';
     if (custo > 0) {
         const preco = custo / (cmv / 100);
-        document.getElementById('calcPreco').textContent = 'R$ ' + preco.toFixed(2);
-        document.getElementById('calcLucro').textContent = 'Lucro: R$ ' + (preco - custo).toFixed(2);
+        document.getElementById('calcPreco').textContent = brl(preco);
+        document.getElementById('calcLucro').textContent = 'Lucro: ' + brl((preco - custo));
     }
 }
 
@@ -1362,13 +1456,19 @@ function calcComFicha() {
     const custoFixo = f.custoFixo;
     const custoTotal = f.custoTotal;
     res.style.display = 'block';
-    document.getElementById('cfIng').textContent = 'R$ ' + (f.custoIng || 0).toFixed(2);
-    document.getElementById('cfMassaVal').textContent = 'R$ ' + custoMassa.toFixed(2);
-    document.getElementById('cfFixo').textContent = 'R$ ' + custoFixo.toFixed(2);
-    document.getElementById('cfTot').textContent = 'R$ ' + custoTotal.toFixed(2);
-    document.getElementById('cfP35').textContent = 'R$ ' + (custoTotal / 0.35).toFixed(2);
-    document.getElementById('cfP30').textContent = 'R$ ' + (custoTotal / 0.3).toFixed(2);
-    document.getElementById('cfP25').textContent = 'R$ ' + (custoTotal / 0.25).toFixed(2);
+    document.getElementById('cfIng').textContent = brl((f.custoIng || 0));
+    document.getElementById('cfMassaVal').textContent = brl(custoMassa);
+    document.getElementById('cfFixo').textContent = brl(custoFixo);
+    document.getElementById('cfTot').textContent = brl(custoTotal);
+    // Preço pelo CMV: divide só o custo da mercadoria (ingredientes + massa).
+    // Embaixo mostra o lucro real nesse preço, já descontando o custo fixo.
+    const custoMercadoria = (f.custoIng || 0) + custoMassa;
+    [['cfP35', 0.35], ['cfP30', 0.3], ['cfP25', 0.25]].forEach(([elId, alvo]) => {
+        const preco = custoMercadoria / alvo;
+        const lucro = preco - custoTotal;
+        document.getElementById(elId).innerHTML = brl(preco) +
+            '<small style="display:block;font-size:0.5em;font-weight:600;margin-top:4px;color:' + (lucro >= 0 ? 'inherit' : '#c62828') + '">Lucro real: ' + brl(lucro) + '</small>';
+    });
 }
 
 // ===== MEIO A MEIO =====
@@ -1378,14 +1478,14 @@ function loadFichasSelectMeioAMeio() {
     if (!selA || !selB) return;
 
     const options = '<option value="">-- Selecione --</option>' +
-        DB.fichas.map(f => `<option value="${f.id}">${f.nome} (${f.tamanho}) - R$ ${f.precoVenda.toFixed(2)}</option>`).join('');
+        DB.fichas.map(f => `<option value="${f.id}">${esc(f.nome)} (${f.tamanho}) - ${brl(f.precoVenda)}</option>`).join('');
     
     const valA = selA.value;
     const valB = selB.value;
     selA.innerHTML = options;
     selB.innerHTML = options;
-    selA.value = valA;
-    selB.value = valB;
+    selA.value = DB.fichas.some((f) => f.id === valA) ? valA : '';
+    selB.value = DB.fichas.some((f) => f.id === valB) ? valB : '';
 }
 
 function calcMeioAMeio() {
@@ -1406,7 +1506,13 @@ function calcMeioAMeio() {
 
     const fichaA = DB.fichas.find(f => f.id === idA);
     const fichaB = DB.fichas.find(f => f.id === idB);
-    if (!fichaA || !fichaB) return;
+    if (!fichaA || !fichaB) { resDiv.style.display = 'none'; return; }
+
+    if (fichaA.tamanho !== fichaB.tamanho) {
+        resDiv.style.display = 'block';
+        resDiv.innerHTML = '<div class="alert alert-warning" style="margin:0">⚠️ Os dois sabores precisam ser do <strong>mesmo tamanho</strong>. Você escolheu ' + esc(fichaA.nome) + ' (' + fichaA.tamanho + ') e ' + esc(fichaB.nome) + ' (' + fichaB.tamanho + ').</div>';
+        return;
+    }
 
     // Atualizar custos antes de calcular
     atualizarCustosDaFicha(fichaA);
@@ -1437,7 +1543,7 @@ function calcMeioAMeio() {
     const lucroReal = precoVenda - custoTotalProducao;
 
     // CMV e Margem
-    const cmv = precoVenda > 0 ? (custoTotalProducao / precoVenda) * 100 : 0;
+    const cmv = precoVenda > 0 ? ((custoIngMeioAMeio + custoMassa) / precoVenda) * 100 : 0;
     const margem = precoVenda > 0 ? (lucroReal / precoVenda) * 100 : 0;
 
     // Identificar qual é o mais caro
@@ -1446,47 +1552,47 @@ function calcMeioAMeio() {
     resDiv.style.display = 'block';
     resDiv.innerHTML = `
         <div class="alert alert-info" style="margin-bottom:15px">
-            🍕 <strong>Meio a Meio:</strong> ${fichaA.nome} + ${fichaB.nome}<br>
-            <small>Preço cobrado pelo sabor mais caro: <strong>${maisCaroNome}</strong></small>
+            🍕 <strong>Meio a Meio:</strong> ${esc(fichaA.nome)} + ${esc(fichaB.nome)}<br>
+            <small>Preço cobrado pelo sabor mais caro: <strong>${esc(maisCaroNome)}</strong></small>
         </div>
         <table style="width:100%;margin:15px 0;font-size:0.9em">
             <tr style="background:#f8f9fa"><td colspan="3" style="padding:8px;font-weight:bold">📊 Decomposição do Custo</td></tr>
             <tr>
-                <td style="padding:6px">½ ${fichaA.nome} (ingredientes):</td>
-                <td style="text-align:right;padding:6px;color:#666">R$ ${(fichaA.custoIng || 0).toFixed(2)} ÷ 2</td>
-                <td style="text-align:right;padding:6px;font-weight:bold">R$ ${custoIngA.toFixed(2)}</td>
+                <td style="padding:6px">½ ${esc(fichaA.nome)} (ingredientes):</td>
+                <td style="text-align:right;padding:6px;color:#666">${brl((fichaA.custoIng || 0))} ÷ 2</td>
+                <td style="text-align:right;padding:6px;font-weight:bold">${brl(custoIngA)}</td>
             </tr>
             <tr>
-                <td style="padding:6px">½ ${fichaB.nome} (ingredientes):</td>
-                <td style="text-align:right;padding:6px;color:#666">R$ ${(fichaB.custoIng || 0).toFixed(2)} ÷ 2</td>
-                <td style="text-align:right;padding:6px;font-weight:bold">R$ ${custoIngB.toFixed(2)}</td>
+                <td style="padding:6px">½ ${esc(fichaB.nome)} (ingredientes):</td>
+                <td style="text-align:right;padding:6px;color:#666">${brl((fichaB.custoIng || 0))} ÷ 2</td>
+                <td style="text-align:right;padding:6px;font-weight:bold">${brl(custoIngB)}</td>
             </tr>
             <tr style="border-top:1px dashed #ccc">
                 <td style="padding:6px">Custo Ingredientes (Meio a Meio):</td>
                 <td></td>
-                <td style="text-align:right;padding:6px;font-weight:bold;color:var(--danger)">R$ ${custoIngMeioAMeio.toFixed(2)}</td>
+                <td style="text-align:right;padding:6px;font-weight:bold;color:var(--danger)">${brl(custoIngMeioAMeio)}</td>
             </tr>
-            <tr><td style="padding:6px">Massa:</td><td></td><td style="text-align:right;padding:6px">R$ ${custoMassa.toFixed(2)}</td></tr>
-            <tr><td style="padding:6px">Custo Fixo:</td><td></td><td style="text-align:right;padding:6px">R$ ${custoFixo.toFixed(2)}</td></tr>
+            <tr><td style="padding:6px">Massa:</td><td></td><td style="text-align:right;padding:6px">${brl(custoMassa)}</td></tr>
+            <tr><td style="padding:6px">Custo Fixo:</td><td></td><td style="text-align:right;padding:6px">${brl(custoFixo)}</td></tr>
             <tr style="font-weight:bold;border-top:2px solid #333;background:#fff3e0">
                 <td style="padding:8px">CUSTO TOTAL PRODUÇÃO:</td>
                 <td></td>
-                <td style="text-align:right;padding:8px;color:var(--danger);font-size:1.1em">R$ ${custoTotalProducao.toFixed(2)}</td>
+                <td style="text-align:right;padding:8px;color:var(--danger);font-size:1.1em">${brl(custoTotalProducao)}</td>
             </tr>
         </table>
         <div class="resumo-box" style="margin-top:15px">
             <div class="resumo-grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr))">
-                <div class="resumo-item"><small>💰 Preço Venda</small><div class="val blue" style="font-size:1.3em">R$ ${precoVenda.toFixed(2)}</div></div>
-                <div class="resumo-item"><small>📦 Custo Total</small><div class="val red">R$ ${custoTotalProducao.toFixed(2)}</div></div>
-                <div class="resumo-item"><small>🎯 Lucro Real</small><div class="val ${lucroReal >= 0 ? 'green' : 'red'}" style="font-size:1.3em">R$ ${lucroReal.toFixed(2)}</div></div>
-                <div class="resumo-item"><small>📊 CMV</small><div class="val ${cmv <= 30 ? 'green' : cmv <= 35 ? 'yellow' : 'red'}">${cmv.toFixed(1)}%</div></div>
-                <div class="resumo-item"><small>📈 Margem</small><div class="val ${margem >= 50 ? 'green' : margem >= 30 ? 'yellow' : 'red'}">${margem.toFixed(1)}%</div></div>
+                <div class="resumo-item"><small>💰 Preço Venda</small><div class="val blue" style="font-size:1.3em">${brl(precoVenda)}</div></div>
+                <div class="resumo-item"><small>📦 Custo Total</small><div class="val red">${brl(custoTotalProducao)}</div></div>
+                <div class="resumo-item"><small>🎯 Lucro Real</small><div class="val ${lucroReal >= 0 ? 'green' : 'red'}" style="font-size:1.3em">${brl(lucroReal)}</div></div>
+                <div class="resumo-item"><small>📊 CMV</small><div class="val ${cmv <= 30 ? 'green' : cmv <= 35 ? 'yellow' : 'red'}">${pct(cmv)}</div></div>
+                <div class="resumo-item"><small>📈 Margem</small><div class="val ${margem >= 50 ? 'green' : margem >= 30 ? 'yellow' : 'red'}">${pct(margem)}</div></div>
             </div>
         </div>
         <div class="alert ${lucroReal >= 0 ? 'alert-success' : 'alert-warning'}" style="margin-top:15px">
             ${lucroReal >= 0 
-                ? '✅ <strong>Meio a Meio viável!</strong> Lucro de R$ ' + lucroReal.toFixed(2) + ' com margem de ' + margem.toFixed(1) + '%.'
-                : '⚠️ <strong>Atenção!</strong> Esta combinação gera prejuízo de R$ ' + Math.abs(lucroReal).toFixed(2) + '. Revise os preços.'
+                ? '✅ <strong>Meio a Meio viável!</strong> Lucro de ' + brl(lucroReal) + ' com margem de ' + pct(margem) + '.'
+                : '⚠️ <strong>Atenção!</strong> Esta combinação gera prejuízo de ' + brl(Math.abs(lucroReal)) + '. Revise os preços.'
             }
         </div>`;
 }
@@ -1526,7 +1632,7 @@ function previewProduto() {
     if (custo > 0 && venda > 0) {
         const lucro = venda - custo;
         const margem = (lucro / venda) * 100;
-        prev.innerHTML = '💡 Lucro: <strong>R$ ' + lucro.toFixed(2) + '</strong> | Margem: <strong>' + margem.toFixed(1) + '%</strong>';
+        prev.innerHTML = '💡 Lucro: <strong>' + brl(lucro) + '</strong> | Margem: <strong>' + pct(margem) + '</strong>';
         prev.style.color = lucro >= 0 ? 'var(--success)' : 'var(--danger)';
     } else {
         prev.innerHTML = '💡 Preencha custo e venda para ver';
@@ -1608,11 +1714,11 @@ function renderProdutosProntos() {
         const margem = p.precoVenda > 0 ? (lucro / p.precoVenda) * 100 : 0;
         const catIcons = { 'Bebida': '🥤', 'Cerveja': '🍺', 'Doce': '🍫', 'Adicional': '➕' };
         return `<tr>
-            <td><strong>${p.nome}</strong></td>
+            <td><strong>${esc(p.nome)}</strong></td>
             <td><span class="badge badge-info">${catIcons[p.categoria] || '📦'} ${p.categoria}</span></td>
-            <td>R$ ${p.precoCusto.toFixed(2)}</td>
-            <td>R$ ${p.precoVenda.toFixed(2)}</td>
-            <td><strong style="color:${lucro >= 0 ? 'var(--success)' : 'var(--danger)'}">R$ ${lucro.toFixed(2)}</strong><br><small>${margem.toFixed(1)}%</small></td>
+            <td>${brl(p.precoCusto)}</td>
+            <td>${brl(p.precoVenda)}</td>
+            <td><strong style="color:${lucro >= 0 ? 'var(--success)' : 'var(--danger)'}">${brl(lucro)}</strong><br><small>${pct(margem)}</small></td>
             <td class="actions">
                 <button class="btn btn-info btn-sm" onclick="abrirModalProduto('${p.id}')">✏️</button>
                 <button class="btn btn-danger btn-sm" onclick="excluirProduto('${p.id}')">🗑️</button>
@@ -1639,7 +1745,7 @@ function filtrarProdutosBusca() {
 function getComboAdicionaisOptions() {
     const adicionais = DB.produtosProntos.filter(p => p.categoria === 'Adicional' || p.categoria === 'Doce');
     return '<option value="">-- Selecione (opcional) --</option>' +
-        adicionais.map(p => `<option value="${p.id}">${p.nome} - Venda: R$ ${p.precoVenda.toFixed(2)}</option>`).join('');
+        adicionais.map(p => `<option value="${p.id}">${esc(p.nome)} - Venda: ${brl(p.precoVenda)}</option>`).join('');
 }
 
 function addComboAdicional(selectedId) {
@@ -1669,16 +1775,16 @@ function loadComboSelects() {
     selPizza.innerHTML = '<option value="">-- Selecione a Pizza --</option>' +
         DB.fichas.map(f => {
             atualizarCustosDaFicha(f);
-            return `<option value="${f.id}">${f.nome} (${f.tamanho}) - Venda: R$ ${f.precoVenda.toFixed(2)}</option>`;
+            return `<option value="${f.id}">${esc(f.nome)} (${f.tamanho}) - Venda: ${brl(f.precoVenda)}</option>`;
         }).join('');
-    selPizza.value = valPizza;
+    selPizza.value = DB.fichas.some((f) => f.id === valPizza) ? valPizza : '';
 
     // Bebida select (dos produtos prontos, categoria Bebida + Cerveja)
     const bebidas = DB.produtosProntos.filter(p => p.categoria === 'Bebida' || p.categoria === 'Cerveja');
     const valBebida = selBebida.value;
     selBebida.innerHTML = '<option value="">-- Selecione a Bebida --</option>' +
-        bebidas.map(p => `<option value="${p.id}">${p.nome} - Venda: R$ ${p.precoVenda.toFixed(2)}</option>`).join('');
-    selBebida.value = valBebida;
+        bebidas.map(p => `<option value="${p.id}">${esc(p.nome)} - Venda: ${brl(p.precoVenda)}</option>`).join('');
+    selBebida.value = bebidas.some((p) => p.id === valBebida) ? valBebida : '';
 
     // Atualizar options dos selects de adicionais já existentes
     const container = document.getElementById('comboAdicionaisContainer');
@@ -1744,21 +1850,22 @@ function calcCombo() {
 
     const lucroReal = precoFinal - custoTotalCombo;
     const margem = precoFinal > 0 ? (lucroReal / precoFinal) * 100 : 0;
-    const cmv = precoFinal > 0 ? (custoTotalCombo / precoFinal) * 100 : 0;
+    const custoMercadoriaCombo = (pizza.custoIng || 0) + (pizza.custoMassa || 0) + custoBebida + custoAdicionaisTotal;
+    const cmv = precoFinal > 0 ? (custoMercadoriaCombo / precoFinal) * 100 : 0;
 
     // Gerar linhas de adicionais para as tabelas
     const adicionaisCustoHTML = adicionaisSelecionados.map(a => {
         const icon = a.categoria === 'Doce' ? '🍫' : '➕';
         return `<tr>
-            <td style="padding:6px">${icon} ${a.nome} (custo compra):</td>
+            <td style="padding:6px">${icon} ${esc(a.nome)} (custo compra):</td>
             <td></td>
-            <td style="text-align:right;padding:6px;font-weight:bold">R$ ${(a.precoCusto || 0).toFixed(2)}</td>
+            <td style="text-align:right;padding:6px;font-weight:bold">${brl((a.precoCusto || 0))}</td>
         </tr>`;
     }).join('');
 
     const adicionaisVendaHTML = adicionaisSelecionados.map(a => {
         const icon = a.categoria === 'Doce' ? '🍫' : '➕';
-        return `<tr><td style="padding:6px">${icon} ${a.nome}:</td><td style="text-align:right;padding:6px">R$ ${(a.precoVenda || 0).toFixed(2)}</td></tr>`;
+        return `<tr><td style="padding:6px">${icon} ${esc(a.nome)}:</td><td style="text-align:right;padding:6px">${brl((a.precoVenda || 0))}</td></tr>`;
     }).join('');
 
     const nomesAdicionais = adicionaisSelecionados.map(a => a.nome).join(' + ');
@@ -1767,49 +1874,49 @@ function calcCombo() {
     resDiv.style.display = 'block';
     resDiv.innerHTML = `
         <div class="alert alert-info" style="margin-bottom:15px">
-            🎯 <strong>Combo:</strong> ${comboDescricao}
+            🎯 <strong>Combo:</strong> ${esc(comboDescricao)}
         </div>
         <table style="width:100%;margin:10px 0;font-size:0.9em">
             <tr style="background:#f8f9fa"><td colspan="3" style="padding:8px;font-weight:bold">📊 Decomposição de Custos</td></tr>
             <tr>
-                <td style="padding:6px">🍕 ${pizza.nome} (custo produção):</td>
+                <td style="padding:6px">🍕 ${esc(pizza.nome)} (custo produção):</td>
                 <td></td>
-                <td style="text-align:right;padding:6px;font-weight:bold">R$ ${custoPizza.toFixed(2)}</td>
+                <td style="text-align:right;padding:6px;font-weight:bold">${brl(custoPizza)}</td>
             </tr>
             <tr>
-                <td style="padding:6px">🥤 ${bebida.nome} (custo compra):</td>
+                <td style="padding:6px">🥤 ${esc(bebida.nome)} (custo compra):</td>
                 <td></td>
-                <td style="text-align:right;padding:6px;font-weight:bold">R$ ${custoBebida.toFixed(2)}</td>
+                <td style="text-align:right;padding:6px;font-weight:bold">${brl(custoBebida)}</td>
             </tr>
             ${adicionaisCustoHTML}
             <tr style="font-weight:bold;border-top:2px solid #333;background:#fff3e0">
                 <td style="padding:8px">CUSTO TOTAL DO COMBO:</td>
                 <td></td>
-                <td style="text-align:right;padding:8px;color:var(--danger);font-size:1.1em">R$ ${custoTotalCombo.toFixed(2)}</td>
+                <td style="text-align:right;padding:8px;color:var(--danger);font-size:1.1em">${brl(custoTotalCombo)}</td>
             </tr>
         </table>
         <table style="width:100%;margin:10px 0;font-size:0.9em">
             <tr style="background:#e8f5e9"><td colspan="2" style="padding:8px;font-weight:bold">💰 Preços de Venda Individuais</td></tr>
-            <tr><td style="padding:6px">🍕 ${pizza.nome}:</td><td style="text-align:right;padding:6px">R$ ${vendaPizza.toFixed(2)}</td></tr>
-            <tr><td style="padding:6px">🥤 ${bebida.nome}:</td><td style="text-align:right;padding:6px">R$ ${vendaBebida.toFixed(2)}</td></tr>
+            <tr><td style="padding:6px">🍕 ${esc(pizza.nome)}:</td><td style="text-align:right;padding:6px">${brl(vendaPizza)}</td></tr>
+            <tr><td style="padding:6px">🥤 ${esc(bebida.nome)}:</td><td style="text-align:right;padding:6px">${brl(vendaBebida)}</td></tr>
             ${adicionaisVendaHTML}
-            <tr style="border-top:1px solid #ccc"><td style="padding:6px;font-weight:bold">Soma Individual:</td><td style="text-align:right;padding:6px;font-weight:bold">R$ ${somaVendasIndividuais.toFixed(2)}</td></tr>
-            ${precoPromo > 0 ? `<tr style="background:#fff8e1"><td style="padding:6px;font-weight:bold;color:#e65100">🏷️ Desconto Promocional:</td><td style="text-align:right;padding:6px;font-weight:bold;color:#e65100">- R$ ${desconto.toFixed(2)} (${descontoPerc.toFixed(1)}%)</td></tr>` : ''}
+            <tr style="border-top:1px solid #ccc"><td style="padding:6px;font-weight:bold">Soma Individual:</td><td style="text-align:right;padding:6px;font-weight:bold">${brl(somaVendasIndividuais)}</td></tr>
+            ${precoPromo > 0 ? `<tr style="background:#fff8e1"><td style="padding:6px;font-weight:bold;color:#e65100">🏷️ Desconto Promocional:</td><td style="text-align:right;padding:6px;font-weight:bold;color:#e65100">- ${brl(desconto)} (${pct(descontoPerc)})</td></tr>` : ''}
         </table>
         <div class="resumo-box" style="margin-top:15px">
             <div class="resumo-grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr))">
-                <div class="resumo-item"><small>💰 Preço Combo</small><div class="val blue" style="font-size:1.3em">R$ ${precoFinal.toFixed(2)}</div></div>
-                <div class="resumo-item"><small>📦 Custo Total</small><div class="val red">R$ ${custoTotalCombo.toFixed(2)}</div></div>
-                <div class="resumo-item"><small>🎯 Lucro Real</small><div class="val ${lucroReal >= 0 ? 'green' : 'red'}" style="font-size:1.3em">R$ ${lucroReal.toFixed(2)}</div></div>
-                <div class="resumo-item"><small>📈 Margem</small><div class="val ${margem >= 50 ? 'green' : margem >= 30 ? 'yellow' : 'red'}">${margem.toFixed(1)}%</div></div>
-                <div class="resumo-item"><small>📊 CMV</small><div class="val ${cmv <= 30 ? 'green' : cmv <= 35 ? 'yellow' : 'red'}">${cmv.toFixed(1)}%</div></div>
+                <div class="resumo-item"><small>💰 Preço Combo</small><div class="val blue" style="font-size:1.3em">${brl(precoFinal)}</div></div>
+                <div class="resumo-item"><small>📦 Custo Total</small><div class="val red">${brl(custoTotalCombo)}</div></div>
+                <div class="resumo-item"><small>🎯 Lucro Real</small><div class="val ${lucroReal >= 0 ? 'green' : 'red'}" style="font-size:1.3em">${brl(lucroReal)}</div></div>
+                <div class="resumo-item"><small>📈 Margem</small><div class="val ${margem >= 50 ? 'green' : margem >= 30 ? 'yellow' : 'red'}">${pct(margem)}</div></div>
+                <div class="resumo-item"><small>📊 CMV</small><div class="val ${cmv <= 30 ? 'green' : cmv <= 35 ? 'yellow' : 'red'}">${pct(cmv)}</div></div>
             </div>
         </div>
         <div class="alert ${lucroReal >= 0 ? 'alert-success' : 'alert-warning'}" style="margin-top:15px">
             ${lucroReal >= 0
-                ? '✅ <strong>Combo viável!</strong> Lucro de R$ ' + lucroReal.toFixed(2) + ' com margem de ' + margem.toFixed(1) + '%.'
-                  + (precoPromo > 0 && desconto > 0 ? ' Desconto de ' + descontoPerc.toFixed(1) + '% sobre o preço individual.' : '')
-                : '⚠️ <strong>Atenção!</strong> Este combo gera prejuízo de R$ ' + Math.abs(lucroReal).toFixed(2) + '. Aumente o preço promocional.'
+                ? '✅ <strong>Combo viável!</strong> Lucro de ' + brl(lucroReal) + ' com margem de ' + pct(margem) + '.'
+                  + (precoPromo > 0 && desconto > 0 ? ' Desconto de ' + pct(descontoPerc) + ' sobre o preço individual.' : '')
+                : '⚠️ <strong>Atenção!</strong> Este combo gera prejuízo de ' + brl(Math.abs(lucroReal)) + '. Aumente o preço promocional.'
             }
         </div>`;
 }
@@ -1832,43 +1939,13 @@ function importar(e) {
     reader.onload = (ev) => {
         try {
             const d = normalizarDados(JSON.parse(ev.target.result));
-            if (!confirm('Importar dados?')) {
+            const resumo = d.insumos.length + ' insumos, ' + d.fichas.length + ' fichas e ' + d.produtosProntos.length + ' produtos';
+            if (!confirm('Restaurar este backup (' + resumo + ')?\n\n⚠️ Os dados atuais deste aparelho serão SUBSTITUÍDOS pelos do arquivo.')) {
                 e.target.value = '';
                 return;
             }
 
-            const mapaInsumos = {};
-            (d.insumos || []).forEach((i) => {
-                const novoId = gerarId();
-                mapaInsumos[i.id] = novoId;
-                DB.insumos.push({ ...i, id: novoId });
-            });
-
-            (d.fichas || []).forEach((f) => {
-                const ingredientes = (f.ingredientes || []).map((ing) => ({
-                    ...ing,
-                    insumoId: mapaInsumos[ing.insumoId] || ing.insumoId
-                }));
-                DB.fichas.push({ ...f, id: gerarId(), ingredientes });
-            });
-
-            if (d.custos) DB.custos = d.custos;
-            if (d.massa) {
-                DB.massa = {
-                    ...d.massa,
-                    ingredientes: (d.massa.ingredientes || []).map((ing) => ({
-                        ...ing,
-                        insumoId: mapaInsumos[ing.insumoId] || ing.insumoId
-                    }))
-                };
-            }
-            if (d.config) DB.config = d.config;
-            if (d.produtosProntos && d.produtosProntos.length > 0) {
-                d.produtosProntos.forEach(p => {
-                    DB.produtosProntos.push({ ...p, id: gerarId() });
-                });
-            }
-
+            DB = d;
             persistirDados(false);
             sincronizarUI();
             loadMassaUI();
@@ -1935,16 +2012,16 @@ function calcPorMarkup() {
         const lucroBruto = precoSugerido - custo;
         const lucroLiquido = lucroBruto - totalImposto;
 
-        document.getElementById('calcPreco').textContent = 'R$ ' + precoSugerido.toFixed(2);
-        document.getElementById('calcLucro').textContent = 'Lucro Bruto: R$ ' + lucroBruto.toFixed(2);
+        document.getElementById('calcPreco').textContent = brl(precoSugerido);
+        document.getElementById('calcLucro').textContent = 'Lucro Bruto: ' + brl(lucroBruto);
         const llElem = document.getElementById('calcLucroReal');
         if (llElem) {
             llElem.textContent =
-                'Lucro Líquido (Pós Imposto): R$ ' +
-                lucroLiquido.toFixed(2) +
+                'Lucro Líquido (Pós Imposto): ' +
+                brl(lucroLiquido) +
                 ' (' +
-                (precoSugerido > 0 ? (lucroLiquido / precoSugerido) * 100 : 0).toFixed(1) +
-                '%)';
+                pct(precoSugerido > 0 ? (lucroLiquido / precoSugerido) * 100 : 0) +
+                ')';
         }
     } else {
         document.getElementById('calcPreco').textContent = 'R$ 0,00';
@@ -2018,7 +2095,11 @@ function aplicarTravaPlanos() {
         });
     }
 
-    // --- 3. Aviso dentro de "Criar Ficha": Custo Fixo e Massa não incluídos no Básico ---
+    // --- 3. No Básico o lucro da ficha não inclui custo fixo: o rótulo diz isso ---
+    const rotuloLucro = document.getElementById('resLucro')?.previousElementSibling;
+    if (rotuloLucro) rotuloLucro.textContent = 'LUCRO (sem custo fixo)';
+
+    // --- 4. Aviso dentro de "Criar Ficha": Custo Fixo e Massa não incluídos no Básico ---
     injetarAvisoFichaBasico();
 
     console.log('🔒 Travas do Plano Básico aplicadas às abas:', ABAS_EXCLUSIVAS_PRO.join(', '));
@@ -2063,7 +2144,7 @@ function mostrarModalUpgrade(origem) {
                     <li>✅ Bebidas, adicionais e Backup</li>
                 </ul>
                 <div class="mup-preco">
-                    <span class="mup-valor">R$ 15,00</span>
+                    <span class="mup-valor">R$ 15,99</span>
                     <span class="mup-legenda">pagamento único · acesso vitalício</span>
                 </div>
                 ${email ? `
