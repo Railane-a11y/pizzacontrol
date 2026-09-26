@@ -203,12 +203,7 @@ function inicializarApp() {
     loadCustosUI();
     loadConfigUI();
 
-    const listaFicha = document.getElementById('ficIngLista');
-    if (listaFicha) {
-        listaFicha.innerHTML = '';
-        addIngFicha();
-        calcFicha();
-    }
+    if (document.getElementById('ficIngLista')) limparFicha();
 
     refreshIngSelects();
     refreshMassaSelects();
@@ -280,7 +275,7 @@ function numero(valor, fallback = 0) {
 // Vale sempre a versão alterada por último. Na primeira sincronização de um aparelho que
 // já tem dados diferentes dos da nuvem, o cliente escolhe qual manter (a outra vira cópia).
 const COLECAO_NUVEM = 'dadosClientes';
-const VERSAO_APP = '3.3.0';
+const VERSAO_APP = '3.4.0';
 const LIMITE_NUVEM = 700000; // limite seguro de tamanho do documento
 let nuvemPronta = false;
 let nuvemTimer = null;
@@ -599,9 +594,8 @@ function custoNaUnidadeCompra(ins) {
 function atualizarUnidadeLinha(sel) {
     const linha = sel.closest('.ingrediente-item, .massa-item');
     if (!linha) return;
-    const span = linha.querySelector('.qtd-un');
     const ins = DB.insumos.find((i) => i.id == sel.value);
-    if (span) span.textContent = ins ? unidadeBase(ins.unidade) : '';
+    linha.querySelectorAll('.qtd-un').forEach((span) => { span.textContent = ins ? unidadeBase(ins.unidade) : ''; });
 }
 
 function validarFormatoPin(pin) {
@@ -673,6 +667,7 @@ function normalizarDados(raw) {
     const fichas = Array.isArray(origem.fichas)
         ? origem.fichas.map((f) => ({
               id: String(f.id || gerarId()),
+              grupoId: f.grupoId ? String(f.grupoId) : '',
               nome: f.nome || '',
               categoria: f.categoria || 'Tradicional',
               tamanho: f.tamanho || 'G',
@@ -959,7 +954,7 @@ function setupNav() {
             document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
             tab.classList.add('active');
             document.getElementById('page-' + tab.dataset.page).classList.add('active');
-            if (tab.dataset.page === 'nova-ficha') refreshIngSelects();
+            if (tab.dataset.page === 'nova-ficha') { refreshIngSelects(); calcFicha(); }
             if (tab.dataset.page === 'massa') {
                 refreshMassaSelects();
                 calcMassa();
@@ -1454,83 +1449,159 @@ function getCustoMassa(tamanho) {
     return cpg * (pesos[tamanho] || 0);
 }
 
-// ===== FICHAS =====
+// ===== FICHAS: UM SABOR, TODOS OS TAMANHOS =====
+// Na tela, o sabor é cadastrado uma vez com a quantidade e o preço de cada tamanho.
+// Nos dados, continua existindo uma ficha por tamanho (ligadas pelo mesmo grupoId),
+// então Gerar Preço, meio a meio, combos, painel e avisos funcionam do mesmo jeito.
+const TAMANHOS = ['P', 'M', 'G', 'GG'];
+const NOMES_TAMANHO = { P: 'Pequena', M: 'Média', G: 'Grande', GG: 'Gigante' };
+let editandoGrupo = null; // { grupoId, ids: { P: fichaId, ... } }
+
+function normalizarNome(n) {
+    return String(n || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function tamanhosAtivos() {
+    return TAMANHOS.filter((t) => document.querySelector('#ficTamanhos input[value="' + t + '"]')?.checked);
+}
+
+function tamanhosPadrao() {
+    try {
+        const salvos = JSON.parse(localStorage.getItem('pcTamanhosPadrao') || 'null');
+        if (Array.isArray(salvos) && salvos.length) return salvos.filter((t) => TAMANHOS.includes(t));
+    } catch (e) {}
+    const usados = TAMANHOS.filter((t) => DB.fichas.some((f) => f.tamanho === t));
+    return usados.length ? usados : ['G'];
+}
+
+function lembrarTamanhos(ativos) {
+    try { localStorage.setItem('pcTamanhosPadrao', JSON.stringify(ativos)); } catch (e) {}
+}
+
+function opcoesInsumos(selId) {
+    return '<option value="">Selecione o ingrediente...</option>' + DB.insumos
+        .map((i) => `<option value="${i.id}" ${selId == i.id ? 'selected' : ''}>${esc(i.nome)} (${brl(custoNaUnidadeCompra(i))}/${esc(i.unidade)})</option>`)
+        .join('');
+}
+
 function refreshIngSelects() {
     document.querySelectorAll('#ficIngLista select').forEach((sel) => {
         const val = sel.value;
-        sel.innerHTML =
-            '<option value="">Selecione...</option>' +
-            DB.insumos.map((i) => `<option value="${i.id}">${esc(i.nome)} (${brl(custoNaUnidadeCompra(i))}/${esc(i.unidade)})</option>`).join('');
+        sel.innerHTML = opcoesInsumos(val);
         sel.value = val;
         atualizarUnidadeLinha(sel);
     });
 }
 
-function addIngFicha(insId = null, qtd = null) {
+function addIngFicha(insId = null, qtds = {}) {
     const lista = document.getElementById('ficIngLista');
+    if (!lista) return;
+    const ins = DB.insumos.find((i) => i.id == insId);
+    const un = ins ? unidadeBase(ins.unidade) : '';
     const div = document.createElement('div');
-    div.className = 'ingrediente-item';
-    const insF = DB.insumos.find((i) => i.id == insId);
-    div.innerHTML = `<select class="form-control" onchange="atualizarUnidadeLinha(this);calcFicha()"><option value="">Selecione...</option>${DB.insumos
-        .map((i) => `<option value="${i.id}" ${insId == i.id ? 'selected' : ''}>${esc(i.nome)} (${brl(custoNaUnidadeCompra(i))}/${esc(i.unidade)})</option>`)
-        .join('')}</select><div class="qtd-wrap"><input type="number" class="form-control" placeholder="Qtd" inputmode="decimal" value="${qtd || ''}" oninput="calcFicha()"><span class="qtd-un">${insF ? unidadeBase(insF.unidade) : ''}</span></div><span class="custo">R$ 0</span><button class="btn btn-danger btn-sm" onclick="this.parentElement.remove();calcFicha()">✕</button>`;
+    div.className = 'ingrediente-item ing-tam';
+    div.innerHTML = `<div class="ing-topo"><select class="form-control" onchange="atualizarUnidadeLinha(this);calcFicha()">${opcoesInsumos(insId)}</select><button type="button" class="btn btn-danger btn-sm" title="Remover ingrediente" aria-label="Remover ingrediente" onclick="this.closest('.ingrediente-item').remove();calcFicha()">✕</button></div>
+        <div class="qtd-tams">${TAMANHOS.map((t) => `<label class="qtd-tam" data-tam="${t}"><span class="qtd-tam-nome">${t}</span><div class="qtd-wrap"><input type="number" class="form-control" min="0" step="any" inputmode="decimal" data-tam="${t}" value="${qtds[t] || ''}" placeholder="0" oninput="calcFicha()" aria-label="Quantidade na ${NOMES_TAMANHO[t]}"><span class="qtd-un">${un}</span></div><small class="custo-tam" data-tam="${t}"></small></label>`).join('')}</div>`;
     lista.appendChild(div);
-    if (qtd) setTimeout(calcFicha, 50);
+    aplicarVisibilidadeTamanhos();
+}
+
+function aplicarVisibilidadeTamanhos() {
+    const ativos = tamanhosAtivos();
+    document.querySelectorAll('#page-nova-ficha .qtd-tam, #page-nova-ficha .preco-tam').forEach((el) => {
+        el.style.display = ativos.includes(el.dataset.tam) ? '' : 'none';
+    });
+    document.querySelectorAll('#ficTamanhos .tam-chip').forEach((c) => c.classList.toggle('on', c.querySelector('input').checked));
+    const btn = document.getElementById('btnProporcional');
+    if (btn) btn.style.display = ativos.length > 1 ? '' : 'none';
+}
+
+function lerFichaForm() {
+    const ativos = tamanhosAtivos();
+    const incMassa = document.getElementById('ficMassa').value === '1';
+    const linhas = [];
+    document.querySelectorAll('#ficIngLista .ingrediente-item').forEach((item) => {
+        const id = item.querySelector('select').value;
+        const qtd = {};
+        item.querySelectorAll('input[data-tam]').forEach((inp) => { qtd[inp.dataset.tam] = parseFloat(inp.value) || 0; });
+        linhas.push({ item, id, ins: DB.insumos.find((i) => i.id == id), qtd });
+    });
+    const precos = {};
+    TAMANHOS.forEach((t) => { precos[t] = parseFloat(document.getElementById('ficPreco_' + t)?.value) || 0; });
+    return { ativos, incMassa, linhas, precos };
 }
 
 function calcFicha() {
-    let custoIng = 0;
-    document.querySelectorAll('#ficIngLista .ingrediente-item').forEach((item) => {
-        const sel = item.querySelector('select');
-        const inp = item.querySelector('input');
-        const span = item.querySelector('.custo');
-        const id = sel.value;
-        const qtd = parseFloat(inp.value) || 0;
+    const box = document.getElementById('ficResumoTabela');
+    if (!box) return;
+    const { ativos, incMassa, linhas, precos } = lerFichaForm();
+    const custoFixo = calcularCustoFixoPorPizza();
+    const taxa = taxaMediaVenda();
+    const custoIng = {};
+    TAMANHOS.forEach((t) => { custoIng[t] = 0; });
 
-        if (id && qtd > 0) {
-            const ins = DB.insumos.find((i) => i.id == id);
-            if (ins) {
-                const custo = (ins.custoUn || 0) * qtd;
-                custoIng += custo;
-                span.textContent = brl(custo);
-            }
-        } else {
-            span.textContent = 'R$ 0';
-        }
+    linhas.forEach((l) => {
+        TAMANHOS.forEach((t) => {
+            const c = l.ins && l.qtd[t] > 0 ? (l.ins.custoUn || 0) * l.qtd[t] : 0;
+            custoIng[t] += c;
+            const el = l.item.querySelector('.custo-tam[data-tam="' + t + '"]');
+            if (el) el.textContent = c > 0 ? brl(c) : '';
+        });
     });
 
-    const tam = document.getElementById('ficTam').value;
-    const incMassa = document.getElementById('ficMassa').value === '1';
-    const custoMassa = incMassa ? getCustoMassa(tam) : 0;
-    const custoFixo = calcularCustoFixoPorPizza();
-    const custoTotal = custoIng + custoMassa + custoFixo;
-    const venda = parseFloat(document.getElementById('ficPreco').value) || 0;
-    const taxas = venda * taxaMediaVenda();
-    const lucro = venda - custoTotal - taxas;
-    const resTaxas = document.getElementById('resTaxas');
-    if (resTaxas) resTaxas.textContent = brl(taxas);
-    const resIdeal = document.getElementById('resIdeal');
-    if (resIdeal) {
-        const ideal = calcPrecoIdeal(custoTotal);
-        resIdeal.textContent = ideal && custoIng > 0 ? brl(ideal) : '-';
+    if (!ativos.length) {
+        box.innerHTML = '<div class="empty">Marque pelo menos um tamanho acima.</div>';
+        return;
     }
-    // CMV = custo da mercadoria (ingredientes + massa). Custo fixo NÃO entra no CMV.
-    const cmv = venda > 0 ? ((custoIng + custoMassa) / venda) * 100 : 0;
-    const margem = venda > 0 ? (lucro / venda) * 100 : 0;
 
-    document.getElementById('resIng').textContent = brl(custoIng);
-    document.getElementById('resMassa').textContent = brl(custoMassa);
-    document.getElementById('resCF').textContent = brl(custoFixo);
-    document.getElementById('resTotal').textContent = brl(custoTotal);
-    document.getElementById('resVenda').textContent = brl(venda);
-    document.getElementById('resLucro').textContent = brl(lucro);
-    document.getElementById('resLucro').className = 'val ' + (lucro >= 0 ? 'green' : 'red');
-    document.getElementById('resCMV').textContent = pct(cmv) + '';
-    document.getElementById('resMargem').textContent = pct(margem) + '';
+    box.innerHTML = ativos.map((t) => {
+        const massa = incMassa ? getCustoMassa(t) : 0;
+        const total = custoIng[t] + massa + custoFixo;
+        const venda = precos[t];
+        const taxas = venda * taxa;
+        const lucro = venda - total - taxas;
+        const cmv = venda > 0 ? ((custoIng[t] + massa) / venda) * 100 : 0;
+        const margem = venda > 0 ? (lucro / venda) * 100 : 0;
+        const ideal = calcPrecoIdeal(total);
+        const linha = (rotulo, valor, cls = '') => `<div class="res-linha ${cls}"><span>${rotulo}</span><b>${valor}</b></div>`;
+        return `<div class="res-tam">
+            <div class="res-tam-cab"><span class="badge-size ${t}">${t}</span> ${NOMES_TAMANHO[t]}</div>
+            ${linha('Ingredientes', brl(custoIng[t]))}
+            ${linha('Massa', brl(massa))}
+            ${isPro ? linha('Custo fixo', brl(custoFixo)) : ''}
+            ${isPro && taxa > 0 ? linha('Taxas (' + pct(taxa * 100) + ')', brl(taxas)) : ''}
+            ${linha('Custo total', brl(total), 'res-total')}
+            ${linha('Preço de venda', venda > 0 ? brl(venda) : '<span style="color:#c62828">falta</span>')}
+            <div class="res-lucro ${venda > 0 ? (lucro >= 0 ? 'pos' : 'neg') : ''}"><small>${isPro ? 'Lucro real' : 'Lucro (sem custo fixo)'}</small><strong>${venda > 0 ? brl(lucro) : '-'}</strong><small>${venda > 0 ? 'Margem ' + pct(margem) + ' · CMV ' + pct(cmv) : ''}</small></div>
+            ${isPro && ideal && custoIng[t] > 0 ? `<div class="res-meta">🎯 Preço para a meta: <b>${brl(ideal)}</b></div>` : ''}
+        </div>`;
+    }).join('');
+}
 
-    const bar = document.getElementById('cmvBar');
-    bar.style.width = Math.min(cmv, 100) + '%';
-    bar.className = 'cmv-fill ' + (cmv <= 30 ? 'good' : cmv <= 35 ? 'medium' : 'bad');
+function preencherProporcional() {
+    const { ativos, linhas } = lerFichaForm();
+    if (ativos.length < 2) { alert('Marque pelo menos dois tamanhos.'); return; }
+    const m = DB.massa || {};
+    const peso = { P: m.pesoP || 200, M: m.pesoM || 300, G: m.pesoG || 400, GG: m.pesoGG || 500 };
+    const preenchidos = (t) => linhas.filter((l) => l.ins && l.qtd[t] > 0).length;
+    const base = [...ativos].sort((a, b) => preenchidos(b) - preenchidos(a) || (b === 'G') - (a === 'G'))[0];
+    if (!preenchidos(base)) { alert('Preencha as quantidades de pelo menos um tamanho primeiro.'); return; }
+
+    let n = 0;
+    linhas.forEach((l) => {
+        if (!l.ins || !(l.qtd[base] > 0)) return;
+        const casas = unidadeBase(l.ins.unidade) === 'un' ? 100 : 1;
+        ativos.forEach((t) => {
+            if (t === base) return;
+            const inp = l.item.querySelector('input[data-tam="' + t + '"]');
+            if (inp && !(parseFloat(inp.value) > 0)) {
+                inp.value = String(Math.round((l.qtd[base] * peso[t] / peso[base]) * casas) / casas);
+                n++;
+            }
+        });
+    });
+    calcFicha();
+    status(n ? '⚖️ ' + n + ' quantidades preenchidas a partir da ' + NOMES_TAMANHO[base] + '. Confira e ajuste se precisar.' : 'Os outros tamanhos já estavam preenchidos.');
 }
 
 function limparFichaPosSalvar() {
@@ -1548,102 +1619,99 @@ function limparFichaPosSalvar() {
 function salvarFicha() {
     const nome = document.getElementById('ficNome').value.trim();
     const cat = document.getElementById('ficCat').value;
-    const tam = document.getElementById('ficTam').value;
-    const preco = parseFloat(document.getElementById('ficPreco').value) || 0;
-    const incMassa = document.getElementById('ficMassa').value === '1';
+    const { ativos, incMassa, linhas, precos } = lerFichaForm();
 
-    if (!nome || preco <= 0) {
-        alert('⚠️ Preencha nome e preço!');
-        return;
-    }
+    if (!nome) { alert('⚠️ Preencha o nome da pizza!'); return; }
+    if (!ativos.length) { alert('⚠️ Marque pelo menos um tamanho!'); return; }
+    const problemas = [];
+    ativos.forEach((t) => {
+        if (!(precos[t] > 0)) problemas.push(NOMES_TAMANHO[t] + ': falta o preço de venda');
+        if (!linhas.some((l) => l.ins && l.qtd[t] > 0)) problemas.push(NOMES_TAMANHO[t] + ': falta a quantidade dos ingredientes');
+    });
+    if (problemas.length) { alert('⚠️ Complete antes de salvar:\n\n• ' + problemas.join('\n• ')); return; }
 
-    const ingredientes = [];
-    let custoIng = 0;
-    document.querySelectorAll('#ficIngLista .ingrediente-item').forEach((item) => {
-        const id = item.querySelector('select').value;
-        const qtd = parseFloat(item.querySelector('input').value) || 0;
-        if (id && qtd > 0) {
-            const ins = DB.insumos.find((i) => i.id == id);
-            if (ins) {
-                const custo = (ins.custoUn || 0) * qtd;
-                custoIng += custo;
-                ingredientes.push({
-                    insumoId: id,
-                    nome: ins.nome,
-                    quantidade: qtd,
-                    unidade: ins.unidade,
-                    custo
-                });
-            }
-        }
+    const editando = !!editandoGrupo;
+    const grupoId = editando ? editandoGrupo.grupoId : gerarId();
+    const idsAnteriores = editando ? editandoGrupo.ids : {};
+    const removidos = Object.keys(idsAnteriores).filter((t) => !ativos.includes(t));
+    if (removidos.length && !confirm('Você desmarcou: ' + removidos.map((t) => NOMES_TAMANHO[t]).join(', ') + '.\nA ficha desse tamanho será excluída. Continuar?')) return;
+    DB.fichas = DB.fichas.filter((f) => !removidos.some((t) => idsAnteriores[t] === f.id));
+
+    ativos.forEach((t) => {
+        const ingredientes = linhas
+            .filter((l) => l.ins && l.qtd[t] > 0)
+            .map((l) => ({ insumoId: l.ins.id, nome: l.ins.nome, quantidade: l.qtd[t], unidade: unidadeBase(l.ins.unidade), custo: (l.ins.custoUn || 0) * l.qtd[t] }));
+        const ficha = { id: idsAnteriores[t] || gerarId(), grupoId, nome, categoria: cat, tamanho: t, precoVenda: precos[t], incMassa, ingredientes };
+        atualizarCustosDaFicha(ficha);
+        const idx = DB.fichas.findIndex((f) => f.id === ficha.id);
+        if (idx !== -1) DB.fichas[idx] = ficha;
+        else DB.fichas.push(ficha);
     });
 
-    if (ingredientes.length === 0) {
-        alert('⚠️ Adicione ingredientes!');
-        return;
-    }
-
-    const custoMassa = incMassa ? getCustoMassa(tam) : 0;
-    const custoFixo = calcularCustoFixoPorPizza();
-    const custoTotal = custoIng + custoMassa + custoFixo;
-    const fichaData = {
-        id: editandoFichaId || gerarId(),
-        nome,
-        categoria: cat,
-        tamanho: tam,
-        precoVenda: preco,
-        incMassa,
-        ingredientes,
-        custoIng,
-        custoMassa,
-        custoFixo,
-        custoTotal,
-        lucro: preco - custoTotal - preco * taxaMediaVenda(),
-        cmv: ((custoIng + custoMassa) / preco) * 100
-    };
-
-    if (editandoFichaId) {
-        const idx = DB.fichas.findIndex((f) => f.id === editandoFichaId);
-        if (idx !== -1) DB.fichas[idx] = fichaData;
-        status('💾 Ficha Atualizada!');
-    } else {
-        DB.fichas.push(fichaData);
-        status('💾 Ficha Salva!');
-    }
-
+    lembrarTamanhos(ativos);
     persistirDados(false);
+    status((editando ? '💾 Ficha atualizada' : '💾 Ficha salva') + (ativos.length > 1 ? ' (' + ativos.length + ' tamanhos)!' : '!'));
     limparFichaPosSalvar();
     sincronizarUI();
 }
 
 function limparFicha() {
-    editandoFichaId = null;
+    editandoGrupo = null;
     document.getElementById('ficNome').value = '';
-    document.getElementById('ficPreco').value = '';
-    document.getElementById('ficIngLista').innerHTML = '';
+    document.getElementById('ficCat').value = 'Tradicional';
+    document.getElementById('ficMassa').value = '1';
     document.getElementById('fichaHeader').textContent = '➕ Nova Ficha Técnica';
     document.getElementById('fichaHeader').style.background = '';
-    document.getElementById('ficCat').value = 'Tradicional';
-    document.getElementById('ficTam').value = 'G';
-    document.getElementById('ficMassa').value = '1';
+    const padrao = tamanhosPadrao();
+    document.querySelectorAll('#ficTamanhos input').forEach((c) => { c.checked = padrao.includes(c.value); });
+    TAMANHOS.forEach((t) => { const p = document.getElementById('ficPreco_' + t); if (p) p.value = ''; });
+    document.getElementById('ficIngLista').innerHTML = '';
     addIngFicha();
+    aplicarVisibilidadeTamanhos();
     calcFicha();
+}
+
+// Junta as fichas do mesmo sabor. Fichas antigas (sem grupo) são juntadas pelo nome igual.
+function grupoDaFicha(f) {
+    const grupo = f.grupoId
+        ? DB.fichas.filter((x) => x.grupoId === f.grupoId)
+        : DB.fichas.filter((x) => !x.grupoId && normalizarNome(x.nome) === normalizarNome(f.nome));
+    const porTam = {};
+    porTam[f.tamanho] = f;
+    grupo.forEach((x) => { if (!porTam[x.tamanho]) porTam[x.tamanho] = x; });
+    return porTam;
 }
 
 function editarFicha(id) {
     const f = DB.fichas.find((x) => x.id === id);
     if (!f) return;
+    const porTam = grupoDaFicha(f);
+    const tams = TAMANHOS.filter((t) => porTam[t]);
 
-    editandoFichaId = id;
+    editandoGrupo = { grupoId: f.grupoId || gerarId(), ids: {} };
+    tams.forEach((t) => { editandoGrupo.ids[t] = porTam[t].id; });
+
     document.getElementById('ficNome').value = f.nome;
     document.getElementById('ficCat').value = f.categoria;
-    document.getElementById('ficTam').value = f.tamanho;
-    document.getElementById('ficPreco').value = f.precoVenda;
     document.getElementById('ficMassa').value = f.incMassa !== false ? '1' : '0';
+    document.querySelectorAll('#ficTamanhos input').forEach((c) => { c.checked = tams.includes(c.value); });
+    TAMANHOS.forEach((t) => { const p = document.getElementById('ficPreco_' + t); if (p) p.value = porTam[t] ? porTam[t].precoVenda : ''; });
+
+    const ordem = [];
+    const qtds = {};
+    tams.forEach((t) => {
+        (porTam[t].ingredientes || []).forEach((ing) => {
+            if (!qtds[ing.insumoId]) { qtds[ing.insumoId] = {}; ordem.push(ing.insumoId); }
+            qtds[ing.insumoId][t] = ing.quantidade;
+        });
+    });
     document.getElementById('ficIngLista').innerHTML = '';
-    (f.ingredientes || []).forEach((ing) => addIngFicha(ing.insumoId, ing.quantidade));
+    ordem.forEach((insId) => addIngFicha(insId, qtds[insId]));
+    if (!ordem.length) addIngFicha();
+    aplicarVisibilidadeTamanhos();
     calcFicha();
-    document.getElementById('fichaHeader').textContent = '✏️ Editando: ' + f.nome;
+
+    document.getElementById('fichaHeader').textContent = '✏️ Editando: ' + f.nome + (tams.length > 1 ? ' (' + tams.join(', ') + ')' : '');
     document.getElementById('fichaHeader').style.background = 'linear-gradient(135deg, #ff9800, #e65100)';
     document.querySelectorAll('.nav-tab').forEach((t) => t.classList.remove('active'));
     document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
@@ -1654,9 +1722,12 @@ function editarFicha(id) {
 }
 
 function excluirFicha(id) {
-    if (!confirm('Excluir?')) return;
+    const f = DB.fichas.find((x) => x.id === id);
+    if (!f) return;
+    const outros = Object.keys(grupoDaFicha(f)).length - 1;
+    if (!confirm('Excluir a ficha "' + f.nome + '" (' + NOMES_TAMANHO[f.tamanho] + ')?' + (outros > 0 ? '\n\nOs outros tamanhos deste sabor continuam.' : ''))) return;
 
-    DB.fichas = DB.fichas.filter((f) => f.id !== id);
+    DB.fichas = DB.fichas.filter((x) => x.id !== id);
     persistirDados(false);
     sincronizarUI();
     status('🗑️ Excluída!');
@@ -1665,15 +1736,20 @@ function excluirFicha(id) {
 function duplicarFicha(id) {
     const f = DB.fichas.find((x) => x.id === id);
     if (!f) return;
-
-    const copy = clonar(f);
-    copy.id = gerarId();
-    copy.nome = copy.nome + ' (Cópia)';
-    DB.fichas.push(copy);
+    const porTam = grupoDaFicha(f);
+    const novoGrupo = gerarId();
+    Object.values(porTam).forEach((x) => {
+        const copia = clonar(x);
+        copia.id = gerarId();
+        copia.grupoId = novoGrupo;
+        copia.nome = x.nome + ' (Cópia)';
+        DB.fichas.push(copia);
+    });
 
     persistirDados(false);
     sincronizarUI();
-    status('📋 Duplicada!');
+    const n = Object.keys(porTam).length;
+    status('📋 Duplicada' + (n > 1 ? ' com ' + n + ' tamanhos' : '') + '!');
 }
 
 function atualizarCustosDaFicha(f) {
@@ -2599,12 +2675,8 @@ function aplicarTravaPlanos() {
     }
 
     // --- 3. No Básico o lucro da ficha não inclui custo fixo: o rótulo diz isso ---
-    const rotuloLucro = document.getElementById('resLucro')?.previousElementSibling;
-    if (rotuloLucro) rotuloLucro.textContent = 'LUCRO (sem custo fixo)';
-    ['resTaxas', 'resIdeal'].forEach((id) => {
-        const item = document.getElementById(id)?.closest('.resumo-item');
-        if (item) item.style.display = 'none';
-    });
+    // (o resumo por tamanho já mostra "Lucro (sem custo fixo)" e esconde taxas/meta no Básico)
+    if (document.getElementById('ficIngLista')) calcFicha();
 
     // --- 4. Aviso dentro de "Criar Ficha": Custo Fixo e Massa não incluídos no Básico ---
     injetarAvisoFichaBasico();
