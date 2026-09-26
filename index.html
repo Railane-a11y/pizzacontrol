@@ -1,866 +1,567 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>PizzaControl — Sistema de Precificação para Pizzarias</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-    * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
-    body { margin: 0; padding: 0; scroll-behavior: smooth; overflow-x: hidden; background: #f8fafc; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PizzaControl | Descubra o lucro real de cada pizza</title>
+<meta name="description" content="Coloque aluguel, luz, funcionários, massa e caixa dentro do preço de cada sabor e descubra quanto você realmente lucra. Pagamento único, a partir de R$ 10,89.">
+<meta property="og:title" content="PizzaControl | Descubra o lucro real de cada pizza">
+<meta property="og:description" content="Sistema de precificação feito por pizzaiolo, para pizzaiolos. Pagamento único, acesso vitalício.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#B3261E">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍕</text></svg>">
+<style>
+:root{
+  --tomate:#B3261E; --tomate-escuro:#7F1A14; --forno:#2B1B14; --massa:#FFF7EC;
+  --queijo:#F6C90E; --manjericao:#2E7D32; --papel:#FFFFFF; --texto:#2B1B14; --suave:#6B5B53; --linha:#E9DDCF;
+  --raio:14px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:var(--texto);background:var(--papel);line-height:1.6;-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--queijo);outline-offset:3px}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+.estreito{max-width:680px}
+section{padding:64px 0}
+h1,h2,h3{line-height:1.15;margin:0;letter-spacing:-.02em}
+h2{font-size:clamp(1.6rem,4.2vw,2.3rem);font-weight:900;margin-bottom:14px}
+h3{font-size:1.15rem;font-weight:800}
+p{margin:0 0 14px}
+.lead{font-size:1.1rem;color:var(--suave)}
 
-    /* ---- COLORS / BACKGROUNDS ---- */
-    .hero-bg { background: #0d1117; }
-    .section-light { background: #f5f6fa; }
-    .section-white { background: #ffffff; }
-    .dark-section { background: #0d1117; }
+/* Botão único da página */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--manjericao);color:#fff;text-decoration:none;font-weight:900;font-size:1.08rem;padding:18px 28px;border-radius:12px;border:0;cursor:pointer;box-shadow:0 6px 0 #1E5A22;transition:transform .12s,box-shadow .12s;text-align:center;width:100%;max-width:440px}
+.btn:hover{transform:translateY(2px);box-shadow:0 4px 0 #1E5A22}
+.btn:active{transform:translateY(6px);box-shadow:none}
+.garantias{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:14px;font-size:.9rem;color:var(--suave)}
+.garantias span{white-space:nowrap}
 
-    /* ---- BADGES ---- */
-    .badge-alert {
-      background: #e53e3e; color: #fff;
-      font-size: 0.65rem; font-weight: 700;
-      letter-spacing: 0.08em; padding: 5px 14px;
-      border-radius: 999px; display: inline-block;
-      text-align: center;
-    }
-    .badge-green { background: #22c55e; color: #fff; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; padding: 4px 14px; border-radius: 999px; display: inline-block; }
-    .badge-yellow { background: #f6c90e; color: #1a1a1a; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; padding: 5px 18px; border-radius: 999px; display: inline-block; }
-    .section-tag { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; padding: 4px 14px; border-radius: 999px; display: inline-block; text-transform: uppercase; }
-    .tag-red { background: #e53e3e; color: #fff; }
-    .tag-green { background: #22c55e; color: #fff; }
+/* HERO */
+.hero{background:var(--forno);color:#fff;padding:28px 0 56px}
+.marca{font-weight:900;font-size:1.25rem;margin-bottom:34px;display:block;text-decoration:none}
+.marca b{color:var(--queijo)}
+.hero-grid{display:grid;gap:36px;align-items:center}
+@media(min-width:900px){.hero-grid{grid-template-columns:1.05fr .95fr}}
+.hero h1{font-size:clamp(2rem,5.6vw,3.3rem);font-weight:900;margin-bottom:18px}
+.hero .lead{color:#E8D9CC;font-size:1.12rem;max-width:560px}
+.hero .garantias{color:#CDBBAD}
 
-    /* ---- PREMIUM ANIMATIONS & EFFECTS ---- */
-    .hover-card { 
-      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); 
-    }
-    .hover-card:hover { 
-      transform: translateY(-6px) scale(1.02); 
-      box-shadow: 0 20px 35px rgba(0, 0, 0, 0.08) !important;
-    }
-    .hover-card-neon:hover {
-      transform: translateY(-6px) scale(1.02);
-      box-shadow: 0 20px 40px rgba(229, 62, 62, 0.25) !important;
-      border-color: #e53e3e !important;
-    }
+/* Comanda (elemento-assinatura) */
+.comanda{background:#fff;color:var(--texto);font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;font-size:.92rem;padding:22px 20px 26px;border-radius:4px;max-width:380px;margin:0 auto;position:relative;box-shadow:0 18px 40px rgba(0,0,0,.35);transform:rotate(-1.5deg)}
+.comanda{border-bottom:6px dotted var(--forno)}
+.comanda .cab{text-align:center;border-bottom:2px dashed var(--linha);padding-bottom:10px;margin-bottom:10px}
+.comanda .cab strong{display:block;font-size:1.05rem}
+.comanda .cab small{color:var(--suave)}
+.linha{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
+.linha.oculto{color:var(--tomate);font-weight:700}
+.linha.total{border-top:2px dashed var(--linha);margin-top:8px;padding-top:10px;font-weight:800}
+.linha.lucro{font-size:1.15rem;font-weight:900;color:var(--manjericao)}
+.comanda .nota{margin-top:12px;font-size:.78rem;color:var(--suave);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.45}
+.carimbo{position:absolute;top:18px;right:-8px;background:var(--tomate);color:#fff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-weight:900;font-size:.78rem;padding:6px 10px;border-radius:6px;transform:rotate(8deg)}
 
-    /* Infinite Marquee Loop for Testimonials */
-    .marquee-wrapper {
-      display: flex;
-      overflow: hidden;
-      width: 100%;
-      position: relative;
-    }
-    .marquee-track {
-      display: flex;
-      gap: 24px;
-      width: max-content;
-      animation: scrollMarquee 45s linear infinite;
-    }
-    .marquee-wrapper:hover .marquee-track {
-      animation-play-state: paused;
-    }
-    @keyframes scrollMarquee {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(calc(-50% - 12px)); }
-    }
+/* VSL */
+.vsl{position:relative;aspect-ratio:9/16;max-width:340px;margin:0 auto;border-radius:18px;overflow:hidden;background:#000;box-shadow:0 18px 40px rgba(0,0,0,.4)}
+.vsl.horizontal{aspect-ratio:16/9;max-width:560px}
+.vsl button{position:absolute;inset:0;border:0;padding:0;cursor:pointer;background:#000 center/cover no-repeat;color:#fff}
+.vsl button span{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--tomate);border-radius:50%;width:78px;height:78px;display:flex;align-items:center;justify-content:center;font-size:2rem;box-shadow:0 0 0 10px rgba(179,38,30,.35)}
+.vsl small{position:absolute;left:0;right:0;bottom:14px;text-align:center;font-weight:700;text-shadow:0 1px 4px #000}
+.vsl iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 
-    /* Subtle Content Fade-ins */
-    .fade-in-section {
-      animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-    .fade-in-delay-1 { animation-delay: 0.15s; }
-    .fade-in-delay-2 { animation-delay: 0.3s; }
-    
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+/* Faixa de urgência */
+.faixa{background:var(--queijo);color:var(--forno);text-align:center;font-weight:800;padding:10px 16px;font-size:.95rem}
+.faixa[hidden]{display:none}
+.relogio{display:inline-block;background:var(--forno);color:var(--queijo);border-radius:6px;padding:2px 8px;margin-left:6px;font-variant-numeric:tabular-nums}
 
-    /* ---- BUTTONS ---- */
-    .btn-red {
-      background: linear-gradient(135deg, #e53e3e, #c0392b);
-      color: #fff; font-weight: 800; letter-spacing: 0.07em;
-      border-radius: 8px; padding: 16px 32px; font-size: 1rem;
-      border: 2px solid #e53e3e; transition: all 0.3s; cursor: pointer;
-      box-shadow: 0 4px 24px rgba(229,62,62,0.35);
-      text-decoration: none; display: inline-block; text-align: center;
-    }
-    .btn-red:hover { background: linear-gradient(135deg, #c0392b, #a93226); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(229,62,62,0.55); }
-    .btn-dark {
-      background: #1a2233; color: #fff; font-weight: 700;
-      letter-spacing: 0.07em; border-radius: 8px; padding: 14px 24px;
-      font-size: 0.9rem; border: 2px solid #2d3748; transition: all 0.2s;
-      cursor: pointer; text-decoration: none; display: block; text-align: center; text-transform: uppercase;
-    }
-    .btn-dark:hover { background: #2d3748; }
+/* Problema */
+.fundo-massa{background:var(--massa)}
+.viloes{display:grid;gap:14px;margin-top:26px}
+@media(min-width:760px){.viloes{grid-template-columns:repeat(3,1fr)}}
+.vilao{border-left:5px solid var(--tomate);background:#fff;padding:18px 18px 16px;border-radius:0 var(--raio) var(--raio) 0}
+.vilao h3{margin-bottom:6px}
+.vilao p{margin:0;color:var(--suave)}
 
-    /* ---- CARDS ---- */
-    .card-dark { background: #1a2233; border-radius: 16px; }
-    .card-white { background: #fff; border-radius: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
-    .feature-card { background: #fff; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.03); padding: 24px; transition: all 0.3s ease; border: 1px solid #e2e8f0; }
-    .feature-card:hover { transform: translateY(-5px); box-shadow: 0 16px 30px rgba(229,62,62,0.08); border-color: #e53e3e; }
-    
-    /* Clean Bonus Cards (No Background Images) */
-    .bonus-card-green { border: 2px solid #22c55e; border-radius: 14px; background: radial-gradient(circle at top right, rgba(34,197,94,0.08), transparent 70%), #111827; transition: all 0.3s ease; }
-    .bonus-card-green:hover { box-shadow: 0 15px 30px rgba(34, 197, 94, 0.2); transform: translateY(-4px); }
-    .bonus-card-red { border: 2px solid #e53e3e; border-radius: 14px; background: radial-gradient(circle at top right, rgba(229,62,62,0.08), transparent 70%), #111827; transition: all 0.3s ease; }
-    .bonus-card-red:hover { box-shadow: 0 15px 30px rgba(229, 62, 62, 0.2); transform: translateY(-4px); }
-    
-    .plan-vip { background: #0d1117; border: 3px solid #e53e3e; border-radius: 16px; padding: 32px 24px; position: relative; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 16px 50px rgba(220,38,38,0.25); }
-    .plan-vip:hover { transform: scale(1.03); box-shadow: 0 25px 60px rgba(220,38,38,0.4); }
-    .plan-vip-badge { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); background: #f6c90e; color: #1a1a1a; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.1em; padding: 5px 20px; border-radius: 999px; white-space: nowrap; }
+/* Calculadora */
+.calc{background:#fff;border:2px solid var(--forno);border-radius:var(--raio);padding:22px;margin-top:22px}
+.campos{display:grid;gap:14px}
+@media(min-width:640px){.campos{grid-template-columns:1fr 1fr}}
+.campos label{display:block;font-weight:700;font-size:.95rem;margin-bottom:6px}
+.campos input{width:100%;font-size:1.15rem;padding:12px 14px;border:2px solid var(--linha);border-radius:10px;font-family:inherit;color:var(--texto)}
+.campos input:focus{border-color:var(--tomate);outline:none}
+.resultado{margin-top:18px;background:var(--forno);color:#fff;border-radius:12px;padding:18px}
+.resultado .grande{font-size:clamp(1.9rem,6vw,2.6rem);font-weight:900;color:var(--queijo);line-height:1.1}
+.resultado p{margin:6px 0 0;color:#E8D9CC}
 
-    /* ---- MOCKUP ---- */
-    .vsl-border { border: 2px solid #e53e3e; border-radius: 12px; background: #0a0e18; }
-    .screen-mockup { border-radius: 10px; background: #1a2233; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.35); min-height: 220px; display: flex; flex-direction: column; }
-    
-    /* ---- FAQ ---- */
-    .faq-item { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 10px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
-    .faq-question { padding: 16px 18px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: #1a202c; transition: background 0.15s; gap: 12px; }
-    .faq-question:hover { background: #f9fafb; }
-    .faq-answer { padding: 0 18px; max-height: 0; overflow: hidden; transition: max-height 0.3s ease, padding 0.3s ease; color: #4a5568; font-size: 0.92rem; line-height: 1.6; }
-    .faq-answer.open { max-height: 300px; padding: 0 18px 16px; }
-    .faq-icon { transition: transform 0.3s; font-size: 1.1rem; color: #e53e3e; font-weight: 700; flex-shrink: 0; }
-    .faq-icon.open { transform: rotate(180deg); }
+/* Passos */
+.passos{display:grid;gap:18px;margin-top:26px;counter-reset:p}
+@media(min-width:760px){.passos{grid-template-columns:repeat(3,1fr)}}
+.passo{counter-increment:p}
+.passo::before{content:counter(p);display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:50%;background:var(--tomate);color:#fff;font-weight:900;font-size:1.2rem;margin-bottom:10px}
+.passo p{color:var(--suave);margin:6px 0 0}
 
-    /* ---- MISC ---- */
-    .check-red { color: #e53e3e; font-size: 1.1rem; flex-shrink: 0; }
-    .check-green { color: #22c55e; font-size: 1.1rem; flex-shrink: 0; font-weight: bold; }
-    .stars { color: #f6c90e; font-size: 1rem; }
-    .testimonial-avatar { width: 42px; height: 42px; border-radius: 50%; background: #1a2233; color: #fff; font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .info-bar { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
-    .info-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #718096; }
-    .feature-icon { font-size: 2.2rem; margin-bottom: 12px; }
+/* Recursos */
+.recursos{display:grid;gap:10px 28px;margin-top:22px}
+@media(min-width:760px){.recursos{grid-template-columns:1fr 1fr}}
+.recurso{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--linha)}
+.recurso .ic{font-size:1.5rem;line-height:1.2}
+.recurso p{margin:2px 0 0;color:var(--suave);font-size:.95rem}
+.pro-tag{display:inline-block;background:var(--forno);color:var(--queijo);font-size:.7rem;font-weight:800;padding:2px 7px;border-radius:5px;margin-left:6px;vertical-align:2px}
 
-    /* ---- LAYOUT HELPERS ---- */
-    .container { max-width: 1000px; margin: 0 auto; width: 100%; }
-    .container-sm { max-width: 860px; margin: 0 auto; width: 100%; }
-    .container-xs { max-width: 780px; margin: 0 auto; width: 100%; }
+/* Fundador */
+.fundador{display:grid;gap:22px;align-items:center}
+@media(min-width:760px){.fundador{grid-template-columns:160px 1fr}}
+.avatar{width:140px;height:140px;border-radius:50%;background:var(--tomate);color:#fff;display:flex;align-items:center;justify-content:center;font-size:3.4rem;font-weight:900;object-fit:cover;border:5px solid var(--queijo)}
+.fundador blockquote{margin:0;font-size:1.12rem}
+.fundador cite{display:block;margin-top:10px;font-style:normal;font-weight:800}
+.fundador cite a{color:var(--tomate)}
 
-    /* ---- GRID SYSTEMS ---- */
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; margin-bottom: 72px; }
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-    .grid-bonus { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+/* Depoimentos (só aparecem quando houver depoimentos reais) */
+.depos{display:grid;gap:16px;margin-top:22px}
+@media(min-width:760px){.depos{grid-template-columns:repeat(3,1fr)}}
+.depo{background:#fff;border:1px solid var(--linha);border-radius:var(--raio);padding:18px}
+.depo img{width:100%;border-radius:10px;display:block}
+.depo p{margin:10px 0 4px}
+.depo b{font-size:.9rem}
 
-    /* ---- MOBILE & DESKTOP ORDERING FOR FEATURES ---- */
-    .text-col { order: 1; }
-    .mockup-col { order: 2; }
+/* Bônus */
+.bonus-sec{background:var(--forno);color:#fff}
+.bonus-sec .lead{color:#E8D9CC}
+.bonus{display:grid;gap:16px;margin-top:24px}
+@media(min-width:760px){.bonus{grid-template-columns:1fr 1fr}}
+.bonus-item{border:2px dashed var(--queijo);border-radius:var(--raio);padding:22px;position:relative}
+.bonus-item .n{position:absolute;top:-14px;left:18px;background:var(--queijo);color:var(--forno);font-weight:900;font-size:.85rem;padding:3px 12px;border-radius:20px}
+.bonus-item .ic{font-size:2.2rem}
+.bonus-item h3{margin:8px 0 6px;color:#fff}
+.bonus-item p{margin:0;color:#E8D9CC}
 
-    @media (min-width: 769px) {
-      .desktop-reverse .mockup-col { order: 1; }
-      .desktop-reverse .text-col { order: 2; }
-    }
+/* Planos */
+.planos{display:grid;gap:22px;margin-top:28px;align-items:start}
+@media(min-width:820px){.planos{grid-template-columns:1fr 1.12fr}.plano.pro{order:0}}
+.plano{background:#fff;border:2px solid var(--linha);border-radius:18px;padding:26px 22px}
+.plano.pro{order:-1;border:3px solid var(--manjericao);box-shadow:0 14px 36px rgba(46,125,50,.18);position:relative}
+.selo{position:absolute;top:-15px;left:50%;transform:translateX(-50%);background:var(--manjericao);color:#fff;font-weight:900;font-size:.85rem;padding:5px 14px;border-radius:20px;white-space:nowrap}
+.plano h3{font-size:1.35rem}
+.plano .desc{color:var(--suave);margin:4px 0 16px;font-size:.95rem}
+.plano ul{list-style:none;padding:0;margin:0 0 18px}
+.plano li{padding:6px 0 6px 28px;position:relative;font-size:.97rem}
+.plano li::before{content:"✓";position:absolute;left:0;color:var(--manjericao);font-weight:900}
+.plano li.nao{color:#A3958C;text-decoration:line-through}
+.plano li.nao::before{content:"✕";color:var(--tomate)}
+.preco{font-size:2.7rem;font-weight:900;line-height:1}
+.preco small{font-size:1rem;font-weight:700;color:var(--suave)}
+.preco-obs{color:var(--suave);font-size:.88rem;margin:6px 0 16px}
+.btn-simples{display:block;text-align:center;padding:15px;border-radius:12px;border:2px solid var(--forno);color:var(--forno);text-decoration:none;font-weight:800}
+.btn-simples:hover{background:var(--massa)}
+.plano .btn{max-width:none}
+.aviso-email{background:#FFF3C4;border-radius:10px;padding:12px 14px;font-size:.92rem;margin-top:22px}
 
-    /* ---- SECTION PADDING ---- */
-    .sec-pad { padding: 64px 20px; }
-    .sec-pad-sm { padding: 48px 20px; }
+/* Garantia */
+.garantia{display:flex;gap:18px;align-items:center;background:var(--massa);border-radius:18px;padding:22px}
+.garantia .escudo{flex:0 0 auto;width:86px;height:86px;border-radius:50%;background:var(--manjericao);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;line-height:1}
+.garantia .escudo b{font-size:2rem}
+.garantia .escudo small{font-size:.72rem}
+.garantia p{margin:6px 0 0;color:var(--suave)}
 
-    /* ===================== PHONE MOCKUP ===================== */
-    .mockup-wrapper { position: relative; width: 100%; max-width: 560px; margin: 0 auto; }
-    .laptop-frame { background: #1a1a2e; border-radius: 14px 14px 5px 5px; border: 3px solid #2d3748; padding: 10px 10px 5px; position: relative; z-index: 1; }
-    .laptop-screen { background: #fff; border-radius: 7px; overflow: hidden; aspect-ratio: 16/10; }
-    .laptop-base-1 { background: #c0c0c0; height: 5px; border-radius: 0 0 3px 3px; margin: 0 -3px; }
-    .laptop-base-2 { background: #a0a0a0; height: 9px; border-radius: 0 0 7px 7px; margin: 0 -16px; }
-    .phone-frame { position: absolute; right: -16px; bottom: -8px; width: 26%; z-index: 2; background: #1a1a2e; border-radius: 20px; border: 3px solid #2d3748; padding: 7px 4px 4px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
-    .phone-notch { background: #0d1117; width: 40%; height: 7px; border-radius: 4px; margin: 0 auto 5px; }
-    .phone-screen { background: #fff; border-radius: 10px; overflow: hidden; }
-    .phone-home { background: #1a1a2e; height: 18px; display: flex; justify-content: center; align-items: center; }
-    .phone-home-bar { background: #2d3748; width: 40%; height: 3px; border-radius: 2px; }
+/* FAQ */
+details{border-bottom:1px solid var(--linha);padding:16px 0}
+summary{cursor:pointer;font-weight:800;list-style:none;display:flex;justify-content:space-between;gap:12px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-size:1.4rem;line-height:1;color:var(--tomate)}
+details[open] summary::after{content:"–"}
+details p{margin:10px 0 0;color:var(--suave)}
 
-    /* ============================================================
-       RESPONSIVE — MOBILE FIRST OVERRIDES
-    ============================================================ */
-    @media (max-width: 768px) {
-      /* Flex column guarantees Text is always on top (order 1) */
-      .grid-2 { display: flex !important; flex-direction: column !important; gap: 32px !important; margin-bottom: 56px !important; }
-      .text-col { order: 1 !important; width: 100%; text-align: center; }
-      .mockup-col { order: 2 !important; width: 100%; }
-      .sec-h3 { text-align: center; }
-      .section-tag { margin: 0 auto 12px; display: table; }
-      
-      .grid-3, .grid-bonus { grid-template-columns: 1fr !important; gap: 32px !important; margin-bottom: 56px !important; }
-      .sec-pad { padding: 44px 16px; }
-      .sec-pad-sm { padding: 32px 16px; }
-      .hero-h1 { font-size: 1.75rem !important; }
-      .vsl-border { padding: 20px 10px !important; }
-      .mockup-wrapper { max-width: 100% !important; }
-      .phone-frame { right: -10px; width: 28%; }
-      .btn-hero { width: 100% !important; padding: 16px 20px !important; font-size: 0.95rem !important; }
-      .info-bar { gap: 10px; }
-      .info-item { font-size: 0.75rem; }
-      .sec-h2 { font-size: 1.5rem !important; }
-      .badge-alert { font-size: 0.58rem !important; padding: 4px 10px !important; }
-      .plan-vip { padding: 28px 18px !important; }
-      .faq-question { font-size: 0.88rem; padding: 14px 14px; }
-      .bonus-card-green, .bonus-card-red { padding: 28px 20px !important; }
-      .testimonial-text { font-size: 0.85rem !important; }
-      .footer-links { gap: 16px !important; }
-      .nav-items { display: none !important; }
-      .vip-price { font-size: 2.1rem !important; }
-    }
+/* Final */
+.final{background:var(--tomate);color:#fff;text-align:center}
+.final .lead{color:#FBE3DF;margin:0 auto 24px;max-width:560px}
+footer{background:var(--forno);color:#CDBBAD;text-align:center;padding:28px 20px 90px;font-size:.88rem}
+footer a{margin:0 8px;color:#CDBBAD}
 
-    @media (max-width: 400px) {
-      .hero-h1 { font-size: 1.5rem !important; }
-      .badge-alert { font-size: 0.52rem !important; }
-      .btn-red { font-size: 0.85rem !important; padding: 14px 16px !important; }
-    }
-  </style>
+/* Barra fixa no celular */
+.barra{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--linha);padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:12px;z-index:50;transform:translateY(110%);transition:transform .25s}
+.barra.on{transform:none}
+.barra div{font-size:.85rem;line-height:1.3}
+.barra b{font-size:1.05rem}
+.barra .btn{padding:13px 16px;font-size:.95rem;flex:1;max-width:none;box-shadow:0 4px 0 #1E5A22}
+@media(min-width:900px){.barra{display:none}}
+
+/* Popup de oferta */
+.modal{position:fixed;inset:0;background:rgba(43,27,20,.8);display:none;align-items:center;justify-content:center;padding:16px;z-index:100}
+.modal.on{display:flex}
+.modal-box{background:#fff;border-radius:18px;max-width:420px;width:100%;padding:28px 22px;text-align:center;position:relative}
+.modal-box h3{font-size:1.5rem;margin-bottom:10px}
+.modal-box .x{position:absolute;top:8px;right:12px;background:none;border:0;font-size:1.8rem;color:var(--suave);cursor:pointer}
+.modal-box .de{color:var(--suave);text-decoration:line-through}
+.modal-box .por{font-size:2.6rem;font-weight:900;color:var(--manjericao);line-height:1.1;margin-bottom:4px}
+.modal-box .btn{max-width:none;margin-top:14px}
+.modal-box .recusar{display:block;margin-top:14px;color:var(--suave);font-size:.9rem}
+</style>
 </head>
 <body>
 
-<section class="hero-bg sec-pad">
-  <div class="container-sm" style="text-align: center;">
+<div class="faixa" id="faixa" hidden>🔥 Preço de lançamento acaba em <span class="relogio" id="relogio">--</span></div>
 
-    <div style="margin-bottom: 20px;" class="fade-in-section">
-      <span class="badge-alert">⚠️ ATENÇÃO: O ÚNICO SISTEMA DE PRECIFICAÇÃO FOCADO EM LUCRO REAL PARA PIZZARIAS</span>
-    </div>
-
-    <h1 class="hero-h1 fade-in-section fade-in-delay-1" style="font-size: clamp(1.6rem, 5vw, 3rem); font-weight: 900; color: #fff; line-height: 1.18; margin-bottom: 16px; text-transform: uppercase; letter-spacing: -0.01em;">
-      DOMINE O CUSTO DA SUA PIZZARIA: GESTÃO PROFISSIONAL E INDEPENDENTE.
-      <span style="color: #f6c90e;"> (FUNCIONA OFFLINE)</span>
-    </h1>
-
-    <p class="fade-in-section fade-in-delay-1" style="color: #a0aec0; font-size: clamp(0.9rem, 2.5vw, 1rem); max-width: 520px; margin: 0 auto 32px; line-height: 1.7;">
-      O único sistema de precificação focado em lucro real. Rateie seus gastos fixos e veja na tela a margem de lucro exata de cada pizza do seu cardápio em menos de 2 minutos.
-    </p>
-
-    <div class="vsl-border fade-in-section fade-in-delay-2" style="max-width: 700px; margin: 0 auto 28px; padding: 28px 16px;">
-      <div class="mockup-wrapper">
-        <div class="laptop-frame">
-          <div class="laptop-screen">
-            <div style="background: #e53e3e; padding: 7px 12px; display: flex; align-items: center; gap: 8px;">
-              <span style="color:#fff; font-weight:800; font-size:0.8rem;">🍕 PizzaControl</span>
-              <div style="flex:1;"></div>
-              <div class="nav-items" style="display:flex; gap:5px; font-size:0.55rem; color:rgba(255,255,255,0.85);">
-                <span style="background:rgba(255,255,255,0.2);padding:2px 7px;border-radius:4px;">Dashboard</span>
-                <span style="padding:2px 7px;">Insumos</span>
-                <span style="padding:2px 7px;">Fichas</span>
-                <span style="padding:2px 7px;">Massa</span>
-              </div>
-            </div>
-            <div style="background:#f0f4f8; padding:9px; height:calc(100% - 32px); display:flex; flex-direction:column; gap:7px;">
-              <div style="background:#1a2233; border-radius:7px; padding:9px 12px; display:flex; gap:10px; align-items:center;">
-                <div style="text-align:center;">
-                  <div style="font-size:0.55rem;color:#a0aec0;">Insumos</div>
-                  <div style="font-size:1rem;font-weight:800;color:#fff;">18</div>
-                </div>
-                <div style="width:1px;background:#2d3748;height:28px;"></div>
-                <div style="text-align:center;">
-                  <div style="font-size:0.55rem;color:#a0aec0;">Faturamento</div>
-                  <div style="font-size:1rem;font-weight:800;color:#22c55e;">R$ 84,00</div>
-                </div>
-                <div style="flex:1;"></div>
-                <div style="text-align:right;">
-                  <div style="font-size:0.5rem;color:#f6c90e;">MAIS LUCRATIVA</div>
-                  <div style="font-size:0.65rem;font-weight:700;color:#fff;">FRANGO (62%)</div>
-                </div>
-              </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
-                <div style="background:#fff;border-radius:6px;padding:9px;">
-                  <div style="font-size:0.55rem;color:#718096;margin-bottom:4px;">Top Fichas</div>
-                  <div style="display:flex;justify-content:space-between;font-size:0.6rem;border-bottom:1px solid #f0f0f0;padding-bottom:3px;margin-bottom:3px;">
-                    <span style="color:#1a202c;font-weight:600;">Pizza</span><span style="color:#1a202c;font-weight:600;">Lucro</span>
-                  </div>
-                  <div style="display:flex;justify-content:space-between;font-size:0.6rem;padding-bottom:2px;">
-                    <span style="color:#4a5568;">Frango</span><span style="color:#22c55e;font-weight:700;">R$21,11</span>
-                  </div>
-                  <div style="display:flex;justify-content:space-between;font-size:0.6rem;padding-bottom:2px;">
-                    <span style="color:#4a5568;">Calabresa</span><span style="color:#22c55e;font-weight:700;">R$18,30</span>
-                  </div>
-                </div>
-                <div style="background:#fff;border-radius:6px;padding:9px;">
-                  <div style="font-size:0.55rem;color:#718096;margin-bottom:4px;">Margem de Lucro</div>
-                  <div style="display:flex;align-items:flex-end;gap:3px;margin-bottom:5px;">
-                    <span style="font-size:1.4rem;font-weight:900;color:#1a2233;line-height:1;">62</span>
-                    <span style="font-size:0.85rem;color:#22c55e;font-weight:700;padding-bottom:2px;">%</span>
-                  </div>
-                  <div style="background:#e2e8f0;border-radius:4px;height:5px;overflow:hidden;">
-                    <div style="background:#22c55e;height:100%;width:62%;border-radius:4px;"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="laptop-base-1"></div>
-          <div class="laptop-base-2"></div>
-        </div>
-        <div class="phone-frame">
-          <div class="phone-notch"></div>
-          <div class="phone-screen">
-            <div style="background:#e53e3e;padding:4px 7px;">
-              <div style="color:#fff;font-weight:800;font-size:0.55rem;">🍕 PizzaControl</div>
-            </div>
-            <div style="background:#f0f4f8;padding:5px;display:flex;flex-direction:column;gap:3px;">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;">
-                <div style="background:#fff;border-radius:3px;padding:3px;text-align:center;">
-                  <div style="font-size:0.4rem;color:#718096;">Insumos</div>
-                  <div style="font-size:0.7rem;font-weight:800;color:#1a202c;">18</div>
-                </div>
-                <div style="background:#fff;border-radius:3px;padding:3px;text-align:center;">
-                  <div style="font-size:0.4rem;color:#718096;">Fichas</div>
-                  <div style="font-size:0.7rem;font-weight:800;color:#1a202c;">4</div>
-                </div>
-              </div>
-              <div style="background:#1a2233;border-radius:3px;padding:4px;">
-                <div style="font-size:0.4rem;color:#a0aec0;">Faturamento Total</div>
-                <div style="font-size:0.65rem;font-weight:800;color:#22c55e;">R$ 84,00</div>
-              </div>
-            </div>
-          </div>
-          <div class="phone-home"><div class="phone-home-bar"></div></div>
+<!-- HERO -->
+<header class="hero">
+  <div class="wrap">
+    <a class="marca" href="#">🍕 Pizza<b>Control</b></a>
+    <div class="hero-grid">
+      <div>
+        <h1>Sua pizza pode estar dando prejuízo e você nem sabe.</h1>
+        <p class="lead">O PizzaControl coloca aluguel, luz, funcionários, massa e caixa dentro do custo de cada sabor e mostra quanto você realmente lucra e qual preço cobrar. Em poucos minutos, do celular.</p>
+        <a class="btn" href="#planos">Quero ver meu lucro real</a>
+        <div class="garantias"><span>✅ Pagamento único</span><span>🛡️ 7 dias de garantia</span><span>⚡ Acesso na hora</span></div>
+      </div>
+      <div id="heroVisual">
+        <!-- Se VSL_YOUTUBE_ID estiver vazio, aparece a comanda de exemplo -->
+        <div class="comanda" aria-label="Exemplo de custo real de uma pizza">
+          <div class="carimbo">Exemplo</div>
+          <div class="cab"><strong>Calabresa Grande</strong><small>Custo real calculado pelo PizzaControl</small></div>
+          <div class="linha"><span>Ingredientes</span><span>R$ 12,08</span></div>
+          <div class="linha"><span>Massa (350 g)</span><span>R$ 1,29</span></div>
+          <div class="linha"><span>Caixa</span><span>R$ 2,80</span></div>
+          <div class="linha oculto"><span>Aluguel, luz e equipe</span><span>R$ 6,29</span></div>
+          <div class="linha total"><span>Custo real</span><span>R$ 22,46</span></div>
+          <div class="linha"><span>Preço no cardápio</span><span>R$ 45,00</span></div>
+          <div class="linha lucro"><span>Lucro real</span><span>R$ 22,54</span></div>
+          <div class="nota">A linha vermelha é a que quase ninguém coloca no preço. Sem ela, esse dono acharia que lucra R$ 28,83 por pizza.</div>
         </div>
       </div>
     </div>
+  </div>
+</header>
 
-    <div style="margin-bottom: 14px;" class="fade-in-section fade-in-delay-2">
-      <a href="#planos" class="btn-red animate-pulse" style="display: inline-block; font-size: 1rem; padding: 18px 40px; text-transform: uppercase; max-width: 480px; width: 100%;">
-        QUERO DESTRAVAR MEU LUCRO AGORA
-      </a>
+<!-- PROBLEMA -->
+<section class="fundo-massa">
+  <div class="wrap">
+    <div class="estreito">
+      <h2>Vender muito e sobrar pouco não é azar. É preço errado.</h2>
+      <p class="lead">A maioria das pizzarias calcula o preço só pelos ingredientes. Três custos ficam de fora e comem o lucro calado.</p>
     </div>
-    <div class="info-bar fade-in-section fade-in-delay-2">
-      <span class="info-item">🔒 Compra 100% Segura</span>
-      <span class="info-item" style="color:#3b82f6;">🛡️ Garantia de 7 dias</span>
-      <span class="info-item" style="color:#f6c90e;">⚡ Acesso Imediato</span>
+    <div class="viloes">
+      <div class="vilao"><h3>🏠 Custo fixo</h3><p>Aluguel, luz, gás, funcionários e maquininha. Cada pizza precisa pagar um pedaço disso. Se não paga, sai do seu bolso.</p></div>
+      <div class="vilao"><h3>⚖️ Massa e embalagem</h3><p>A bolinha de massa, a caixa e o sachê parecem centavos. Somados em um mês, viram centenas de reais.</p></div>
+      <div class="vilao"><h3>🍕 Meio a meio e combos</h3><p>Cobrar pela média, ou montar um combo "no olho", pode transformar sua pizza mais vendida na que dá prejuízo.</p></div>
     </div>
   </div>
 </section>
 
-<section class="section-white sec-pad">
-  <div class="container" style="padding: 0 4px;">
-    <div style="text-align:center; margin-bottom:64px;">
-      <h2 class="sec-h2" style="color:#1a202c; font-weight:900; font-size:2rem; margin-bottom:8px;">
-        Tudo o que o PizzaControl faz pela sua pizzaria
-      </h2>
-      <p style="color:#e53e3e; font-size:1rem; font-weight:600;">Ferramentas exclusivas desenhadas milimetricamente para o mercado de pizza</p>
-    </div>
-
-    <div class="grid-2">
-      <div class="text-col">
-        <span class="section-tag tag-red" style="margin-bottom:12px;">ENGENHARIA FINANCEIRA</span>
-        <h3 class="sec-h3" style="color:#1a202c;font-weight:800;font-size:1.4rem;margin:12px 0 12px;">Calcular por CMV</h3>
-        <p style="color:#4a5568;font-size:0.95rem;line-height:1.7;">Defina sua meta de Custo de Mercadoria Vendida (ex: 30%) e o sistema te entrega o preço de venda exato para bater a meta sem achismos.</p>
+<!-- CALCULADORA -->
+<section>
+  <div class="wrap estreito">
+    <h2>Faça a conta agora: quanto cada pizza precisa carregar?</h2>
+    <p class="lead">Coloque os números da sua pizzaria. A conta é feita aqui na tela, nada é enviado.</p>
+    <div class="calc">
+      <div class="campos">
+        <div><label for="gastos">Gastos fixos por mês (R$)</label><input id="gastos" type="number" inputmode="numeric" min="0" value="7550"></div>
+        <div><label for="pizzas">Pizzas vendidas por mês</label><input id="pizzas" type="number" inputmode="numeric" min="1" value="1200"></div>
       </div>
-      <div class="mockup-col hover-card">
-        <div class="screen-mockup" style="border:2px solid #2d3748;">
-          <div style="background:#e53e3e;padding:6px 12px;display:flex;align-items:center;gap:6px;">
-            <span style="color:#fff;font-weight:700;font-size:0.75rem;">🍕 Simulador de Preço por CMV</span>
-          </div>
-          <div style="background:#f0f4f8;padding:12px;flex:1;display:flex;flex-direction:column;justify-content:center;gap:8px;">
-            <div style="background:#1a2233;border-radius:6px;padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-              <div><div style="font-size:0.6rem;color:#a0aec0;">Custo Insumos</div><div style="font-size:1.1rem;font-weight:800;color:#fff;">R$ 14,80</div></div>
-              <div><div style="font-size:0.6rem;color:#f6c90e;">Meta CMV Alvo</div><div style="font-size:1.1rem;font-weight:800;color:#f6c90e;">30.0 %</div></div>
-            </div>
-            <div style="background:#fff;border-radius:6px;padding:16px;text-align:center;border:1px solid #22c55e;">
-              <div style="font-size:0.65rem;color:#718096;font-weight:700;">PREÇO DE VENDA SUGERIDO PARA BATER A META</div>
-              <div style="font-size:1.8rem;font-weight:900;color:#22c55e;line-height:1.2;margin-top:4px;">R$ 49,33</div>
-            </div>
-          </div>
-        </div>
+      <div class="resultado" aria-live="polite">
+        <div>Cada pizza precisa carregar</div>
+        <div class="grande" id="porPizza">R$ 6,29</div>
+        <p id="explica">Se esse valor não está no seu preço, são R$ 7.550,00 por mês saindo do seu bolso sem você perceber.</p>
       </div>
     </div>
-
-    <div class="grid-2 desktop-reverse">
-      <div class="text-col">
-        <span class="section-tag tag-green" style="margin-bottom:12px;">PREVENÇÃO DE PREJUÍZO</span>
-        <h3 class="sec-h3" style="color:#1a202c;font-weight:800;font-size:1.4rem;margin:12px 0 12px;">Simulador Meio a Meio</h3>
-        <p style="color:#4a5568;font-size:0.95rem;line-height:1.7;">Descubra a margem real de lucro de pizzas com 2 sabores. Pare de perder dinheiro cobrando a média ou a mais cara do jeito errado.</p>
-      </div>
-      <div class="mockup-col hover-card">
-        <div class="screen-mockup" style="border:2px solid #2d3748;">
-          <div style="background:#e53e3e;padding:6px 12px;display:flex;align-items:center;gap:6px;">
-            <span style="color:#fff;font-weight:700;font-size:0.75rem;">🍕 Mix de Sabores Duplos</span>
-          </div>
-          <div style="background:#f0f4f8;padding:12px;flex:1;display:flex;flex-direction:column;justify-content:center;gap:8px;">
-            <div style="background:#fff;border-radius:6px;padding:12px;font-size:0.7rem;display:flex;flex-direction:column;gap:6px;">
-              <div style="display:flex;justify-content:space-between;border-bottom:1px solid #f0f0f0;padding-bottom:4px;"><span style="color:#4a5568;">Lado A: Frango Catupiry</span><span style="color:#1a202c;font-weight:700;">Custo R$ 9,20</span></div>
-              <div style="display:flex;justify-content:space-between;"><span style="color:#4a5568;">Lado B: 4 Queijos Premium</span><span style="color:#1a202c;font-weight:700;">Custo R$ 14,10</span></div>
-            </div>
-            <div style="background:#1a2233;border-radius:6px;padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:5px;text-align:center;color:#fff;">
-              <div><div style="font-size:0.55rem;color:#a0aec0;">Custo Real Combinado</div><div style="font-size:1rem;font-weight:700;color:#fff;">R$ 11,65</div></div>
-              <div><div style="font-size:0.55rem;color:#a0aec0;">Margem Vendendo a R$49</div><div style="font-size:1rem;font-weight:700;color:#22c55e;">61.3% Lucro</div></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="grid-2">
-      <div class="text-col">
-        <span class="section-tag tag-red" style="margin-bottom:12px;">MARKETING ESTRATÉGICO</span>
-        <h3 class="sec-h3" style="color:#1a202c;font-weight:800;font-size:1.4rem;margin:12px 0 12px;">Simulador de Combos promocionais</h3>
-        <p style="color:#4a5568;font-size:0.95rem;line-height:1.7;">Junte Pizza + Bebida + Borda Recheada na mesma simulação e descubra o lucro líquido real de cada promoção do seu delivery.</p>
-      </div>
-      <div class="mockup-col hover-card">
-        <div class="screen-mockup" style="border:2px solid #2d3748;">
-          <div style="background:#e53e3e;padding:6px 12px;display:flex;align-items:center;gap:6px;">
-            <span style="color:#fff;font-weight:700;font-size:0.75rem;">📦 Engenharia de Combo</span>
-          </div>
-          <div style="background:#f0f4f8;padding:12px;flex:1;display:flex;flex-direction:column;justify-content:center;gap:8px;">
-            <div style="background:#fff;border-radius:6px;padding:10px;font-size:0.65rem;display:flex;flex-direction:column;gap:5px;">
-              <div style="display:flex;justify-content:space-between;"><span>🍕 Pizza G Calabresa</span><strong>R$ 12,08</strong></div>
-              <div style="display:flex;justify-content:space-between;"><span>🥤 Coca-Cola 2L</span><strong>R$ 5,50</strong></div>
-              <div style="display:flex;justify-content:space-between;border-bottom:1px solid #f0f0f0;padding-bottom:4px;"><span>📦 Caixa Personalizada</span><strong>R$ 2,80</strong></div>
-              <div style="display:flex;justify-content:space-between;font-weight:800;color:#1a202c;margin-top:2px;font-size:0.75rem;"><span>Custo do Combo</span><span>R$ 20,38</span></div>
-            </div>
-            <div style="background:#0d1117;border-radius:6px;padding:10px;text-align:center;font-size:0.75rem;color:#fbbf24;font-weight:800;">
-              Venda: R$ 59,90 ➔ Lucro: R$ 39,52
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="grid-2 desktop-reverse">
-      <div class="text-col">
-        <span class="section-tag tag-green" style="margin-bottom:12px;">ESTOQUE PRONTO</span>
-        <h3 class="sec-h3" style="color:#1a202c;font-weight:800;font-size:1.4rem;margin:12px 0 12px;">Cadastro Isolado de Bebidas</h3>
-        <p style="color:#4a5568;font-size:0.95rem;line-height:1.7;">Separe insumos de cozinha dos produtos prontos. Cadastre refrigerantes, cervejas e sucos com custo de aquisição e preço de venda.</p>
-      </div>
-      <div class="mockup-col hover-card">
-        <div class="screen-mockup" style="border:2px solid #2d3748;">
-          <div style="background:#e53e3e;padding:6px 12px;display:flex;align-items:center;gap:6px;">
-            <span style="color:#fff;font-weight:700;font-size:0.75rem;">🥤 Bebidas e Produtos Prontos</span>
-          </div>
-          <div style="background:#f0f4f8;padding:12px;flex:1;display:flex;flex-direction:column;justify-content:center;gap:6px;">
-            <div style="background:#1a2233;color:#a0aec0;padding:6px 10px;border-radius:4px;font-size:0.55rem;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;">
-              <span>Produto</span><span>Custo</span><span>Venda</span><span>Lucro</span>
-            </div>
-            <div style="background:#fff;padding:8px 10px;border-radius:4px;font-size:0.65rem;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;align-items:center;border-left:3px solid #22c55e;">
-              <span style="font-weight:700;color:#1a202c;">Coca-Cola 2L</span><span>R$ 5,50</span><span>R$ 12,00</span><span style="color:#22c55e;font-weight:700;">54%</span>
-            </div>
-            <div style="background:#fff;padding:8px 10px;border-radius:4px;font-size:0.65rem;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;align-items:center;border-left:3px solid #e53e3e;">
-              <span style="font-weight:700;color:#1a202c;">Heineken Long</span><span>R$ 6,00</span><span>R$ 8,00</span><span style="color:#e53e3e;font-weight:700;">25%</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="grid-2">
-      <div class="text-col">
-        <span class="section-tag tag-red" style="margin-bottom:12px;">AUMENTO DE TICKET</span>
-        <h3 class="sec-h3" style="color:#1a202c;font-weight:800;font-size:1.4rem;margin:12px 0 12px;">Top Produtos Prontos e Adicionais</h3>
-        <p style="color:#4a5568;font-size:0.95rem;line-height:1.7;">Veja quais bebidas e adicionais (como bordas e molhos) trazem a maior margem de lucro para focar o seu marketing no que dá dinheiro de verdade.</p>
-      </div>
-      <div class="mockup-col hover-card">
-        <div class="screen-mockup" style="border:2px solid #2d3748;">
-          <div style="background:#e53e3e;padding:6px 12px;display:flex;align-items:center;gap:6px;">
-            <span style="color:#fff;font-weight:700;font-size:0.75rem;">📈 Upsell: Adicionais</span>
-          </div>
-          <div style="background:#f0f4f8;padding:12px;flex:1;display:flex;flex-direction:column;justify-content:center;gap:8px;">
-            <div style="background:#1a2233;border-radius:6px;padding:12px;text-align:center;">
-               <div style="font-size:0.6rem;color:#a0aec0;margin-bottom:4px;">Adicional Mais Lucrativo</div>
-               <div style="font-size:1.1rem;font-weight:800;color:#f6c90e;">Borda de Cheddar</div>
-               <div style="font-size:0.75rem;color:#22c55e;margin-top:2px;">Lucro Limpo: R$ 8,20 por unidade</div>
-            </div>
-            <div style="background:#fff;border-radius:6px;padding:10px;font-size:0.65rem;">
-               <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-weight:600;">Borda Catupiry</span><span style="color:#22c55e;">+ R$ 6,50 L.</span></div>
-               <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-weight:600;">Bacon Extra</span><span style="color:#22c55e;">+ R$ 4,80 L.</span></div>
-               <div style="display:flex;justify-content:space-between;"><span style="font-weight:600;">Maionese Verde</span><span style="color:#22c55e;">+ R$ 3,10 L.</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="grid-2 desktop-reverse">
-      <div class="text-col">
-        <span class="section-tag tag-green" style="margin-bottom:12px;">PRODUÇÃO DE COZINHA</span>
-        <h3 class="sec-h3" style="color:#1a202c;font-weight:800;font-size:1.4rem;margin:12px 0 12px;">Custo de Massa por Tamanho</h3>
-        <p style="color:#4a5568;font-size:0.95rem;line-height:1.7;">Saiba exatamente os centavos que cada bolinha de massa (Broto, Média, Grande, Gigante) custa de acordo com o peso de corte.</p>
-      </div>
-      <div class="mockup-col hover-card">
-        <div class="screen-mockup" style="border:2px solid #2d3748;">
-          <div style="background:#e53e3e;padding:6px 12px;display:flex;align-items:center;gap:6px;">
-            <span style="color:#fff;font-weight:700;font-size:0.75rem;">⚖️ Divisor Dinâmico de Pesos</span>
-          </div>
-          <div style="background:#f0f4f8;padding:12px;flex:1;display:flex;flex-direction:column;justify-content:center;gap:8px;">
-             <div style="background:#fff;border-radius:6px;padding:12px;display:flex;justify-content:space-between;align-items:center;border:1px solid #e2e8f0;">
-                <span style="font-size:0.65rem;color:#4a5568;font-weight:600;">Saco Farinha 5kg</span>
-                <span style="background:#f1f5f9;padding:4px 8px;border-radius:4px;font-size:0.75rem;font-weight:800;">R$ 22,90</span>
-             </div>
-             <div style="background:#1a2233;border-radius:6px;padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-              <div><span style="color:#a0aec0;font-size:0.55rem;display:block;">Massa Broto (150g)</span> <strong style="color:#fff;font-size:0.9rem;">R$ 0,55</strong></div>
-              <div><span style="color:#a0aec0;font-size:0.55rem;display:block;">Massa Média (250g)</span> <strong style="color:#fff;font-size:0.9rem;">R$ 0,92</strong></div>
-              <div><span style="color:#a0aec0;font-size:0.55rem;display:block;">Massa Grande (350g)</span> <strong style="color:#22c55e;font-size:0.9rem;">R$ 1,29</strong></div>
-              <div><span style="color:#a0aec0;font-size:0.55rem;display:block;">Massa Gigante (450g)</span> <strong style="color:#fff;font-size:0.9rem;">R$ 1,66</strong></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="grid-2">
-      <div class="text-col">
-        <span class="section-tag tag-red" style="margin-bottom:12px;">DESPESAS INVISÍVEIS</span>
-        <h3 class="sec-h3" style="color:#1a202c;font-weight:800;font-size:1.4rem;margin:12px 0 12px;">Embutimento de Custo Fixo</h3>
-        <p style="color:#4a5568;font-size:0.95rem;line-height:1.7;">O sistema calcula e distribui o seu aluguel, luz e funcionários automaticamente no custo final de cada item vendido. Nunca mais pague para trabalhar.</p>
-      </div>
-      <div class="mockup-col hover-card">
-        <div class="screen-mockup" style="border:2px solid #2d3748;">
-          <div style="background:#e53e3e;padding:6px 12px;display:flex;align-items:center;gap:6px;">
-            <span style="color:#fff;font-weight:700;font-size:0.75rem;">🏢 Rateio de Custo Fixo</span>
-          </div>
-          <div style="background:#f0f4f8;padding:12px;flex:1;display:flex;flex-direction:column;justify-content:center;gap:8px;">
-            <div style="background:#fff;border-radius:6px;padding:10px;font-size:0.65rem;display:flex;flex-direction:column;gap:5px;">
-              <div style="display:flex;justify-content:space-between;"><span>🏠 Aluguel</span><strong>R$ 2.500,00</strong></div>
-              <div style="display:flex;justify-content:space-between;"><span>💡 Energia Elétrica</span><strong>R$ 850,00</strong></div>
-              <div style="display:flex;justify-content:space-between;border-bottom:1px solid #f0f0f0;padding-bottom:4px;"><span>👥 Funcionários</span><strong>R$ 4.200,00</strong></div>
-            </div>
-            <div style="background:#1a2233;border-radius:6px;padding:12px;text-align:center;">
-              <div style="font-size:0.6rem;color:#a0aec0;">Volume Mensal: 1.200 Pizzas</div>
-              <div style="font-size:0.65rem;color:#fff;margin-top:6px;">CUSTO FIXO EMBUTIDO POR PIZZA:</div>
-              <div style="font-size:1.6rem;font-weight:900;color:#e53e3e;line-height:1.1;margin-top:2px;">R$ 6,29</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="grid-2 desktop-reverse">
-      <div class="text-col">
-        <span class="section-tag tag-red" style="margin-bottom:12px;">SEGURANÇA E AUTONOMIA</span>
-        <h3 class="sec-h3" style="color:#1a202c;font-weight:800;font-size:1.4rem;margin:12px 0 12px;">Funcionamento 100% Offline</h3>
-        <p style="color:#4a5568;font-size:0.95rem;line-height:1.7;">Sua pizzaria não pode parar se a internet cair. O PizzaControl funciona direto no seu navegador, mantendo seus dados protegidos no seu aparelho, com autonomia total para você trabalhar.</p>
-      </div>
-      <div class="mockup-col hover-card">
-        <div class="screen-mockup" style="border:2px solid #2d3748; background: #0d1117;">
-          <div style="background:#e53e3e;padding:6px 12px;display:flex;align-items:center;gap:6px;">
-            <span style="color:#fff;font-weight:700;font-size:0.75rem;">🔒 Acesso Seguro Local</span>
-          </div>
-          <div style="padding:24px;flex:1;display:flex;align-items:center;justify-content:center;gap:20px;">
-             <div style="width:100px;height:65px;background:#1a2233;border:2px solid #4a5568;border-radius:4px;position:relative;display:flex;align-items:center;justify-content:center;">
-                <span style="font-size:1.5rem;">💻</span>
-                <div style="position:absolute;bottom:-6px;width:120px;height:4px;background:#4a5568;border-radius:2px;"></div>
-             </div>
-             
-             <div style="color:#22c55e;font-size:1.5rem;animation: pulse-btn 2s infinite;">✅</div>
-
-             <div style="width:40px;height:70px;background:#1a2233;border:2px solid #4a5568;border-radius:6px;display:flex;align-items:center;justify-content:center;">
-                <span style="font-size:1.2rem;">📱</span>
-             </div>
-          </div>
-          <div style="text-align:center;padding-bottom:16px;">
-            <span style="background:#22c55e;color:#fff;font-size:0.6rem;font-weight:800;padding:4px 12px;border-radius:20px;">SISTEMA SEGURO E INDEPENDENTE</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
+    <p style="margin-top:18px">O PizzaControl faz essa conta sozinho e já coloca o valor dentro do custo de cada sabor.</p>
+    <a class="btn" href="#planos">Quero o preço certo das minhas pizzas</a>
   </div>
 </section>
 
-<section class="dark-section sec-pad">
-  <div class="container-sm" style="text-align: center; padding: 0 4px;">
-    <div style="margin-bottom: 14px;">
-      <span class="badge-yellow">BÔNUS ESPECIAIS INCLUSOS</span>
+<!-- COMO FUNCIONA -->
+<section class="fundo-massa">
+  <div class="wrap">
+    <div class="estreito">
+      <h2>Como funciona</h2>
+      <p class="lead">Não é planilha. Você preenche o que já sabe e o sistema faz as contas.</p>
     </div>
-    <h2 class="sec-h2" style="color: #fff; font-weight: 800; font-size: 1.6rem; margin-bottom: 40px; line-height: 1.3;">
-      Garanta estes <span style="color:#f6c90e;">BÔNUS EXCLUSIVOS</span> garantindo o Plano PRO hoje!
-    </h2>
-
-    <div class="grid-bonus" style="margin-bottom:28px;">
-      <div class="bonus-card-green hover-card" style="padding: 36px 24px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-        <div style="margin-bottom:12px;"><span class="badge-green">GRUPO VIP</span></div>
-        <h3 style="color:#fff;font-weight:800;font-size:1.1rem;margin-bottom:10px;">Comunidade Pizzaiolos de Elite</h3>
-        <p style="color:#a0aec0;font-size:0.88rem;line-height:1.6;margin:0;">Acesso ao grupo VIP no WhatsApp apenas para donos de pizzaria trocarem estratégias de vendas e gestão.</p>
-      </div>
-      
-      <div class="bonus-card-red hover-card" style="padding: 36px 24px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-        <div style="margin-bottom:12px;"><span style="background:#e53e3e;color:#fff;font-size:0.65rem;font-weight:700;letter-spacing:0.08em;padding:4px 14px;border-radius:999px;display:inline-block;">DIRECT WHATSAPP</span></div>
-        <h3 style="color:#fff;font-weight:800;font-size:1.1rem;margin-bottom:10px;">Suporte Prioritário Individual</h3>
-        <p style="color:#a0aec0;font-size:0.88rem;line-height:1.6;margin:0;">Fale direto com nossa equipe de especialistas no WhatsApp para tirar qualquer dúvida na hora de precificar.</p>
-      </div>
-    </div>
-
-    <div style="background:#e53e3e;border-radius:8px;padding:16px 20px;" class="hover-card">
-      <p style="color:#fff;font-weight:700;font-size:0.95rem;margin:0;line-height:1.5;">
-        Bônus exclusivos do Plano PRO — pagamento único, acesso vitalício!
-      </p>
+    <div class="passos">
+      <div class="passo"><h3>Cadastre seus ingredientes</h3><p>Coloque o que você paga na farinha, no queijo, na calabresa e nas embalagens.</p></div>
+      <div class="passo"><h3>Monte a ficha de cada pizza</h3><p>Diga quanto vai de cada ingrediente em cada tamanho. É feito uma vez só.</p></div>
+      <div class="passo"><h3>Veja o lucro e o preço certo</h3><p>O sistema mostra o custo real, o lucro de cada sabor e o preço para bater a sua meta.</p></div>
     </div>
   </div>
 </section>
 
-<section class="section-white sec-pad" style="padding-left: 0; padding-right: 0;">
-  <div style="text-align:center;margin-bottom:44px; padding: 0 20px;">
-    <h2 class="sec-h2" style="color:#1a202c;font-weight:800;font-size:1.6rem;margin-bottom:8px;">Veja o que dizem nossos clientes</h2>
-    <p style="color:#718096;font-size:0.92rem;">Mais de 2.000 pizzarias já descobriram o lucro real com o PizzaControl</p>
+<!-- VÍDEO (opcional, aparece só se houver vídeo) -->
+<section id="secVideo" hidden>
+  <div class="wrap estreito" style="text-align:center">
+    <h2>Veja o PizzaControl funcionando</h2>
+    <p class="lead">Em menos de 2 minutos você entende tudo, inclusive como recebe o acesso.</p>
+    <div class="vsl" id="vsl"></div>
   </div>
-  
-  <div class="marquee-wrapper">
-    <div class="marquee-track">
-      <div class="card-white hover-card" style="padding:22px; width: 320px; flex-shrink: 0;">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-          <img src="https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=120&auto=format&fit=crop&q=80" class="w-11 h-11 rounded-full object-cover flex-shrink-0 border-2 border-red-500 shadow-sm" alt="Carla Mendes">
-          <div>
-            <div style="font-weight:700;color:#1a202c;font-size:0.88rem;">Carla Mendes</div>
-            <div style="color:#718096;font-size:0.75rem;">Bella Pizza Delivery — RJ</div>
-          </div>
-        </div>
-        <div class="stars" style="margin-bottom:10px;">★★★★★</div>
-        <p class="testimonial-text" style="color:#4a5568;font-size:0.86rem;line-height:1.6;margin:0;">"Nunca imaginei que o custo da caixa de papelão estava comendo minha margem assim. Agora tudo está no preço e meu lucro aumentou 22% no primeiro mês."</p>
-      </div>
+</section>
 
-      <div class="card-white hover-card" style="padding:22px; width: 320px; flex-shrink: 0;">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-          <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=120&auto=format&fit=crop&q=80" class="w-11 h-11 rounded-full object-cover flex-shrink-0 border-2 border-red-500 shadow-sm" alt="Rafael Souza">
-          <div>
-            <div style="font-weight:700;color:#1a202c;font-size:0.88rem;">Rafael Souza</div>
-            <div style="color:#718096;font-size:0.75rem;">Pizzaria Napolitana — MG</div>
-          </div>
-        </div>
-        <div class="stars" style="margin-bottom:10px;">★★★★★</div>
-        <p class="testimonial-text" style="color:#4a5568;font-size:0.86rem;line-height:1.6;margin:0;">"Antes eu usava planilha no Excel que apagava sozinha. Com o PizzaControl tudo ficou organizado e posso acessar direto do celular na hora do rush sem problema."</p>
-      </div>
-
-      <div class="card-white hover-card" style="padding:22px; width: 320px; flex-shrink: 0;">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80" class="w-11 h-11 rounded-full object-cover flex-shrink-0 border-2 border-red-500 shadow-sm" alt="Fernanda Lima">
-          <div>
-            <div style="font-weight:700;color:#1a202c;font-size:0.88rem;">Fernanda Lima</div>
-            <div style="color:#718096;font-size:0.75rem;">Pizza & Arte — PB</div>
-          </div>
-        </div>
-        <div class="stars" style="margin-bottom:10px;">★★★★★</div>
-        <p class="testimonial-text" style="color:#4a5568;font-size:0.86rem;line-height:1.6;margin:0;">"O suporte deles é incrível. Me ajudaram a cadastrar todo o cardápio em menos de uma hora. Recomendo para todo dono de pizzaria que quer saber o lucro real."</p>
-      </div>
-
-      <div class="card-white hover-card" style="padding:22px; width: 320px; flex-shrink: 0;">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-          <img src="https://images.unsplash.com/photo-1607346256330-dee7af15f7c5?w=120&auto=format&fit=crop&q=80" class="w-11 h-11 rounded-full object-cover flex-shrink-0 border-2 border-red-500 shadow-sm" alt="Diego Alves">
-          <div>
-            <div style="font-weight:700;color:#1a202c;font-size:0.88rem;">Diego Alves</div>
-            <div style="color:#718096;font-size:0.75rem;">Box Pizza Delivery — BA</div>
-          </div>
-        </div>
-        <div class="stars" style="margin-bottom:10px;">★★★★★</div>
-        <p class="testimonial-text" style="color:#4a5568;font-size:0.86rem;line-height:1.6;margin:0;">"Descobri que minha pizza de 4 queijos estava me dando prejuízo. Reajustei os preços e meus clientes nem reclamaram. O PizzaControl foi um divisor de águas."</p>
-      </div>
-
-      <div class="card-white hover-card" style="padding:22px; width: 320px; flex-shrink: 0;">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-          <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80" class="w-11 h-11 rounded-full object-cover flex-shrink-0 border-2 border-red-500 shadow-sm" alt="Patrícia Costa">
-          <div>
-            <div style="font-weight:700;color:#1a202c;font-size:0.88rem;">Patrícia Costa</div>
-            <div style="color:#718096;font-size:0.75rem;">Pizzaria da Pat — PR</div>
-          </div>
-        </div>
-        <div class="stars" style="margin-bottom:10px;">★★★★★</div>
-        <p class="testimonial-text" style="color:#4a5568;font-size:0.86rem;line-height:1.6;margin:0;">"Simples de usar, rápido de aprender e me deu clareza total sobre os números. Hoje eu tomo decisões com dados, não com achismo."</p>
-      </div>
-
-      <div class="card-white hover-card" style="padding:22px; width: 320px; flex-shrink: 0;">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-          <img src="https://images.unsplash.com/photo-1583394838336-acd977736f90?w=120&auto=format&fit=crop&q=80" class="w-11 h-11 rounded-full object-cover flex-shrink-0 border-2 border-red-500 shadow-sm" alt="João Oliveira">
-          <div>
-            <div style="font-weight:700;color:#1a202c;font-size:0.88rem;">João Oliveira</div>
-            <div style="color:#718096;font-size:0.75rem;">Casa das Pizzas — SP</div>
-          </div>
-        </div>
-        <div class="stars" style="margin-bottom:10px;">★★★★★</div>
-        <p class="testimonial-text" style="color:#4a5568;font-size:0.86rem;line-height:1.6;margin:0;">"Eu achava que tinha lucro, mas o sistema me mostrou que eu pagava para trabalhar na pizza de calabresa. Mudei o preço e o sistema se pagou no primeiro dia."</p>
-      </div>
-      
-      <div class="card-white hover-card" style="padding:22px; width: 320px; flex-shrink: 0;"><div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;"><img src="https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=120&auto=format&fit=crop&q=80" class="w-11 h-11 rounded-full object-cover flex-shrink-0 border-2 border-red-500 shadow-sm"><div><div style="font-weight:700;color:#1a202c;font-size:0.88rem;">Carla Mendes</div><div style="color:#718096;font-size:0.75rem;">Bella Pizza Delivery — RJ</div></div></div><div class="stars" style="margin-bottom:10px;">★★★★★</div><p class="testimonial-text" style="color:#4a5568;font-size:0.86rem;line-height:1.6;margin:0;">"Nunca imaginei que o custo da caixa de papelão estava comendo minha margem assim. Agora tudo está no preço e meu lucro aumentou 22% no primeiro mês."</p></div>
-      <div class="card-white hover-card" style="padding:22px; width: 320px; flex-shrink: 0;"><div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;"><img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=120&auto=format&fit=crop&q=80" class="w-11 h-11 rounded-full object-cover flex-shrink-0 border-2 border-red-500 shadow-sm"><div><div style="font-weight:700;color:#1a202c;font-size:0.88rem;">Rafael Souza</div><div style="color:#718096;font-size:0.75rem;">Pizzaria Napolitana — MG</div></div></div><div class="stars" style="margin-bottom:10px;">★★★★★</div><p class="testimonial-text" style="color:#4a5568;font-size:0.86rem;line-height:1.6;margin:0;">"Antes eu usava planilha no Excel que apagava sozinha. Com o PizzaControl tudo ficou organizado e posso acessar direto do celular na hora do rush sem problema."</p></div>
-      <div class="card-white hover-card" style="padding:22px; width: 320px; flex-shrink: 0;"><div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;"><img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80" class="w-11 h-11 rounded-full object-cover flex-shrink-0 border-2 border-red-500 shadow-sm"><div><div style="font-weight:700;color:#1a202c;font-size:0.88rem;">Fernanda Lima</div><div style="color:#718096;font-size:0.75rem;">Pizza & Arte — PB</div></div></div><div class="stars" style="margin-bottom:10px;">★★★★★</div><p class="testimonial-text" style="color:#4a5568;font-size:0.86rem;line-height:1.6;margin:0;">"O suporte deles é incrível. Me ajudaram a cadastrar todo o cardápio em menos de uma hora. Recomendo para todo dono de pizzaria que quer saber o lucro real."</p></div>
-      <div class="card-white hover-card" style="padding:22px; width: 320px; flex-shrink: 0;"><div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;"><img src="https://images.unsplash.com/photo-1607346256330-dee7af15f7c5?w=120&auto=format&fit=crop&q=80" class="w-11 h-11 rounded-full object-cover flex-shrink-0 border-2 border-red-500 shadow-sm"><div><div style="font-weight:700;color:#1a202c;font-size:0.88rem;">Diego Alves</div><div style="color:#718096;font-size:0.75rem;">Box Pizza Delivery — BA</div></div></div><div class="stars" style="margin-bottom:10px;">★★★★★</div><p class="testimonial-text" style="color:#4a5568;font-size:0.86rem;line-height:1.6;margin:0;">"Descobri que minha pizza de 4 queijos estava me dando prejuízo. Reajustei os preços e meus clientes nem reclamaram. O PizzaControl foi um divisor de águas."</p></div>
-      <div class="card-white hover-card" style="padding:22px; width: 320px; flex-shrink: 0;"><div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;"><img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80" class="w-11 h-11 rounded-full object-cover flex-shrink-0 border-2 border-red-500 shadow-sm"><div><div style="font-weight:700;color:#1a202c;font-size:0.88rem;">Patrícia Costa</div><div style="color:#718096;font-size:0.75rem;">Pizzaria da Pat — PR</div></div></div><div class="stars" style="margin-bottom:10px;">★★★★★</div><p class="testimonial-text" style="color:#4a5568;font-size:0.86rem;line-height:1.6;margin:0;">"Simples de usar, rápido de aprender e me deu clareza total sobre os números. Hoje eu tomo decisões com dados, não com achismo."</p></div>
-      <div class="card-white hover-card" style="padding:22px; width: 320px; flex-shrink: 0;"><div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;"><img src="https://images.unsplash.com/photo-1583394838336-acd977736f90?w=120&auto=format&fit=crop&q=80" class="w-11 h-11 rounded-full object-cover flex-shrink-0 border-2 border-red-500 shadow-sm"><div><div style="font-weight:700;color:#1a202c;font-size:0.88rem;">João Oliveira</div><div style="color:#718096;font-size:0.75rem;">Casa das Pizzas — SP</div></div></div><div class="stars" style="margin-bottom:10px;">★★★★★</div><p class="testimonial-text" style="color:#4a5568;font-size:0.86rem;line-height:1.6;margin:0;">"Eu achava que tinha lucro, mas o sistema me mostrou que eu pagava para trabalhar na pizza de calabresa. Mudei o preço e o sistema se pagou no primeiro dia."</p></div>
+<!-- RECURSOS -->
+<section>
+  <div class="wrap">
+    <div class="estreito">
+      <h2>Tudo o que você vai ter na mão</h2>
+    </div>
+    <div class="recursos">
+      <div class="recurso"><div class="ic">📦</div><div><h3>Cadastro de ingredientes</h3><p>Com preço de compra e rendimento de cada item.</p></div></div>
+      <div class="recurso"><div class="ic">📋</div><div><h3>Ficha técnica de cada sabor</h3><p>Custo exato por tamanho: broto, média, grande e gigante.</p></div></div>
+      <div class="recurso"><div class="ic">🏠</div><div><h3>Rateio de custo fixo <span class="pro-tag">PRO</span></h3><p>Aluguel, luz e equipe divididos automaticamente em cada pizza.</p></div></div>
+      <div class="recurso"><div class="ic">⚖️</div><div><h3>Custo da massa por tamanho <span class="pro-tag">PRO</span></h3><p>Quanto custa cada bolinha, pelo peso de corte.</p></div></div>
+      <div class="recurso"><div class="ic">💰</div><div><h3>Gerador de preço, combos e meio a meio <span class="pro-tag">PRO</span></h3><p>O preço certo para a sua meta e o lucro de cada promoção.</p></div></div>
+      <div class="recurso"><div class="ic">🥤</div><div><h3>Bebidas e adicionais <span class="pro-tag">PRO</span></h3><p>Descubra quais bordas e bebidas dão mais lucro.</p></div></div>
+      <div class="recurso"><div class="ic">📱</div><div><h3>Funciona no celular e no computador</h3><p>Seus dados ficam salvos no seu próprio aparelho.</p></div></div>
+      <div class="recurso"><div class="ic">💾</div><div><h3>Backup dos seus dados <span class="pro-tag">PRO</span></h3><p>Exporte uma cópia e leve para outro aparelho quando quiser.</p></div></div>
     </div>
   </div>
 </section>
 
-<section id="planos" class="section-light sec-pad">
-  <div class="container-sm" style="padding: 0 4px;">
-    <h2 class="sec-h2" style="text-align:center;color:#1a202c;font-weight:900;font-size:clamp(1.2rem,4vw,1.7rem);margin-bottom:44px;text-transform:uppercase;letter-spacing:-0.01em;line-height:1.3;">
-      TENHA ACESSO IMEDIATO AO <span style="color:#e53e3e;">PIZZACONTROL</span>
-    </h2>
-    
-    <p style="text-align:center; color:#e53e3e; font-weight:700; font-size:0.9rem; margin-bottom:24px;">
-      ⚠️ IMPORTANTE: Use no pagamento um e-mail que você acessa. É nele que chega o link para criar sua senha e entrar no sistema.
-    </p>
+<!-- FUNDADOR -->
+<section class="fundo-massa">
+  <div class="wrap fundador">
+    <div class="avatar" id="avatar" aria-hidden="true">M</div>
+    <div>
+      <h2>Feito por quem vive de pizza</h2>
+      <blockquote>"Sou pizzaiolo e tenho minha própria pizzaria. Por muito tempo eu vendia bem e não entendia por que sobrava tão pouco no fim do mês. Criei o PizzaControl para resolver isso na minha cozinha, e agora ele está disponível para você."</blockquote>
+      <cite>Marllon Sousa, criador do PizzaControl · <a href="https://instagram.com/casadaspizzaass" target="_blank" rel="noopener">@casadaspizzaass</a></cite>
+    </div>
+  </div>
+</section>
 
-    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 32px;">
+<!-- DEPOIMENTOS REAIS (seção escondida enquanto a lista estiver vazia) -->
+<section id="secDepos" hidden>
+  <div class="wrap">
+    <h2>O que dizem os pizzaiolos que já usam</h2>
+    <div class="depos" id="depos"></div>
+  </div>
+</section>
 
-      <div class="card-white hover-card" style="max-width: 420px; width: 100%; padding: 32px 24px; border: 2px solid #e2e8f0; border-radius: 16px;">
-        <div style="text-align:center;margin-bottom:20px;">
-          <div style="font-size:1.1rem;font-weight:800;color:#4a5568;margin-bottom:4px;">PLANO BÁSICO</div>
-          <div style="font-size:0.8rem;color:#718096;">Pagamento único — Acesso vitalício</div>
-        </div>
-        <ul style="list-style:none;padding:0;margin:0 0 24px;display:flex;flex-direction:column;gap:12px;">
-          <li style="display:flex;align-items:flex-start;gap:10px;"><span class="check-green">✓</span><span style="color:#4a5568;font-size:0.9rem;">Painel com visão geral da pizzaria</span></li>
-          <li style="display:flex;align-items:flex-start;gap:10px;"><span class="check-green">✓</span><span style="color:#4a5568;font-size:0.9rem;">Cadastro de insumos</span></li>
-          <li style="display:flex;align-items:flex-start;gap:10px;"><span class="check-green">✓</span><span style="color:#4a5568;font-size:0.9rem;">Fichas técnicas com o custo de cada pizza</span></li>
-          <li style="display:flex;align-items:flex-start;gap:10px;"><span style="color:#e53e3e;font-weight:bold;">✗</span><span style="color:#a0aec0;font-size:0.9rem;text-decoration:line-through;">Rateio de Custo Fixo (aluguel, luz, funcionários)</span></li>
-          <li style="display:flex;align-items:flex-start;gap:10px;"><span style="color:#e53e3e;font-weight:bold;">✗</span><span style="color:#a0aec0;font-size:0.9rem;text-decoration:line-through;">Cálculo de Massa por tamanho</span></li>
-          <li style="display:flex;align-items:flex-start;gap:10px;"><span style="color:#e53e3e;font-weight:bold;">✗</span><span style="color:#a0aec0;font-size:0.9rem;text-decoration:line-through;">Gerador de Preço, Combos e Meio a Meio</span></li>
-          <li style="display:flex;align-items:flex-start;gap:10px;"><span style="color:#e53e3e;font-weight:bold;">✗</span><span style="color:#a0aec0;font-size:0.9rem;text-decoration:line-through;">Bebidas e adicionais</span></li>
-          <li style="display:flex;align-items:flex-start;gap:10px;"><span style="color:#e53e3e;font-weight:bold;">✗</span><span style="color:#a0aec0;font-size:0.9rem;text-decoration:line-through;">Backup dos seus dados</span></li>
-          <li style="display:flex;align-items:flex-start;gap:10px;"><span style="color:#e53e3e;font-weight:bold;">✗</span><span style="color:#a0aec0;font-size:0.9rem;text-decoration:line-through;">Suporte por WhatsApp e Grupo VIP</span></li>
+<!-- BÔNUS -->
+<section class="bonus-sec">
+  <div class="wrap">
+    <div class="estreito">
+      <h2>Levando o PRO hoje, você também ganha:</h2>
+      <p class="lead">Dois bônus que só quem escolhe o Plano PRO recebe.</p>
+    </div>
+    <div class="bonus">
+      <div class="bonus-item"><span class="n">Bônus 1</span><div class="ic">💬</div><h3>Suporte VIP no WhatsApp</h3><p>Travou em alguma ficha ou não sabe onde colocar um custo? Você chama e é atendido direto pelo WhatsApp.</p></div>
+      <div class="bonus-item"><span class="n">Bônus 2</span><div class="ic">👨‍🍳</div><h3>Grupo de Pizzaiolos</h3><p>Um grupo no WhatsApp só com donos de pizzaria para trocar ideias de preço, promoção e gestão.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PLANOS -->
+<section id="planos" class="fundo-massa">
+  <div class="wrap">
+    <div class="estreito">
+      <h2>Escolha seu plano</h2>
+      <p class="lead">Você paga uma vez só. Sem mensalidade.</p>
+    </div>
+    <div class="planos">
+      <div class="plano">
+        <h3>Básico</h3>
+        <p class="desc">Para saber quanto custa cada pizza.</p>
+        <ul>
+          <li>Painel da pizzaria</li>
+          <li>Cadastro de ingredientes</li>
+          <li>Ficha técnica com o custo de cada pizza</li>
+          <li class="nao">Rateio de custo fixo (lucro real)</li>
+          <li class="nao">Custo da massa por tamanho</li>
+          <li class="nao">Gerador de preço, combos e meio a meio</li>
+          <li class="nao">Bebidas, adicionais e backup</li>
+          <li class="nao">Bônus: suporte VIP e grupo</li>
         </ul>
-        <div style="text-align:center;margin-bottom:20px;">
-          <div class="vip-price" style="font-size:3rem;font-weight:900;color:#1a202c; line-height: 1;">R$10,89</div>
-          <div style="color:#a0aec0;font-size:0.85rem;margin-top:10px;">Só o custo das pizzas — sem o lucro real</div>
-        </div>
-        <a href="https://pay.cakto.com.br/8rdpouv_1139386" target="_blank" onclick="return abrirOfertaPro(event)" class="btn-dark" style="display:block;text-align:center;text-decoration:none;text-transform:uppercase;font-size:1rem;padding:18px 20px;">
-          QUERO O BÁSICO
-        </a>
+        <div class="preco">R$ 10,89</div>
+        <p class="preco-obs">Pagamento único, acesso vitalício</p>
+        <a class="btn-simples" id="btnBasico" href="https://pay.cakto.com.br/8rdpouv_1139386" target="_blank" rel="noopener">Quero o Básico</a>
       </div>
-
-      <div class="plan-vip hover-card-neon" style="max-width: 420px; width: 100%;">
-        <div class="plan-vip-badge">🔥 MAIS ESCOLHIDO</div>
-        <div style="text-align:center;margin-bottom:20px;">
-          <div style="font-size:1.1rem;font-weight:800;color:#e53e3e;margin-bottom:4px;">PLANO PRO</div>
-          <div style="font-size:0.8rem;color:#718096;">Pagamento único — Acesso vitalício — Tudo liberado</div>
-        </div>
-        <ul style="list-style:none;padding:0;margin:0 0 24px;display:flex;flex-direction:column;gap:12px;">
-          <li style="display:flex;align-items:flex-start;gap:10px;"><span class="check-green">✓</span><span style="color:#e2e8f0;font-size:0.9rem;">Tudo do Plano Básico</span></li>
-          <li style="display:flex;align-items:flex-start;gap:10px;"><span class="check-green">✓</span><span style="color:#e2e8f0;font-size:0.9rem;font-weight:bold;">Rateio de Custo Fixo — descubra seu lucro REAL</span></li>
-          <li style="display:flex;align-items:flex-start;gap:10px;"><span class="check-green">✓</span><span style="color:#e2e8f0;font-size:0.9rem;">Cálculo de Massa por tamanho</span></li>
-          <li style="display:flex;align-items:flex-start;gap:10px;"><span class="check-green">✓</span><span style="color:#e2e8f0;font-size:0.9rem;font-weight:bold;">Gerador de Preço, Combos e Meio a Meio</span></li>
-          <li style="display:flex;align-items:flex-start;gap:10px;"><span class="check-green">✓</span><span style="color:#e2e8f0;font-size:0.9rem;">Bebidas e adicionais</span></li>
-          <li style="display:flex;align-items:flex-start;gap:10px;"><span class="check-green">✓</span><span style="color:#e2e8f0;font-size:0.9rem;">Backup dos seus dados</span></li>
-          <li style="display:flex;align-items:flex-start;gap:10px;"><span class="check-green">✓</span><span style="color:#e2e8f0;font-size:0.9rem;font-weight:bold;">Suporte VIP por WhatsApp</span></li>
-          <li style="display:flex;align-items:flex-start;gap:10px;"><span class="check-green">✓</span><span style="color:#e2e8f0;font-size:0.9rem;font-weight:bold;">Grupo Exclusivo de Pizzaiolos</span></li>
+      <div class="plano pro">
+        <span class="selo">Mais escolhido</span>
+        <h3>PRO completo</h3>
+        <p class="desc">Para saber quanto você lucra e quanto cobrar.</p>
+        <ul>
+          <li>Tudo do Básico</li>
+          <li><b>Rateio de custo fixo: seu lucro real</b></li>
+          <li>Custo da massa por tamanho</li>
+          <li><b>Gerador de preço, combos e meio a meio</b></li>
+          <li>Bebidas e adicionais</li>
+          <li>Backup dos seus dados</li>
+          <li><b>Bônus 1:</b> Suporte VIP no WhatsApp</li>
+          <li><b>Bônus 2:</b> Grupo de Pizzaiolos</li>
         </ul>
-        <div style="text-align:center;margin-bottom:20px;">
-          <div class="vip-price" style="font-size:3rem;font-weight:900;color:#f6c90e; line-height: 1;">R$  20,89</div>
-          <div style="color:#a0aec0;font-size:0.85rem;margin-top:10px;">Só R$ 10 a mais que o Básico para ver seu lucro real</div>
-        </div>
-        <a href="https://pay.cakto.com.br/3dsh6k4_1139407" target="_blank" class="btn-red animate-pulse" style="display:block;text-align:center;text-decoration:none;text-transform:uppercase;font-size:1rem;padding:18px 20px;">
-          QUERO O PRO
-        </a>
-        <p style="color:#718096;font-size:0.75rem;text-align:center;margin-top:14px;">🔒 Compra 100% segura · Garantia de 7 dias ou seu dinheiro de volta</p>
+        <div class="preco">R$ 20,89</div>
+        <p class="preco-obs">Pagamento único, acesso vitalício. Só R$ 10 a mais que o Básico.</p>
+        <a class="btn" href="https://pay.cakto.com.br/3dsh6k4_1139407" target="_blank" rel="noopener">Quero o PRO completo</a>
       </div>
-
     </div>
+    <p class="aviso-email">📧 <b>Importante:</b> no pagamento, use um e-mail que você acessa. É nele que chega o link para criar sua senha.</p>
+  </div>
+</section>
 
-    <div class="info-bar" style="margin-top:40px;padding-top:24px;border-top:1px solid #e2e8f0;">
-      <span class="info-item">🔒 Compra 100% Segura</span>
-      <span class="info-item" style="color:#3b82f6;">🛡️ Garantia de 7 dias</span>
-      <span class="info-item" style="color:#f6c90e;">⚡ Acesso Imediato</span>
-      <span class="info-item" style="color:#22c55e;">📱 Funciona no Celular</span>
+<!-- GARANTIA -->
+<section>
+  <div class="wrap estreito">
+    <div class="garantia">
+      <div class="escudo"><b>7</b><small>dias</small></div>
+      <div>
+        <h3>Teste sem risco por 7 dias</h3>
+        <p>Use, cadastre suas pizzas e veja seus números. Se não gostar, peça o reembolso em até 7 dias e você recebe 100% do valor de volta.</p>
+      </div>
     </div>
   </div>
 </section>
 
-<section class="section-light" style="padding: 48px 16px 64px;">
-  <div class="container-xs" style="padding: 0 4px;">
-    <h2 style="text-align:center;color:#1a202c;font-weight:900;font-size:clamp(1.3rem,4vw,1.8rem);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:36px;">
-      PERGUNTAS FREQUENTES
-    </h2>
-    <div id="faq-container"></div>
+<!-- FAQ -->
+<section class="fundo-massa">
+  <div class="wrap estreito">
+    <h2>Perguntas frequentes</h2>
+    <details><summary>Preciso pagar todo mês?</summary><p>Não. É pagamento único e o acesso ao seu plano é vitalício, sem mensalidade.</p></details>
+    <details><summary>Como recebo o acesso?</summary><p>Assim que o pagamento é aprovado, chega um e-mail para você criar sua senha. Confira também o spam. Depois é só entrar em app.pizzacontrol.com.br com o e-mail da compra.</p></details>
+    <details><summary>Funciona no celular?</summary><p>Sim. Funciona no navegador do celular, do tablet ou do computador.</p></details>
+    <details><summary>Preciso entender de planilha ou de finanças?</summary><p>Não. Você só coloca o que paga nos ingredientes e quanto vai em cada pizza. O sistema faz todas as contas.</p></details>
+    <details><summary>Onde ficam os dados da minha pizzaria?</summary><p>No seu próprio aparelho. Ninguém além de você vê seus custos e preços. No PRO você ainda pode fazer backup e levar os dados para outro aparelho.</p></details>
+    <details><summary>Comprei o Básico. Posso passar para o PRO depois?</summary><p>Pode. Dentro do sistema, ao tocar em qualquer recurso PRO, você faz o upgrade com o mesmo e-mail e tudo é liberado na hora.</p></details>
+    <details><summary>E se eu não gostar?</summary><p>Você tem 7 dias de garantia. Pediu o reembolso dentro do prazo, recebe 100% de volta.</p></details>
   </div>
 </section>
 
-<footer class="dark-section" style="padding: 36px 16px; text-align: center;">
-  <p style="color:#718096;font-size:0.8rem;margin-bottom:6px;">© 2026 PizzaControl. Todos os direitos reservados.</p>
-  <p style="color:#4a5568;font-size:0.75rem;max-width:480px;margin:0 auto 16px;line-height:1.6;">
-    Este produto é disponibilizado para fins de gestão e precificação de pizzarias. Os resultados podem variar de acordo com o uso.
-  </p>
-  <div class="footer-links" style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;">
-    <a href="privacidade.html" style="color:#718096;font-size:0.8rem;text-decoration:none;">Política de Privacidade</a>
-    <a href="termos.html" style="color:#718096;font-size:0.8rem;text-decoration:none;">Termos de Uso</a>
-    <a href="https://wa.me/5598970260090" target="_blank" rel="noopener" style="color:#718096;font-size:0.8rem;text-decoration:none;">Suporte</a>
+<!-- CTA FINAL -->
+<section class="final">
+  <div class="wrap estreito">
+    <h2>Cada pizza vendida com preço errado é dinheiro que não volta.</h2>
+    <p class="lead">Descubra hoje quanto você realmente lucra. Leva poucos minutos e custa menos que uma pizza.</p>
+    <a class="btn" href="#planos" style="background:#fff;color:var(--tomate);box-shadow:0 6px 0 var(--tomate-escuro)">Quero ver meu lucro real</a>
   </div>
+</section>
+
+<footer>
+  <p>© 2026 PizzaControl</p>
+  <a href="privacidade.html">Política de Privacidade</a><a href="termos.html">Termos de Uso</a><a href="https://wa.me/5598970260090" target="_blank" rel="noopener">Suporte</a>
 </footer>
 
-<script>
-  // FAQ Data
-  const faqs = [
-    { q: "Preciso pagar todo mês?", a: "Não! O PizzaControl é pagamento único: você paga uma vez e tem acesso vitalício ao seu plano. Sem mensalidade e sem cobrança recorrente." },
-    { q: "Funciona no celular?", a: "Sim! O PizzaControl funciona em qualquer dispositivo: celular, tablet ou computador. Acesse de onde estiver, inclusive durante o rush da pizzaria." },
-    { q: "Como recebo o acesso?", a: "Assim que o pagamento é aprovado, você recebe um e-mail para criar sua senha (confira também o spam). Depois é só entrar em app.pizzacontrol.com.br com o e-mail da compra." },
-    { q: "Preciso saber usar planilhas para operar o sistema?", a: "Não! O PizzaControl foi desenvolvido para ser simples e intuitivo. Não é uma planilha. É um sistema completo onde você apenas cadastra seus dados e ele calcula tudo automaticamente." },
-    { q: "Posso usar para mais de uma pizzaria?", a: "O acesso é individual por pizzaria. Se você tiver mais de uma unidade, entre em contato com nosso suporte para condições especiais." },
-    { q: "Comprei o Básico. Posso passar para o PRO depois?", a: "Pode sim! Dentro do sistema, ao clicar em qualquer recurso PRO, você faz o upgrade usando o mesmo e-mail do seu login e tudo é liberado na hora." },
-    { q: "E se eu não gostar?", a: "Sem problemas! Oferecemos garantia total de 7 dias. Se por qualquer motivo você não ficar satisfeito, devolvemos 100% do seu dinheiro. Sem perguntas." }
-  ];
+<!-- Barra fixa no celular -->
+<div class="barra" id="barra" aria-hidden="true">
+  <div>PRO completo<br><b>R$ 20,89</b></div>
+  <a class="btn" href="#planos" tabindex="-1">Ver planos</a>
+</div>
 
-  const container = document.getElementById('faq-container');
-  faqs.forEach((faq, i) => {
-    const item = document.createElement('div');
-    item.className = 'faq-item';
-    item.innerHTML = `
-      <div class="faq-question" onclick="toggleFaq(${i})">
-        <span style="font-size:0.92rem;">${faq.q}</span>
-        <span class="faq-icon" id="faq-icon-${i}">⌄</span>
-      </div>
-      <div class="faq-answer" id="faq-answer-${i}">${faq.a}</div>
-    `;
-    container.appendChild(item);
-  });
-
-  function toggleFaq(index) {
-    const answer = document.getElementById(`faq-answer-${index}`);
-    const icon = document.getElementById(`faq-icon-${index}`);
-    const isOpen = answer.classList.contains('open');
-    document.querySelectorAll('.faq-answer').forEach(a => a.classList.remove('open'));
-    document.querySelectorAll('.faq-icon').forEach(ic => ic.classList.remove('open'));
-    if (!isOpen) {
-      answer.classList.add('open');
-      icon.classList.add('open');
-    }
-  }
-
-  // Smooth scroll
-  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function(e) {
-      const href = this.getAttribute('href');
-      if (href === '#') return;
-      e.preventDefault();
-      const target = document.querySelector(href);
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  });
-</script>
-
-
-<!-- POPUP: oferta do PRO ao clicar no Básico -->
-<div id="ofertaPro" role="dialog" aria-modal="true" aria-labelledby="ofertaProTitulo" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;padding:16px;">
-  <div style="background:#111827;border:2px solid #e53e3e;border-radius:16px;max-width:420px;width:100%;padding:28px 22px;text-align:center;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
-    <button type="button" onclick="fecharOfertaPro()" aria-label="Fechar" style="position:absolute;top:8px;right:12px;background:none;border:none;color:#718096;font-size:1.6rem;cursor:pointer;line-height:1;">×</button>
-    <div style="font-size:2.2rem;margin-bottom:6px;">✋🍕</div>
-    <h3 id="ofertaProTitulo" style="color:#fff;font-weight:900;font-size:1.35rem;margin:0 0 10px;text-transform:uppercase;">Espera!</h3>
-    <p style="color:#e2e8f0;font-size:0.95rem;line-height:1.55;margin:0 0 14px;">
-      O Básico mostra o custo da pizza, mas <strong style="color:#f6c90e;">não mostra seu lucro real</strong>: fica sem custo fixo, massa e gerador de preço.
-    </p>
-    <p style="color:#e2e8f0;font-size:0.95rem;line-height:1.55;margin:0 0 16px;">
-      Por isso, aqui vai uma oferta especial: leve o <strong>PizzaControl PRO completo</strong>
-    </p>
-    <div style="margin-bottom:6px;"><span style="color:#718096;text-decoration:line-through;font-size:1rem;">R$ 19,90</span></div>
-    <div style="color:#22c55e;font-weight:900;font-size:2.6rem;line-height:1;margin-bottom:6px;">R$15,99</div>
-    <div style="color:#a0aec0;font-size:0.8rem;margin-bottom:20px;">Pagamento único · Acesso vitalício · Só R$ 5,10 a mais que o Básico</div>
-    <a href="https://pay.cakto.com.br/wx9esqb_1139423" target="_blank" class="btn-red animate-pulse" style="display:block;text-align:center;text-decoration:none;text-transform:uppercase;font-size:1rem;padding:16px 18px;margin-bottom:12px;">
-      SIM! QUERO O PRO POR R$ 15
-    </a>
-    <a href="https://pay.cakto.com.br/8rdpouv_1139386" target="_blank" onclick="fecharOfertaPro()" style="display:block;color:#a0aec0;font-size:0.82rem;text-decoration:underline;">
-      Não, obrigado. Quero só o Básico por R$ 9,90
-    </a>
+<!-- Popup ao clicar no Básico -->
+<div class="modal" id="oferta" role="dialog" aria-modal="true" aria-labelledby="ofertaTitulo">
+  <div class="modal-box">
+    <button class="x" type="button" id="fecharOferta" aria-label="Fechar">×</button>
+    <div style="font-size:2.2rem">✋🍕</div>
+    <h3 id="ofertaTitulo">Espera!</h3>
+    <p>O Básico mostra o custo da pizza, mas <b>não mostra o seu lucro real</b>. Fica sem custo fixo, massa e gerador de preço.</p>
+    <p>Por isso, só agora: leve o <b>PRO completo</b> por um preço especial.</p>
+    <div class="de">De R$ 20,89</div>
+    <div class="por">R$ 15,99</div>
+    <small style="color:var(--suave)">Pagamento único, acesso vitalício</small>
+    <a class="btn" href="https://pay.cakto.com.br/wx9esqb_1139423" target="_blank" rel="noopener">Sim, quero o PRO por R$&nbsp;15,99</a>
+    <a class="recusar" href="https://pay.cakto.com.br/8rdpouv_1139386" target="_blank" rel="noopener" id="recusarOferta">Não, quero só o Básico por R$&nbsp;10,89</a>
   </div>
 </div>
+
 <script>
-  function abrirOfertaPro(e) {
-    var m = document.getElementById('ofertaPro');
-    if (!m) return true; // sem popup, segue direto pro checkout do Básico
-    if (e) e.preventDefault();
-    m.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-    return false;
+/* ======== CONFIGURAÇÕES (edite aqui) ======== */
+
+// ID do vídeo no YouTube. Ex.: para https://youtu.be/AbC123xyz, coloque 'AbC123xyz'.
+// Deixe vazio ('') para esconder a seção do vídeo.
+const VSL_YOUTUBE_ID = '';
+const VSL_VERTICAL = true; // true = vídeo em pé (celular). false = vídeo deitado.
+
+// Fim do preço de lançamento. Depois dessa data a faixa some sozinha.
+// ATENÇÃO: só use se você realmente for subir o preço nessa data. Coloque null para desligar.
+const PRECO_LANCAMENTO_ATE = '2026-10-10T23:59:59-03:00';
+
+// Foto do fundador (opcional). Ex.: 'marllon.jpg' (suba a foto no GitHub). Vazio = mostra a letra M.
+const FOTO_FUNDADOR = '';
+
+// Depoimentos REAIS de clientes. A seção só aparece quando houver pelo menos um.
+// Ex.: { nome: 'João', pizzaria: 'Pizzaria do João, São Luís - MA', texto: 'O que ele disse', print: 'depo-joao.jpg' }
+const DEPOIMENTOS = [];
+
+/* ======== CÓDIGO ======== */
+(function () {
+  // Vídeo com carregamento leve: só baixa o YouTube quando a pessoa toca no play.
+  if (VSL_YOUTUBE_ID) {
+    const sec = document.getElementById('secVideo');
+    const box = document.getElementById('vsl');
+    sec.hidden = false;
+    if (!VSL_VERTICAL) box.classList.add('horizontal');
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('aria-label', 'Assistir ao vídeo');
+    b.style.backgroundImage = "url('https://i.ytimg.com/vi/" + VSL_YOUTUBE_ID + "/hqdefault.jpg')";
+    b.innerHTML = '<span>▶</span><small>Toque para assistir</small>';
+    b.addEventListener('click', function () {
+      box.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/' + VSL_YOUTUBE_ID + '?autoplay=1&rel=0&playsinline=1" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="Vídeo do PizzaControl"></iframe>';
+    });
+    box.appendChild(b);
   }
-  function fecharOfertaPro() {
-    var m = document.getElementById('ofertaPro');
-    if (m) m.style.display = 'none';
-    document.body.style.overflow = '';
+
+  // Foto do fundador
+  if (FOTO_FUNDADOR) {
+    const img = document.createElement('img');
+    img.src = FOTO_FUNDADOR; img.alt = 'Marllon Sousa, criador do PizzaControl';
+    img.className = 'avatar'; img.loading = 'lazy'; img.width = 140; img.height = 140;
+    document.getElementById('avatar').replaceWith(img);
   }
-  document.getElementById('ofertaPro').addEventListener('click', function (e) {
-    if (e.target === this) fecharOfertaPro();
-  });
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') fecharOfertaPro();
-  });
+
+  // Depoimentos reais
+  if (DEPOIMENTOS.length) {
+    document.getElementById('secDepos').hidden = false;
+    const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    document.getElementById('depos').innerHTML = DEPOIMENTOS.map(function (d) {
+      return '<div class="depo">' + (d.print ? '<img loading="lazy" src="' + esc(d.print) + '" alt="Mensagem de ' + esc(d.nome) + '">' : '') +
+        (d.texto ? '<p>"' + esc(d.texto) + '"</p>' : '') + '<b>' + esc(d.nome) + '</b><br><small>' + esc(d.pizzaria || '') + '</small></div>';
+    }).join('');
+  }
+
+  // Calculadora
+  const brl = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const gastos = document.getElementById('gastos');
+  const pizzas = document.getElementById('pizzas');
+  function calcular() {
+    const g = Math.max(0, parseFloat(gastos.value) || 0);
+    const p = Math.max(1, parseFloat(pizzas.value) || 1);
+    document.getElementById('porPizza').textContent = brl(g / p);
+    document.getElementById('explica').textContent = 'Se esse valor não está no seu preço, são ' + brl(g) + ' por mês saindo do seu bolso sem você perceber.';
+  }
+  gastos.addEventListener('input', calcular);
+  pizzas.addEventListener('input', calcular);
+  calcular();
+
+  // Faixa de preço de lançamento (só com data real)
+  if (PRECO_LANCAMENTO_ATE) {
+    const fim = new Date(PRECO_LANCAMENTO_ATE).getTime();
+    const faixa = document.getElementById('faixa');
+    const rel = document.getElementById('relogio');
+    function tic() {
+      const r = fim - Date.now();
+      if (r <= 0) { faixa.hidden = true; return false; }
+      const d = Math.floor(r / 864e5), h = Math.floor(r / 36e5) % 24, m = Math.floor(r / 6e4) % 60, s = Math.floor(r / 1e3) % 60;
+      const dd = (n) => String(n).padStart(2, '0');
+      rel.textContent = (d > 0 ? d + (d === 1 ? ' dia ' : ' dias ') : '') + dd(h) + ':' + dd(m) + ':' + dd(s);
+      faixa.hidden = false;
+      return true;
+    }
+    if (tic()) { const t = setInterval(function () { if (!tic()) clearInterval(t); }, 1000); }
+  }
+
+  // Barra fixa no celular: aparece depois do topo e some na área dos planos
+  const barra = document.getElementById('barra');
+  const hero = document.querySelector('.hero');
+  const planos = document.getElementById('planos');
+  let passouHero = false, vendoPlanos = false;
+  const atualizar = () => barra.classList.toggle('on', passouHero && !vendoPlanos);
+  new IntersectionObserver((e) => { passouHero = !e[0].isIntersecting; atualizar(); }).observe(hero);
+  new IntersectionObserver((e) => { vendoPlanos = e[0].isIntersecting; atualizar(); }, { threshold: 0.05 }).observe(planos);
+
+  // Popup de oferta ao clicar no Básico
+  const modal = document.getElementById('oferta');
+  const abrir = (e) => { e.preventDefault(); modal.classList.add('on'); document.body.style.overflow = 'hidden'; document.getElementById('fecharOferta').focus(); };
+  const fechar = () => { modal.classList.remove('on'); document.body.style.overflow = ''; };
+  document.getElementById('btnBasico').addEventListener('click', abrir);
+  document.getElementById('fecharOferta').addEventListener('click', fechar);
+  document.getElementById('recusarOferta').addEventListener('click', fechar);
+  modal.addEventListener('click', (e) => { if (e.target === modal) fechar(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fechar(); });
+})();
 </script>
 </body>
 </html>
