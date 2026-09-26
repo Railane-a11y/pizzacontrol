@@ -2023,10 +2023,78 @@ function aplicarTravaPlanos() {
     console.log('🔒 Travas do Plano Básico aplicadas às abas:', ABAS_EXCLUSIVAS_PRO.join(', '));
 }
 
+function escaparHtmlUpgrade(t) {
+    return String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function fecharModalUpgrade() {
+    const overlay = document.getElementById('modalUpgradePro');
+    if (overlay) overlay.remove();
+    document.removeEventListener('keydown', fecharModalUpgradeEsc);
+}
+
+function fecharModalUpgradeEsc(e) {
+    if (e.key === 'Escape') fecharModalUpgrade();
+}
+
 function mostrarModalUpgrade(origem) {
-    const nome = NOMES_RECURSOS_PRO[origem] || 'este recurso';
-    alert('🔒 "' + nome + '" é exclusivo do PizzaControl PRO.\n\nFaça o upgrade agora e pare de vender no prejuízo sem saber!\n\n⚠️ No pagamento, use o MESMO e-mail do seu login (' + (firebaseUser ? firebaseUser.email : '') + ') para liberar na hora.');
-    window.open(LINK_UPGRADE_PRO, '_blank');
+    fecharModalUpgrade();
+    const nome = NOMES_RECURSOS_PRO[origem] || 'Este recurso';
+    const email = (firebaseUser && firebaseUser.email) ? firebaseUser.email : '';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'modalUpgradePro';
+    overlay.className = 'mup-overlay';
+    overlay.innerHTML = `
+        <div class="mup-card" role="dialog" aria-modal="true" aria-labelledby="mupTitulo">
+            <button type="button" class="mup-fechar" aria-label="Fechar">✕</button>
+            <div class="mup-topo">
+                <div class="mup-cadeado">🔒</div>
+                <div class="mup-selo">RECURSO PRO</div>
+                <h2 id="mupTitulo" class="mup-titulo">${escaparHtmlUpgrade(nome)}</h2>
+            </div>
+            <div class="mup-corpo">
+                <p class="mup-texto">Pare de vender no prejuízo sem saber. Com o PRO você descobre o <strong>lucro real</strong> de cada pizza.</p>
+                <ul class="mup-lista">
+                    <li>✅ Rateio de Custo Fixo (aluguel, luz, funcionários)</li>
+                    <li>✅ Custo real da Massa por tamanho</li>
+                    <li>✅ Gerador de Preço, Combos e Meio a Meio</li>
+                    <li>✅ Bebidas, adicionais e Backup</li>
+                </ul>
+                <div class="mup-preco">
+                    <span class="mup-valor">R$ 15,00</span>
+                    <span class="mup-legenda">pagamento único · acesso vitalício</span>
+                </div>
+                ${email ? `
+                <div class="mup-email">
+                    <div class="mup-email-titulo">⚠️ Use este e-mail no pagamento para liberar na hora:</div>
+                    <div class="mup-email-linha">
+                        <span class="mup-email-valor">${escaparHtmlUpgrade(email)}</span>
+                        <button type="button" class="mup-copiar">Copiar</button>
+                    </div>
+                </div>` : ''}
+                <a class="mup-cta" href="${LINK_UPGRADE_PRO}" target="_blank" rel="noopener">QUERO LIBERAR O PRO</a>
+                <button type="button" class="mup-depois">Agora não</button>
+                <p class="mup-rodape">Depois de pagar, saia e entre de novo no sistema para ver tudo liberado.</p>
+            </div>
+        </div>`;
+
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) fecharModalUpgrade(); });
+    overlay.querySelector('.mup-fechar').addEventListener('click', fecharModalUpgrade);
+    overlay.querySelector('.mup-depois').addEventListener('click', fecharModalUpgrade);
+    const btnCopiar = overlay.querySelector('.mup-copiar');
+    if (btnCopiar) {
+        btnCopiar.addEventListener('click', () => {
+            const ok = () => { btnCopiar.textContent = 'Copiado ✓'; setTimeout(() => { btnCopiar.textContent = 'Copiar'; }, 2000); };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(email).then(ok).catch(() => prompt('Copie seu e-mail:', email));
+            } else {
+                prompt('Copie seu e-mail:', email);
+            }
+        });
+    }
+    document.addEventListener('keydown', fecharModalUpgradeEsc);
+    document.body.appendChild(overlay);
 }
 
 function injetarAvisoFichaBasico() {
@@ -2059,6 +2127,55 @@ function injetarEstilosTravaPlanos() {
             color:#e65100; font-weight:600;
         }
         .aviso-upgrade-pro:hover { filter: brightness(0.97); }
+        .mup-overlay {
+            position:fixed; inset:0; z-index:99999; background:rgba(15,15,25,0.72);
+            display:flex; align-items:center; justify-content:center; padding:16px;
+            animation:mupFade .2s ease;
+        }
+        .mup-card {
+            position:relative; width:100%; max-width:420px; max-height:92vh; overflow-y:auto;
+            background:#fff; border-radius:18px; box-shadow:0 20px 60px rgba(0,0,0,.4);
+            font-family:inherit; animation:mupSobe .25s ease;
+        }
+        .mup-fechar {
+            position:absolute; top:10px; right:12px; background:rgba(255,255,255,.2); color:#fff;
+            border:none; width:32px; height:32px; border-radius:50%; font-size:16px; cursor:pointer;
+        }
+        .mup-fechar:hover { background:rgba(255,255,255,.35); }
+        .mup-topo {
+            background:linear-gradient(135deg,#c62828,#8e0000); color:#fff; text-align:center;
+            padding:26px 20px 20px; border-radius:18px 18px 0 0;
+        }
+        .mup-cadeado { font-size:40px; line-height:1; }
+        .mup-selo {
+            display:inline-block; margin-top:10px; background:#f6c90e; color:#1a202c;
+            font-weight:800; font-size:11px; letter-spacing:1px; padding:4px 10px; border-radius:20px;
+        }
+        .mup-titulo { margin:10px 0 0; font-size:1.15rem; line-height:1.35; color:#fff; }
+        .mup-corpo { padding:20px 22px 22px; }
+        .mup-texto { margin:0 0 14px; color:#4a5568; font-size:.95rem; text-align:center; }
+        .mup-lista { list-style:none; padding:0; margin:0 0 16px; display:flex; flex-direction:column; gap:8px; }
+        .mup-lista li { color:#2d3748; font-size:.9rem; }
+        .mup-preco { text-align:center; margin-bottom:16px; }
+        .mup-valor { display:block; font-size:2.2rem; font-weight:900; color:#c62828; line-height:1.1; }
+        .mup-legenda { font-size:.8rem; color:#718096; }
+        .mup-email { background:#fff8e1; border:1px solid #ffe082; border-radius:10px; padding:10px 12px; margin-bottom:16px; }
+        .mup-email-titulo { font-size:.8rem; color:#8d6e00; font-weight:600; margin-bottom:6px; }
+        .mup-email-linha { display:flex; align-items:center; gap:8px; }
+        .mup-email-valor { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; color:#1a202c; font-size:.9rem; }
+        .mup-copiar { background:#1a202c; color:#fff; border:none; border-radius:6px; padding:6px 10px; font-size:.78rem; cursor:pointer; white-space:nowrap; }
+        .mup-cta {
+            display:block; text-align:center; text-decoration:none; background:linear-gradient(135deg,#e53935,#c62828);
+            color:#fff; font-weight:800; font-size:1rem; padding:15px; border-radius:10px;
+            box-shadow:0 6px 18px rgba(198,40,40,.35); transition:transform .15s;
+        }
+        .mup-cta:hover { transform:translateY(-2px); color:#fff; }
+        .mup-cta:focus-visible { outline:3px solid #f6c90e; outline-offset:2px; }
+        .mup-depois { display:block; width:100%; margin-top:8px; background:none; border:none; color:#718096; font-size:.9rem; padding:8px; cursor:pointer; }
+        .mup-depois:hover { color:#2d3748; }
+        .mup-rodape { margin:6px 0 0; text-align:center; font-size:.75rem; color:#a0aec0; }
+        @keyframes mupFade { from { opacity:0; } to { opacity:1; } }
+        @keyframes mupSobe { from { transform:translateY(20px); opacity:0; } to { transform:none; opacity:1; } }
     `;
     document.head.appendChild(style);
 }
