@@ -215,6 +215,13 @@
     .calc-res { margin-top: 18px; background: #0d1117; border-radius: 12px; padding: 18px; text-align: center; }
     .calc-res .v { color: #f6c90e; font-weight: 900; font-size: clamp(2rem, 7vw, 2.8rem); line-height: 1.1; margin: 4px 0 8px; }
     .calc-res p { color: #a0aec0; font-size: 0.9rem; line-height: 1.6; }
+    .calc small { display: block; color: #718096; font-size: 0.75rem; margin: -3px 0 6px; line-height: 1.4; }
+    .calc-full { grid-column: 1 / -1; }
+    .calc-linhas { text-align: left; }
+    .cl { display: flex; justify-content: space-between; gap: 12px; color: #e2e8f0; font-size: 0.95rem; padding: 6px 0; border-bottom: 1px dashed #2d3748; }
+    .cl b { white-space: nowrap; }
+    .cl.menos b { color: #fc8181; }
+    .calc-res .v.neg { color: #fc8181; }
     .passo-n { width: 44px; height: 44px; border-radius: 50%; background: #e53e3e; color: #fff; font-weight: 900; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
     .fundador { display: flex; gap: 24px; align-items: center; }
     .fundador-foto { flex: 0 0 120px; width: 120px; height: 120px; border-radius: 50%; background: #e53e3e; color: #fff; font-size: 3rem; font-weight: 900; display: flex; align-items: center; justify-content: center; border: 4px solid #f6c90e; object-fit: cover; }
@@ -379,21 +386,31 @@
 <section class="dark-section sec-pad">
   <div class="container-sm" style="text-align:center;">
     <span class="badge-yellow">CONFIRA EM 10 SEGUNDOS</span>
-    <h2 class="sec-h2" style="color:#fff; font-weight:900; font-size:1.8rem; margin:16px 0 10px; line-height:1.3;">Quanto cada pizza sua precisa carregar de custo fixo?</h2>
-    <p style="color:#a0aec0; max-width:560px; margin:0 auto 28px; line-height:1.7;">Coloque os números da sua pizzaria. A conta é feita aqui na tela, nada é enviado.</p>
+    <h2 class="sec-h2" style="color:#fff; font-weight:900; font-size:1.8rem; margin:16px 0 10px; line-height:1.3;">Quanto sobra de verdade de uma pizza sua?</h2>
+    <p style="color:#a0aec0; max-width:560px; margin:0 auto 28px; line-height:1.7;">Coloque os números de uma pizza do seu cardápio. A conta é feita aqui na tela e nada é enviado.</p>
     <div class="calc" style="text-align:left;">
       <div class="calc-campos">
-        <div><label for="gastos">Gastos fixos por mês (R$)</label><input id="gastos" type="number" inputmode="numeric" min="0" value="7550"></div>
-        <div><label for="pizzas">Pizzas vendidas por mês</label><input id="pizzas" type="number" inputmode="numeric" min="1" value="1200"></div>
+        <div><label for="cPreco">Preço no cardápio (R$)</label><input id="cPreco" type="number" inputmode="decimal" min="0" step="0.01" value="45"></div>
+        <div><label for="cIng">Ingredientes, massa e caixa (R$)</label><input id="cIng" type="number" inputmode="decimal" min="0" step="0.01" value="17"></div>
+        <div><label for="cFixo">Gastos fixos por mês (R$)</label><small>Aluguel, luz, gás, funcionários</small><input id="cFixo" type="number" inputmode="numeric" min="0" value="7550"></div>
+        <div><label for="cQtd">Pizzas vendidas por mês</label><small>Somando todos os sabores</small><input id="cQtd" type="number" inputmode="numeric" min="1" value="1200"></div>
+        <div class="calc-full"><label for="cTaxa">Taxas sobre a venda (%)</label><small>iFood, maquininha e imposto. Se não souber, 12% é um bom ponto de partida</small><input id="cTaxa" type="number" inputmode="decimal" min="0" max="90" step="0.1" value="12"></div>
       </div>
       <div class="calc-res" aria-live="polite">
-        <div style="color:#cbd5e0; font-size:0.85rem;">Cada pizza precisa carregar</div>
-        <div class="v" id="porPizza">R$ 6,29</div>
-        <p id="explica">Se esse valor não está no seu preço, são R$ 7.550,00 por mês saindo do seu bolso sem você perceber.</p>
+        <div class="calc-linhas">
+          <div class="cl"><span>Preço da pizza</span><b id="rPreco">-</b></div>
+          <div class="cl menos"><span>− Ingredientes, massa e caixa</span><b id="rIng">-</b></div>
+          <div class="cl menos"><span>− Parte do custo fixo</span><b id="rFixo">-</b></div>
+          <div class="cl menos"><span>− Taxas</span><b id="rTaxa">-</b></div>
+        </div>
+        <div style="color:#cbd5e0; font-size:0.85rem; margin-top:14px;">Sobra de verdade em cada pizza</div>
+        <div class="v" id="rLucro">-</div>
+        <div id="rPct" style="color:#cbd5e0; font-size:0.85rem; margin:-4px 0 10px;"></div>
+        <p id="rExplica"></p>
       </div>
     </div>
-    <p style="color:#cbd5e0; margin:24px auto 18px; max-width:560px; line-height:1.7;">O PizzaControl faz essa conta sozinho e já coloca o valor dentro do custo de cada sabor.</p>
-    <a href="#planos" class="btn-red" style="text-transform:uppercase; max-width:480px; width:100%;">QUERO O PREÇO CERTO DAS MINHAS PIZZAS</a>
+    <p style="color:#cbd5e0; margin:24px auto 18px; max-width:560px; line-height:1.7;">O PizzaControl faz essa conta para cada sabor e tamanho do seu cardápio, e refaz sozinho quando um ingrediente sobe.</p>
+    <a href="#planos" class="btn-red" style="text-transform:uppercase; max-width:480px; width:100%;">QUERO ESSA CONTA EM TODAS AS MINHAS PIZZAS</a>
   </div>
 </section>
 
@@ -769,20 +786,6 @@
   </div>
 </section>
 
-<section class="section-white sec-pad">
-  <div class="container-sm">
-    <div class="card-white fundador" style="padding: 32px 26px;">
-      <div class="fundador-foto" id="fundadorFoto" aria-hidden="true">M</div>
-      <div>
-        <h2 class="sec-h2" style="color:#1a202c; font-weight:900; font-size:1.6rem; margin-bottom:12px;">Feito por quem vive de pizza</h2>
-        <p style="color:#4a5568; line-height:1.7; font-size:1.02rem;">"Sou pizzaiolo e tenho minha própria pizzaria. Por muito tempo eu vendia bem e não entendia por que sobrava tão pouco no fim do mês. Criei o PizzaControl para resolver isso na minha cozinha, e agora ele está disponível para você."</p>
-        <p style="margin-top:12px; font-weight:800; color:#1a202c;">Marllon Sousa, criador do PizzaControl</p>
-        <a href="https://instagram.com/casadaspizzaass" target="_blank" rel="noopener" style="color:#e53e3e; font-weight:700;">@casadaspizzaass</a>
-      </div>
-    </div>
-  </div>
-</section>
-
 <!-- Depoimentos REAIS: esta seção fica escondida até você preencher a lista DEPOIMENTOS no final do arquivo -->
 <section id="secDepos" class="section-light sec-pad" hidden>
   <div class="container">
@@ -1015,9 +1018,6 @@ const VSL_VERTICAL = false; // true se o vídeo for gravado em pé (formato celu
 // ATENÇÃO: só use se você realmente for subir o preço nessa data. Coloque null para desligar.
 const PRECO_LANCAMENTO_ATE = '2026-10-10T23:59:59-03:00';
 
-// Sua foto (opcional). Suba a foto no GitHub e coloque o nome, ex.: 'marllon.jpg'.
-const FOTO_FUNDADOR = '';
-
 // Depoimentos REAIS de clientes. A seção só aparece quando houver pelo menos um.
 // Ex.: { nome: 'João', pizzaria: 'Pizzaria do João, São Luís - MA', texto: 'O que ele disse', print: 'depo-joao.jpg' }
 const DEPOIMENTOS = [];
@@ -1044,13 +1044,6 @@ const DEPOIMENTOS = [];
     box.appendChild(v);
   }
 
-  if (FOTO_FUNDADOR) {
-    const img = document.createElement('img');
-    img.src = FOTO_FUNDADOR; img.alt = 'Marllon Sousa, criador do PizzaControl';
-    img.className = 'fundador-foto'; img.loading = 'lazy'; img.width = 120; img.height = 120;
-    document.getElementById('fundadorFoto').replaceWith(img);
-  }
-
   if (DEPOIMENTOS.length) {
     document.getElementById('secDepos').hidden = false;
     document.getElementById('depos').innerHTML = DEPOIMENTOS.map(function (d) {
@@ -1063,17 +1056,29 @@ const DEPOIMENTOS = [];
     }).join('');
   }
 
-  // Calculadora
+  // Calculadora: quanto sobra de verdade em uma pizza
   const brl = (n) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  const gastos = document.getElementById('gastos'), pizzas = document.getElementById('pizzas');
+  const pctBR = (n) => n.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+  const campoCalc = (id, min) => Math.max(min, parseFloat(document.getElementById(id).value) || 0);
   function calcular() {
-    const g = Math.max(0, parseFloat(gastos.value) || 0);
-    const p = Math.max(1, parseFloat(pizzas.value) || 1);
-    document.getElementById('porPizza').textContent = brl(g / p);
-    document.getElementById('explica').textContent = 'Se esse valor não está no seu preço, são ' + brl(g) + ' por mês saindo do seu bolso sem você perceber.';
+    const preco = campoCalc('cPreco', 0), ing = campoCalc('cIng', 0), fixoMes = campoCalc('cFixo', 0);
+    const qtd = Math.max(1, campoCalc('cQtd', 0)), taxaPct = Math.min(campoCalc('cTaxa', 0), 90);
+    const fixo = fixoMes / qtd, taxa = preco * taxaPct / 100;
+    const lucro = preco - ing - fixo - taxa;
+    const pareceria = preco - ing;
+    document.getElementById('rPreco').textContent = brl(preco);
+    document.getElementById('rIng').textContent = brl(ing);
+    document.getElementById('rFixo').textContent = brl(fixo);
+    document.getElementById('rTaxa').textContent = brl(taxa);
+    const v = document.getElementById('rLucro');
+    v.textContent = brl(lucro);
+    document.getElementById('rPct').textContent = preco > 0 ? pctBR(lucro / preco * 100) + ' do preço' : '';
+    v.classList.toggle('neg', lucro < 0);
+    document.getElementById('rExplica').textContent = preco <= 0 ? 'Coloque o preço da pizza.'
+      : lucro < 0 ? 'Essa pizza está dando prejuízo de ' + brl(-lucro) + ' a cada venda.'
+      : 'Olhando só os ingredientes, parece que sobram ' + brl(pareceria) + '. Na real, sobram ' + brl(lucro) + ': ' + brl(pareceria - lucro) + ' a menos em cada pizza.';
   }
-  gastos.addEventListener('input', calcular);
-  pizzas.addEventListener('input', calcular);
+  ['cPreco', 'cIng', 'cFixo', 'cQtd', 'cTaxa'].forEach((id) => document.getElementById(id).addEventListener('input', calcular));
   calcular();
 
   // Faixa de preço de lançamento (só com data real)
