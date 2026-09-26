@@ -1460,6 +1460,17 @@
             font-weight: 600;
             color: var(--dark);
         }
+        /* Quantidade com a unidade visível (g, ml, un) */
+        .massa-item { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+        .massa-item select { flex: 2; min-width: 150px; }
+        .massa-item .custo { min-width: 80px; text-align: right; font-weight: bold; }
+        .qtd-wrap { flex: 1; min-width: 90px; position: relative; }
+        .qtd-wrap input { width: 100%; padding-right: 44px; }
+        .qtd-un { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #777; font-weight: 700; font-size: 0.9em; pointer-events: none; }
+        @media (max-width: 768px) {
+            .massa-item { flex-direction: column; align-items: stretch; }
+            .qtd-wrap { width: 100%; }
+        }
     </style>
 </head>
 
@@ -1589,7 +1600,7 @@
                             <div class="resumo-item"><small>Fichas</small>
                                 <div class="val" id="dashFic">0</div>
                             </div>
-                            <div class="resumo-item"><small>Faturamento Total Estimado</small>
+                            <div class="resumo-item"><small>Lucro médio por pizza</small>
                                 <div class="val green" id="dashFat">R$ 0</div>
                             </div>
                             <div class="resumo-item"><small>Maior Margem</small>
@@ -1944,7 +1955,7 @@
                 <div class="card">
                     <div class="card-header warning">📊 Calcular por CMV</div>
                     <div class="card-body">
-                        <div class="form-group"><label>Custo Total (R$)</label><input type="number" class="form-control"
+                        <div class="form-group"><label>Custo dos ingredientes + massa (R$)</label><input type="number" class="form-control"
                                 id="calcCusto" placeholder="18.00" oninput="calcPorCMV()"></div>
                         <div class="slider-group"><label><span>CMV Desejado:</span><span class="slider-val"
                                     id="calcCMVVal">30%</span></label><input type="range" id="calcCMV" min="15" max="50"
@@ -1986,7 +1997,7 @@
                                     <td style="text-align:right" id="cfFixo">R$ 0</td>
                                 </tr>
                                 <tr style="font-weight:bold;border-top:2px solid #333">
-                                    <td>TOTAL:</td>
+                                    <td>CUSTO TOTAL (com custo fixo):</td>
                                     <td style="text-align:right;color:var(--danger)" id="cfTot">R$ 0</td>
                                 </tr>
                             </table>
@@ -2168,7 +2179,7 @@
 
     </div><!-- /appContent -->
 
-    <script src="app.js?v=3.0.0"></script>
+    <script src="app.js?v=3.1.0"></script>
     
     <!-- Botão Suporte WhatsApp -->
     <a href="https://wa.me/5598970260090?text=Fala%20Marllon!%20Preciso%20de%20uma%20ajuda%20aqui%20no%20PizzaControl." class="btn-whatsapp-flutuante" target="_blank">
