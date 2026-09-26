@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seu acesso | PizzaControl</title>
+<meta name="robots" content="noindex">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:'Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif; background:linear-gradient(135deg,#667eea,#764ba2); min-height:100vh; color:#2d3748; line-height:1.6; padding:24px 14px; }
+  .card { max-width:520px; margin:0 auto; background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,.25); }
+  .topo { background:linear-gradient(135deg,#c62828,#8e0000); color:#fff; text-align:center; padding:26px 20px; }
+  .logo { font-weight:900; font-size:1.5rem; }
+  .logo span { color:#f6c90e; }
+  .topo h1 { margin:10px 0 0; font-size:1.25rem; }
+  .corpo { padding:22px; }
+  .abas { display:flex; gap:8px; margin-bottom:18px; }
+  .aba { flex:1; border:2px solid #e2e8f0; background:#fff; border-radius:10px; padding:10px 6px; font-weight:700; font-size:.88rem; cursor:pointer; color:#4a5568; font-family:inherit; }
+  .aba.ativa { border-color:#c62828; background:#fff5f5; color:#c62828; }
+  .painel { display:none; }
+  .painel.ativo { display:block; }
+  .passo { display:flex; gap:12px; margin-bottom:16px; }
+  .num { flex:0 0 30px; height:30px; border-radius:50%; background:#c62828; color:#fff; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  .passo p { margin:3px 0 0; }
+  .passo strong { color:#1a202c; }
+  .dica { background:#fff8e1; border:1px solid #ffe082; border-radius:10px; padding:12px 14px; font-size:.9rem; margin:6px 0 18px; }
+  .btn { display:block; text-align:center; text-decoration:none; font-weight:800; padding:15px; border-radius:10px; margin-bottom:10px; }
+  .btn-principal { background:linear-gradient(135deg,#e53935,#c62828); color:#fff; box-shadow:0 6px 18px rgba(198,40,40,.3); }
+  .btn-zap { background:#25d366; color:#fff; }
+  .rodape { text-align:center; font-size:.8rem; color:#a0aec0; margin-top:6px; }
+  .rodape a { color:#a0aec0; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="topo">
+    <div class="logo">🍕 Pizza<span>Control</span></div>
+    <h1>Pagamento aprovado! 🎉</h1>
+  </div>
+  <div class="corpo">
+    <div class="abas">
+      <button class="aba ativa" data-painel="nova">Primeira compra</button>
+      <button class="aba" data-painel="upgrade">Comprei o Upgrade PRO</button>
+    </div>
+
+    <div class="painel ativo" id="nova">
+      <div class="passo"><div class="num">1</div><p><strong>Abra seu e-mail.</strong> Em até 5 minutos chega uma mensagem para você criar sua senha.</p></div>
+      <div class="passo"><div class="num">2</div><p><strong>Clique no link do e-mail</strong> e crie sua senha.</p></div>
+      <div class="passo"><div class="num">3</div><p><strong>Entre no sistema</strong> com o e-mail usado na compra e a senha que você criou.</p></div>
+      <div class="dica">📭 <strong>Não achou o e-mail?</strong> Procure no <strong>Spam</strong> e em <strong>Promoções</strong>. Se mesmo assim não aparecer, abra o sistema, clique em <strong>"Esqueci minha senha"</strong> e digite o e-mail da compra para receber o link de novo.</div>
+    </div>
+
+    <div class="painel" id="upgrade">
+      <div class="passo"><div class="num">1</div><p><strong>Não precisa criar senha nova.</strong> Seu login continua o mesmo.</p></div>
+      <div class="passo"><div class="num">2</div><p><strong>Abra o sistema</strong>, clique em <strong>Sair</strong> e entre de novo com o mesmo e-mail e senha.</p></div>
+      <div class="passo"><div class="num">3</div><p><strong>Pronto!</strong> Massa, Custos Fixos, Bebidas e Gerar Preço já vão estar liberados.</p></div>
+      <div class="dica">🔄 Se as abas ainda aparecerem com 🔒, espere 1 minuto e atualize a página (no computador, aperte <strong>Ctrl + F5</strong>).</div>
+    </div>
+
+    <a class="btn btn-principal" href="https://app.pizzacontrol.com.br/app.html">ENTRAR NO PIZZACONTROL</a>
+    <a class="btn btn-zap" href="https://wa.me/5598970260090?text=Ol%C3%A1%2C%20comprei%20o%20PizzaControl%20e%20preciso%20de%20ajuda%20com%20o%20acesso" target="_blank" rel="noopener">💬 Precisa de ajuda? Chame no WhatsApp</a>
+    <p class="rodape">Clientes PRO: chame no WhatsApp para entrar no Grupo de Pizzaiolos.<br><a href="termos.html">Termos de Uso</a> · <a href="privacidade.html">Privacidade</a></p>
+  </div>
+</div>
+<script>
+  document.querySelectorAll('.aba').forEach(function (aba) {
+    aba.addEventListener('click', function () {
+      document.querySelectorAll('.aba').forEach(function (a) { a.classList.remove('ativa'); });
+      document.querySelectorAll('.painel').forEach(function (p) { p.classList.remove('ativo'); });
+      aba.classList.add('ativa');
+      document.getElementById(aba.dataset.painel).classList.add('ativo');
+    });
+  });
+  if (location.hash === '#upgrade') document.querySelector('[data-painel="upgrade"]').click();
+</script>
+</body>
+</html>
