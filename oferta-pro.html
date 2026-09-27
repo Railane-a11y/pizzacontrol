@@ -32,24 +32,21 @@ h1 span{color:var(--amarelo)}
 .oferta-box{background:linear-gradient(180deg,#1f2733,#1a202c);border:2px solid var(--vermelho);border-radius:18px;padding:22px 18px;margin:24px 0 10px;box-shadow:0 10px 30px rgba(229,62,62,.18)}
 /* área onde entra o código de upsell da Cakto */
 #cakto-upsell{min-height:60px;display:flex;flex-direction:column;align-items:center;gap:10px}
+/* estilo dos botões da Cakto (eles ficam dentro de um "shadow DOM", por isso ::part) */
+cakto-upsell-buttons{display:block;width:100%}
+cakto-upsell-accept{display:block;width:100%;max-width:440px;margin:0 auto}
+cakto-upsell-accept::part(button){width:100%;border:0;border-radius:12px;padding:17px 18px;font-size:1.12rem;font-weight:900;letter-spacing:.01em;box-shadow:0 8px 22px rgba(229,62,62,.35);font-family:inherit}
+cakto-upsell-reject::part(button){color:#a0aec0;font-size:.9rem;font-family:inherit}
+cakto-upsell-reject:hover::part(button){color:#fff}
 .aviso-codigo{border:2px dashed #718096;border-radius:12px;padding:16px;color:var(--cinza);font-size:.85rem;text-align:center;width:100%}
 .recusar{display:block;text-align:center;color:var(--cinza);font-size:.85rem;margin-top:14px;text-decoration:underline}
 .recusar:hover{color:#fff}
-.recusar[hidden]{display:none}
 .garantia{display:flex;gap:12px;align-items:center;font-size:.85rem;color:var(--cinza);margin-top:18px}
 .garantia b{color:#fff}
 .nota{font-size:.78rem;color:#718096;text-align:center;margin-top:26px}
 .depoimento{font-style:italic}
 @media (prefers-reduced-motion:no-preference){.oferta-box{animation:brilho 2.4s ease-in-out infinite}
 @keyframes brilho{0%,100%{box-shadow:0 10px 30px rgba(229,62,62,.15)}50%{box-shadow:0 10px 36px rgba(229,62,62,.35)}}}
-
-cakto-upsell-buttons{display:block;width:100%}
-cakto-upsell-accept{display:block;width:100%}
-cakto-upsell-accept::part(button){width:100%;border:0;border-radius:12px;padding:18px 16px;font-size:1.15rem;font-weight:900;text-transform:uppercase;letter-spacing:.02em;
-  background:linear-gradient(135deg,#e53e3e,#c53030);color:#fff;box-shadow:0 8px 22px rgba(229,62,62,.4);font-family:inherit}
-cakto-upsell-reject::part(button){color:#a0aec0;font-size:.9rem;font-family:inherit;margin-top:6px}
-@media (prefers-reduced-motion:no-preference){cakto-upsell-accept::part(button){animation:pulsa 1.8s ease-in-out infinite}
-@keyframes pulsa{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}}
 </style>
 </head>
 <body>
@@ -73,11 +70,10 @@ cakto-upsell-reject::part(button){color:#a0aec0;font-size:.9rem;font-family:inhe
   </div>
 
   <div class="card">
-    <h2>Você paga só a diferença</h2>
+    <h2>Você paga menos que a diferença</h2>
     <div class="conta">
       <span>Plano PRO na página de vendas</span><span>R$ 20,89</span>
       <span>Você já pagou pelo Básico</span><span>− R$ 10,89</span>
-      <span>Diferença</span><span>R$ 10,00</span>
       <span class="tot">Para completar o PRO agora</span><span class="tot">R$ 9,90</span>
     </div>
   </div>
@@ -85,40 +81,28 @@ cakto-upsell-reject::part(button){color:#a0aec0;font-size:.9rem;font-family:inhe
   <div class="oferta-box">
     <div class="preco"><small>Complete seu plano para o PRO por</small><strong>R$ 9,90</strong><small>pagamento único, com o mesmo cartão, sem digitar nada de novo</small></div>
       <div id="cakto-upsell">
-        <!-- Código de upsell da Cakto (oferta 33yyq3b: Upgrade PRO, pós-Básico).
+        <!-- Código de upsell da Cakto (Básico -> Upgrade PRO R$ 9,90, oferta 33yyq3b).
              Destinos trocados de "members_area" para a página de acesso do PizzaControl. -->
         <cakto-upsell-buttons>
           <cakto-upsell-accept
             bg-color="#e53e3eff"
             text-color="#ffffff"
-            upsell-accept-url="https://app.pizzacontrol.com.br/acesso.html#upgrade"
+            upsell-accept-url="https://app.pizzacontrol.com.br/acesso.html"
             offer-id="33yyq3b"
             app-base-url="https://app.cakto.com.br"
             offer-type="upsell"
             upsell-reject-url="https://app.pizzacontrol.com.br/acesso.html"
-          >
-            Sim, quero completar para o PRO
-          </cakto-upsell-accept>
-          <cakto-upsell-reject upsell-reject-url="https://app.pizzacontrol.com.br/acesso.html">
-            Não, quero continuar só com o Básico
-          </cakto-upsell-reject>
+          >Sim, quero completar para o PRO</cakto-upsell-accept>
+          <cakto-upsell-reject
+            upsell-reject-url="https://app.pizzacontrol.com.br/acesso.html"
+          >Não, quero continuar só com o Básico</cakto-upsell-reject>
         </cakto-upsell-buttons>
+        <script type="text/javascript" src="https://caktoscripts.nyc3.cdn.digitaloceanspaces.com/upsell.js"></script>
       </div>
-      <!-- Plano B: se o script da Cakto não carregar (internet ruim, bloqueador), o cliente não fica preso -->
-      <a class="recusar" id="saidaReserva" href="acesso.html" hidden>Continuar para o meu acesso</a>
   </div>
 
   <div class="garantia"><span style="font-size:1.6rem">🛡️</span><span><b>Garantia de 7 dias.</b> Se não gostar do PRO, você pede o reembolso do upgrade e continua com o Básico normalmente.</span></div>
   <p class="nota">Você pode fazer o upgrade depois, de dentro do app, mas por um valor maior. O valor da diferença vale só nesta página.</p>
 </main>
-<script>
-  // Plano B: se o botão da Cakto não aparecer em 6 segundos, mostra o link para o acesso.
-  setTimeout(function () {
-    if (!window.customElements || !customElements.get('cakto-upsell-accept')) {
-      document.getElementById('saidaReserva').hidden = false;
-    }
-  }, 6000);
-</script>
-<script type="text/javascript" src="https://caktoscripts.nyc3.cdn.digitaloceanspaces.com/upsell.js"></script>
 </body>
 </html>
