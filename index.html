@@ -253,6 +253,39 @@
       .selo-img { width: 180px; height: 180px; object-fit: contain; flex-shrink: 0; }
     .selo-img[hidden], .selo-7[hidden] { display: none !important; }
     @media (max-width: 600px) { .selo-img { width: 170px; height: 170px; } }
+  
+    /* Como funciona com vídeos */
+    .passo-card { display: flex; flex-direction: column; gap: 14px; }
+    .passo-topo { display: flex; align-items: center; justify-content: center; gap: 10px; text-align: left; }
+    .passo-topo .passo-n { margin: 0 !important; flex-shrink: 0; }
+    .celular { position: relative; width: 100%; max-width: 250px; margin: 0 auto; aspect-ratio: 390 / 700; border: 8px solid #1a202c; border-radius: 30px; overflow: hidden; background: #1a202c; box-shadow: 0 14px 30px rgba(0,0,0,0.18); }
+    .celular video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    /* Bônus */
+    .bonus-sec { background: #faf6ef; }
+    .bonus-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 380px)); justify-content: center; gap: 24px; }
+    .bonus-card { background: #fff; border: 1px solid #ece5d8; border-radius: 18px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 8px 24px rgba(0,0,0,0.05); transition: transform .2s, box-shadow .2s; }
+    .bonus-card:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(0,0,0,0.09); }
+    .bonus-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .bonus-n { border: 1.5px solid #fbb4a9; color: #e53e3e; font-weight: 800; font-size: 0.8rem; padding: 2px 10px; border-radius: 6px; }
+    .bonus-tag { background: #e53e3e; color: #fff; font-weight: 800; font-size: 0.72rem; letter-spacing: 0.05em; padding: 5px 10px; border-radius: 6px; }
+    .bonus-img { background: #f3f4f6; border-radius: 14px; padding: 18px; margin-bottom: 18px; }
+    .zap { max-width: 250px; margin: 0 auto; border-radius: 14px; overflow: hidden; background: #efe7dd; box-shadow: 0 10px 24px rgba(0,0,0,0.15); }
+    .zap-cab { background: #075e54; color: #fff; display: flex; align-items: center; gap: 8px; padding: 9px 10px; text-align: left; }
+    .zap-cab b { display: block; font-size: 0.8rem; }
+    .zap-cab small { font-size: 0.65rem; opacity: 0.8; }
+    .zap-av { width: 30px; height: 30px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+    .zap-corpo { padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+    .bolha { background: #fff; color: #1a202c; font-size: 0.72rem; line-height: 1.4; padding: 6px 9px; border-radius: 8px; max-width: 85%; align-self: flex-start; text-align: left; box-shadow: 0 1px 1px rgba(0,0,0,0.08); }
+    .bolha.eu { background: #dcf8c6; align-self: flex-end; }
+    .bonus-card h3 { color: #1a202c; font-weight: 900; font-size: 1.15rem; margin: 0 0 8px; }
+    .bonus-card p { color: #4a5568; font-size: 0.9rem; line-height: 1.6; margin: 0 0 16px; flex: 1; }
+    .bonus-rodape { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 14px; font-size: 0.82rem; color: #718096; font-weight: 600; }
+    .gratis { background: #e6f9ee; color: #15803d; font-weight: 900; font-size: 0.8rem; padding: 5px 12px; border-radius: 6px; }
+    .bonus-chamada { color: #e53e3e; font-weight: 900; font-size: clamp(1.4rem, 4.5vw, 2.1rem); letter-spacing: -0.01em; }
+    @media (max-width: 768px) {
+      .bonus-grid { grid-template-columns: 1fr; }
+      .passos-video { gap: 40px !important; }
+    }
   </style>
 </head>
 <body>
@@ -379,7 +412,7 @@
       <p style="color:#4a5568; max-width:600px; margin:0 auto; line-height:1.7;">Todo dono de pizzaria sabe que o preço precisa cobrir mais que os ingredientes. O problema é o dia a dia:</p>
     </div>
     <div class="grid-3">
-      <div class="vilao"><h3>🧮 A conta dá trabalho</h3><p>Dividir aluguel, luz e funcionários por pizza, e ainda separar por tamanho, perde planilha e um tempo que ninguém tem depois do expediente.</p></div>
+      <div class="vilao"><h3>🧮 A conta dá trabalho</h3><p>Dividir aluguel, luz e funcionários por pizza, e ainda separar por tamanho, exige planilha e um tempo que ninguém tem depois do expediente.</p></div>
       <div class="vilao"><h3>📈 O preço dos ingredientes não para</h3><p>O queijo sobe, a calabresa sobe, a caixa sobe. A conta que você fez uma vez fica velha, e o preço do cardápio continua o mesmo.</p></div>
       <div class="vilao"><h3>🛵 iFood, maquininha e imposto</h3><p>São porcentagens que saem de cada venda. Numa pizza de R$ 45 pelo iFood, podem ser mais de R$ 10 que não aparecem na conta de cabeça.</p></div>
     </div>
@@ -423,11 +456,24 @@
       <h2 class="sec-h2" style="color:#1a202c; font-weight:900; font-size:2rem; margin-bottom:10px;">Como funciona</h2>
       <p style="color:#4a5568;">Não é planilha. Você preenche o que já sabe e o sistema faz as contas.</p>
     </div>
-    <div class="grid-3" style="text-align:center;">
-      <div class="feature-card"><div class="passo-n">1</div><h3 style="font-weight:800;color:#1a202c;margin-bottom:8px;">Cadastre seus ingredientes</h3><p style="color:#4a5568;font-size:0.92rem;line-height:1.6;">Coloque o que você paga na farinha, no queijo, na calabresa e nas embalagens.</p></div>
-      <div class="feature-card"><div class="passo-n">2</div><h3 style="font-weight:800;color:#1a202c;margin-bottom:8px;">Monte a ficha do sabor</h3><p style="color:#4a5568;font-size:0.92rem;line-height:1.6;">Todos os tamanhos na mesma tela. Preencheu a Grande? O sistema sugere a Média e a Pequena pelo peso da massa.</p></div>
-      <div class="feature-card"><div class="passo-n">3</div><h3 style="font-weight:800;color:#1a202c;margin-bottom:8px;">Acompanhe o lucro real</h3><p style="color:#4a5568;font-size:0.92rem;line-height:1.6;">Lucro de cada sabor já com custo fixo e taxas, e o preço certo para bater sua meta. Mudou um ingrediente? Ele avisa na hora.</p></div>
+    <div class="grid-3 passos-video" style="text-align:center;">
+      <div class="feature-card passo-card">
+        <div class="passo-topo"><div class="passo-n">1</div><h3 style="font-weight:800;color:#1a202c;margin:0;">Cadastre seus ingredientes</h3></div>
+        <div class="celular"><video class="demo" muted playsinline loop preload="none" poster="como-funciona-1.jpg" data-src="como-funciona-1.mp4" aria-label="Vídeo: cadastrando a mussarela no PizzaControl"></video></div>
+        <p style="color:#4a5568;font-size:0.92rem;line-height:1.6;margin:0;">Coloque o que você paga na farinha, no queijo, na calabresa e nas embalagens. O sistema já calcula o custo por grama.</p>
+      </div>
+      <div class="feature-card passo-card">
+        <div class="passo-topo"><div class="passo-n">2</div><h3 style="font-weight:800;color:#1a202c;margin:0;">Monte a ficha do sabor</h3></div>
+        <div class="celular"><video class="demo" muted playsinline loop preload="none" poster="como-funciona-2.jpg" data-src="como-funciona-2.mp4" aria-label="Vídeo: montando a ficha da calabresa em dois tamanhos"></video></div>
+        <p style="color:#4a5568;font-size:0.92rem;line-height:1.6;margin:0;">Todos os tamanhos na mesma tela. Preencheu a Grande? O sistema sugere a Média e a Pequena pelo peso da massa.</p>
+      </div>
+      <div class="feature-card passo-card">
+        <div class="passo-topo"><div class="passo-n">3</div><h3 style="font-weight:800;color:#1a202c;margin:0;">Acompanhe o lucro real</h3></div>
+        <div class="celular"><video class="demo" muted playsinline loop preload="none" poster="como-funciona-3.jpg" data-src="como-funciona-3.mp4" aria-label="Vídeo: aviso de aumento da mussarela e pizzas abaixo da meta"></video></div>
+        <p style="color:#4a5568;font-size:0.92rem;line-height:1.6;margin:0;">Mudou o preço de um ingrediente? Ele avisa na hora quais pizzas foram afetadas e qual o preço certo de cada uma.</p>
+      </div>
     </div>
+    <p style="text-align:center;color:#718096;font-size:0.8rem;margin-top:18px;">Vídeos gravados no PizzaControl com dados de uma pizzaria de exemplo.</p>
   </div>
 </section>
 
@@ -764,28 +810,52 @@
   </div>
 </section>
 
-<section class="dark-section sec-pad">
-  <div class="container-sm" style="text-align: center;">
-    <span class="badge-yellow">🎁 BÔNUS EXCLUSIVOS DO PLANO PRO</span>
-    <h2 class="sec-h2" style="color: #fff; font-weight: 900; font-size: 1.8rem; margin: 16px 0 10px; line-height: 1.3;">
-      Levando o PRO hoje, você também ganha:
-    </h2>
-    <p style="color:#a0aec0; margin-bottom: 36px;">Dois bônus que só quem escolhe o Plano PRO recebe.</p>
-    <div class="grid-bonus" style="text-align: left;">
-      <div class="bonus-card-red" style="padding: 32px 26px;">
-        <span class="bonus-num">BÔNUS 1</span>
-        <div style="font-size: 2.4rem; margin-bottom: 8px;">💬</div>
-        <h3 style="color: #fff; font-weight: 800; font-size: 1.2rem; margin-bottom: 10px;">Suporte VIP no WhatsApp</h3>
-        <p style="color: #a0aec0; font-size: 0.92rem; line-height: 1.6;">Travou em alguma ficha ou não sabe onde colocar um custo? Você chama e é atendido direto pelo WhatsApp.</p>
+<section class="bonus-sec sec-pad">
+  <div class="container" style="padding:0 4px;">
+    <div style="text-align:center;margin-bottom:36px;">
+      <span class="badge-yellow">🎁 BÔNUS EXCLUSIVOS DO PLANO PRO</span>
+      <h2 class="sec-h2" style="color:#1a202c;font-weight:900;font-size:1.9rem;margin:16px 0 10px;line-height:1.25;">Levando o PRO, você não fica sozinho</h2>
+      <p style="color:#4a5568;max-width:560px;margin:0 auto;line-height:1.7;">Além do sistema completo, quem escolhe o PRO ganha acesso direto a quem entende de pizzaria.</p>
+    </div>
+    <div class="bonus-grid">
+      <div class="bonus-card">
+        <div class="bonus-topo"><span class="bonus-n">01</span><span class="bonus-tag">BÔNUS 1</span></div>
+        <div class="bonus-img">
+          <div class="zap">
+            <div class="zap-cab"><span class="zap-av">🍕</span><div><b>Suporte PizzaControl</b><small>online</small></div></div>
+            <div class="zap-corpo">
+              <div class="bolha eu">Como coloco a taxa do iFood no sistema?</div>
+              <div class="bolha">É em Custos Fixos → Taxas. Coloca a comissão do app e quanto das vendas vem de lá. Pronto, já entra no lucro de todas as pizzas 👍</div>
+              <div class="bolha eu">Resolvido, valeu! 🙌</div>
+            </div>
+          </div>
+        </div>
+        <h3>Suporte VIP no WhatsApp</h3>
+        <p>Travou em alguma ficha ou não sabe onde colocar um custo? Você chama no WhatsApp e é atendido direto, sem robô e sem fila de chamado.</p>
+        <div class="bonus-rodape"><span>Exclusivo do Plano PRO</span><span class="gratis">GRÁTIS</span></div>
       </div>
-      <div class="bonus-card-green" style="padding: 32px 26px;">
-        <span class="bonus-num">BÔNUS 2</span>
-        <div style="font-size: 2.4rem; margin-bottom: 8px;">👨‍🍳</div>
-        <h3 style="color: #fff; font-weight: 800; font-size: 1.2rem; margin-bottom: 10px;">Grupo de Pizzaiolos</h3>
-        <p style="color: #a0aec0; font-size: 0.92rem; line-height: 1.6;">Um grupo no WhatsApp só com donos de pizzaria para trocar ideias de preço, promoção e gestão.</p>
+      <div class="bonus-card">
+        <div class="bonus-topo"><span class="bonus-n">02</span><span class="bonus-tag">BÔNUS 2</span></div>
+        <div class="bonus-img">
+          <div class="zap">
+            <div class="zap-cab"><span class="zap-av">👨‍🍳</span><div><b>Grupo de Pizzaiolos</b><small>donos de pizzaria</small></div></div>
+            <div class="zap-corpo">
+              <div class="bolha">A mussarela subiu de novo aqui 😩</div>
+              <div class="bolha">Aqui também. Subi R$ 2 na grande e ninguém reclamou</div>
+              <div class="bolha">Alguém já testou combo com refri na terça?</div>
+            </div>
+          </div>
+        </div>
+        <h3>Grupo de Pizzaiolos</h3>
+        <p>Um grupo no WhatsApp só com donos de pizzaria para trocar ideias de preço, fornecedor, promoção e gestão com quem vive a mesma rotina.</p>
+        <div class="bonus-rodape"><span>Exclusivo do Plano PRO</span><span class="gratis">GRÁTIS</span></div>
       </div>
     </div>
-    <a href="#planos" class="btn-red" style="text-transform:uppercase; max-width:480px; width:100%; margin-top: 36px;">QUERO O PRO COM OS BÔNUS</a>
+    <p style="text-align:center;color:#a0aec0;font-size:0.75rem;margin:14px 0 0;">Conversas ilustrativas.</p>
+    <div style="text-align:center;margin-top:30px;">
+      <div class="bonus-chamada">INCLUÍDOS GRÁTIS NO PLANO PRO</div>
+      <a href="#planos" class="btn-red animate-pulse" style="text-transform:uppercase;max-width:480px;width:100%;margin-top:18px;">QUERO O PRO COM OS BÔNUS</a>
+    </div>
   </div>
 </section>
 
@@ -1115,6 +1185,25 @@ const DEPOIMENTOS = [];
     new IntersectionObserver((e) => { vendoPlanos = e[0].isIntersecting; atualizar(); }, { threshold: 0.05 }).observe(planos);
   }
 })();
+
+  // Vídeos do "Como funciona": só baixam quando aparecem na tela e pausam quando saem
+  (function () {
+    const videos = document.querySelectorAll('video.demo');
+    const semMovimento = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const carregar = (v) => { if (!v.src) { v.src = v.dataset.src; v.load(); } };
+    if (semMovimento || !('IntersectionObserver' in window)) {
+      videos.forEach((v) => { v.controls = true; carregar(v); });
+      return;
+    }
+    const obs = new IntersectionObserver((entradas) => {
+      entradas.forEach((e) => {
+        const v = e.target;
+        if (e.isIntersecting) { carregar(v); const p = v.play(); if (p && p.catch) p.catch(() => { v.controls = true; }); }
+        else v.pause();
+      });
+    }, { threshold: 0.4 });
+    videos.forEach((v) => obs.observe(v));
+  })();
 </script>
 </body>
 </html>

@@ -275,7 +275,7 @@ function numero(valor, fallback = 0) {
 // Vale sempre a versão alterada por último. Na primeira sincronização de um aparelho que
 // já tem dados diferentes dos da nuvem, o cliente escolhe qual manter (a outra vira cópia).
 const COLECAO_NUVEM = 'dadosClientes';
-const VERSAO_APP = '3.4.0';
+const VERSAO_APP = '3.4.1';
 const LIMITE_NUVEM = 700000; // limite seguro de tamanho do documento
 let nuvemPronta = false;
 let nuvemTimer = null;
@@ -1100,7 +1100,11 @@ function mostrarAvisoMudancaPreco(ins, custoAntigo, antes) {
     if (btnMeta) btnMeta.addEventListener('click', () => {
         fecharModalUpgrade();
         document.querySelector('.nav-tab[data-page="dashboard"]')?.click();
-        setTimeout(() => document.getElementById('cardMeta')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+        setTimeout(() => {
+            const card = document.getElementById('cardMeta');
+            // para um pouco abaixo do topo, para o botão do menu não cobrir o título
+            if (card) window.scrollTo({ top: card.getBoundingClientRect().top + window.scrollY - 76, behavior: 'smooth' });
+        }, 50);
     });
     document.addEventListener('keydown', fecharModalUpgradeEsc);
     document.body.appendChild(overlay);
