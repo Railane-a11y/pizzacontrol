@@ -276,7 +276,7 @@ function numero(valor, fallback = 0) {
 // Vale sempre a versão alterada por último. Na primeira sincronização de um aparelho que
 // já tem dados diferentes dos da nuvem, o cliente escolhe qual manter (a outra vira cópia).
 const COLECAO_NUVEM = 'dadosClientes';
-const VERSAO_APP = '3.5.0';
+const VERSAO_APP = '3.5.1';
 const LIMITE_NUVEM = 700000; // limite seguro de tamanho do documento
 let nuvemPronta = false;
 let nuvemTimer = null;
@@ -2869,7 +2869,7 @@ async function carregarBonusPro() {
     const blocoConfig = document.getElementById('contaBonus');
     if (!isPro) {
         if (cardDash) cardDash.hidden = true;
-        if (blocoConfig) blocoConfig.innerHTML = `<p class="bonus-trava">🔒 O Suporte VIP e o Grupo de Pizzaiolos são bônus do Plano PRO.</p>
+        if (blocoConfig) blocoConfig.innerHTML = `<h4 class="conta-bonus-titulo">🎁 Bônus do Plano PRO</h4><p class="bonus-trava">🔒 O Suporte VIP e o Grupo de Pizzaiolos são bônus do Plano PRO.</p>
             <button type="button" class="btn btn-warning btn-sm" onclick="mostrarModalUpgrade('bonus')">⭐ Conhecer o PRO</button>`;
         return;
     }
@@ -2886,7 +2886,7 @@ async function carregarBonusPro() {
             ? `<a class="btn btn-success bonus-btn" href="${linkGrupo}" target="_blank" rel="noopener">👨‍🍳 Entrar no grupo Pizzaiolos de Elite</a>`
             : `<p class="bonus-aviso">Para entrar no grupo, peça o link no suporte abaixo.</p>`}
         <a class="btn btn-info bonus-btn" href="${LINK_SUPORTE_VIP}" target="_blank" rel="noopener">💬 Falar com o Suporte VIP</a>`;
-    if (blocoConfig) blocoConfig.innerHTML = '<h4 style="margin:0 0 10px">🎁 Bônus do Plano PRO</h4>' + botoes;
+    if (blocoConfig) blocoConfig.innerHTML = '<h4 class="conta-bonus-titulo">🎁 Bônus do Plano PRO</h4><div class="bonus-botoes">' + botoes + '</div>';
     if (cardDash) {
         document.getElementById('cardBonusBotoes').innerHTML = botoes;
         let oculto = false;
