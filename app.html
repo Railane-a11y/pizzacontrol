@@ -1503,7 +1503,18 @@
         .ingrediente-item.ing-tam .ing-topo select { flex: 1 1 auto; width: auto !important; min-width: 0; }
         .ingrediente-item.ing-tam .ing-topo .btn { flex: 0 0 auto; width: auto !important; padding: 10px 14px; }
         .ingrediente-item.ing-tam .qtd-tam input { width: 100% !important; }
-    </style>
+    
+        /* Bônus do Plano PRO */
+        .card-bonus[hidden] { display: none !important; }
+        .card-bonus .card-header { background: linear-gradient(135deg, #f6c90e, #f59e0b) !important; color: #1a202c !important; }
+        .bonus-texto { margin: 0 0 12px; color: #4a5568; font-size: 0.92rem; line-height: 1.5; }
+        .bonus-botoes { display: flex; flex-wrap: wrap; gap: 10px; }
+        .bonus-btn { flex: 1 1 220px; text-align: center; text-decoration: none; display: inline-block; }
+        .bonus-esconder { background: none; border: 0; color: #718096; font-size: 0.8rem; text-decoration: underline; cursor: pointer; margin-top: 12px; padding: 4px 0; }
+        .bonus-aviso, .bonus-trava { margin: 0 0 10px; color: #4a5568; font-size: 0.88rem; }
+        .conta-bonus { margin-top: 14px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+        .conta-bonus .bonus-botoes, .conta-bonus { display: flex; flex-direction: column; gap: 8px; }
+</style>
 </head>
 
 <body>
@@ -1610,6 +1621,14 @@
     <div class="main-container">
         <!-- DASHBOARD -->
         <div class="page active" id="page-dashboard">
+            <div class="card card-bonus" id="cardBonus" hidden>
+                <div class="card-header">🎁 Seus bônus do Plano PRO</div>
+                <div class="card-body">
+                    <p class="bonus-texto">Você tem acesso direto ao suporte no WhatsApp e ao grupo com outros donos de pizzaria.</p>
+                    <div class="bonus-botoes" id="cardBonusBotoes"></div>
+                    <button type="button" class="bonus-esconder" onclick="esconderCardBonus()">Já entrei no grupo, esconder este quadro</button>
+                </div>
+            </div>
             <div class="card">
                 <div class="card-header">📊 Visão Geral</div>
                 <div class="card-body">
@@ -2155,6 +2174,7 @@
                         <h4>👤 Minha Conta</h4>
                         <div class="conta-info-item"><span class="label">E-mail:</span><span class="value" id="contaEmail">-</span></div>
                         <div class="conta-info-item"><span class="label">Plano:</span><span class="value" id="contaVencimento">-</span></div>
+                        <div class="conta-bonus" id="contaBonus"></div>
                     </div>
                 </div>
             </div>
@@ -2229,7 +2249,7 @@
 
     </div><!-- /appContent -->
 
-    <script src="app.js?v=3.4.1"></script>
+    <script src="app.js?v=3.5.0"></script>
     
     <!-- Botão Suporte WhatsApp -->
     <a href="https://wa.me/5598970260090?text=Fala%20Marllon!%20Preciso%20de%20uma%20ajuda%20aqui%20no%20PizzaControl." class="btn-whatsapp-flutuante" target="_blank">

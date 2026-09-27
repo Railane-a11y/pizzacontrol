@@ -7,6 +7,8 @@ rules_version = '2';
 // dadosClientes/{uid}  -> dados da pizzaria (insumos, fichas, custos...), sincronizados entre
 //                         os aparelhos do cliente. Cada cliente lê e grava SÓ o próprio documento,
 //                         e só enquanto o plano estiver ativo ("basico" ou "pro").
+// config/bonusPro      -> link do grupo de pizzaiolos. Só contas com plano "pro" leem.
+//                         Gravado só pelo Make (administrador).
 // Qualquer outra coleção: bloqueada.
 //
 // COMO PUBLICAR: copie tudo e cole em Firebase Console > Firestore Database > Regras > Publicar.
@@ -31,6 +33,12 @@ service cloud.firestore {
         && request.resource.data.atualizadoEm is int;
 
       allow delete: if false;
+    }
+
+    match /config/bonusPro {
+      allow read: if request.auth != null
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.plano == 'pro';
+      allow write: if false;
     }
 
     match /{document=**} {

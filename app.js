@@ -218,6 +218,7 @@ function inicializarApp() {
     }
 
     iniciarNuvem();
+    carregarBonusPro();
 }
 
 async function fazerLoginFirebase() {
@@ -275,7 +276,7 @@ function numero(valor, fallback = 0) {
 // Vale sempre a versão alterada por último. Na primeira sincronização de um aparelho que
 // já tem dados diferentes dos da nuvem, o cliente escolhe qual manter (a outra vira cópia).
 const COLECAO_NUVEM = 'dadosClientes';
-const VERSAO_APP = '3.4.1';
+const VERSAO_APP = '3.5.0';
 const LIMITE_NUVEM = 700000; // limite seguro de tamanho do documento
 let nuvemPronta = false;
 let nuvemTimer = null;
@@ -2619,6 +2620,7 @@ function calcPorMarkup() {
 const ABAS_EXCLUSIVAS_PRO = ['massa', 'custos', 'produtos', 'precificar'];
 
 const NOMES_RECURSOS_PRO = {
+    'bonus': 'Suporte VIP e Grupo de Pizzaiolos',
     massa: '🥖 Cálculo de Massa por Tamanho',
     custos: '💼 Rateio de Custo Fixo (o que faz você parar de pagar pra trabalhar)',
     produtos: '🥤 Cadastro de Bebidas',
@@ -2725,6 +2727,7 @@ function mostrarModalUpgrade(origem) {
                     <li>✅ Custo real da Massa por tamanho</li>
                     <li>✅ Gerador de Preço, Combos e Meio a Meio</li>
                     <li>✅ Bebidas, adicionais e Backup</li>
+                    <li>🎁 Suporte VIP no WhatsApp e Grupo de Pizzaiolos</li>
                 </ul>
                 <div class="mup-preco">
                     <span class="mup-valor">R$ 15,99</span>
@@ -2850,4 +2853,51 @@ function injetarEstilosTravaPlanos() {
         @keyframes mupSobe { from { transform:translateY(20px); opacity:0; } to { transform:none; opacity:1; } }
     `;
     document.head.appendChild(style);
+}
+
+
+// =====================================================================
+// BÔNUS DO PLANO PRO (grupo de pizzaiolos + suporte VIP)
+// O link do grupo NÃO fica no código (o repositório é público): ele fica no
+// Firestore em config/bonusPro, e as regras só deixam contas PRO lerem.
+// =====================================================================
+const LINK_SUPORTE_VIP = 'https://wa.me/5598970260090?text=' + encodeURIComponent('Oi Marllon! Sou cliente PRO do PizzaControl e preciso de uma ajuda.');
+const CHAVE_BONUS_OCULTO = () => 'pcBonusOculto_' + (firebaseUser ? firebaseUser.uid : '');
+
+async function carregarBonusPro() {
+    const cardDash = document.getElementById('cardBonus');
+    const blocoConfig = document.getElementById('contaBonus');
+    if (!isPro) {
+        if (cardDash) cardDash.hidden = true;
+        if (blocoConfig) blocoConfig.innerHTML = `<p class="bonus-trava">🔒 O Suporte VIP e o Grupo de Pizzaiolos são bônus do Plano PRO.</p>
+            <button type="button" class="btn btn-warning btn-sm" onclick="mostrarModalUpgrade('bonus')">⭐ Conhecer o PRO</button>`;
+        return;
+    }
+    let linkGrupo = '';
+    try {
+        const doc = await dbFirestore.collection('config').doc('bonusPro').get();
+        const url = doc.exists ? String(doc.data().grupoWhatsapp || '') : '';
+        if (url.startsWith('https://chat.whatsapp.com/')) linkGrupo = url;
+    } catch (err) {
+        console.warn('⚠️ Não foi possível carregar o link do grupo:', err && err.message);
+    }
+    const botoes = `
+        ${linkGrupo
+            ? `<a class="btn btn-success bonus-btn" href="${linkGrupo}" target="_blank" rel="noopener">👨‍🍳 Entrar no grupo Pizzaiolos de Elite</a>`
+            : `<p class="bonus-aviso">Para entrar no grupo, peça o link no suporte abaixo.</p>`}
+        <a class="btn btn-info bonus-btn" href="${LINK_SUPORTE_VIP}" target="_blank" rel="noopener">💬 Falar com o Suporte VIP</a>`;
+    if (blocoConfig) blocoConfig.innerHTML = '<h4 style="margin:0 0 10px">🎁 Bônus do Plano PRO</h4>' + botoes;
+    if (cardDash) {
+        document.getElementById('cardBonusBotoes').innerHTML = botoes;
+        let oculto = false;
+        try { oculto = localStorage.getItem(CHAVE_BONUS_OCULTO()) === '1'; } catch (e) { /* sem storage */ }
+        cardDash.hidden = oculto;
+    }
+}
+
+function esconderCardBonus() {
+    try { localStorage.setItem(CHAVE_BONUS_OCULTO(), '1'); } catch (e) { /* sem storage */ }
+    const card = document.getElementById('cardBonus');
+    if (card) card.hidden = true;
+    status('Os links continuam na aba Config, em "Minha Conta".');
 }
