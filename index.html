@@ -21,8 +21,21 @@
     :focus-visible { outline: 3px solid #f6c90e; outline-offset: 3px; }
     html { scroll-behavior: smooth; }
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, ::before, ::after { animation: none !important; transition: none !important; } }
-    .animate-pulse { animation: pulsar 2s ease-in-out infinite; }
-    @keyframes pulsar { 0%,100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+    /* Pulso leve dos botões principais: cresce um pouco e solta uma onda de brilho */
+    .animate-pulse { animation: pulsar 1.8s ease-in-out infinite; will-change: transform; }
+    @keyframes pulsar {
+      0%   { transform: scale(1);     box-shadow: 0 6px 18px rgba(229,62,62,0.35), 0 0 0 0 rgba(229,62,62,0.55); }
+      50%  { transform: scale(1.045); box-shadow: 0 10px 26px rgba(229,62,62,0.45), 0 0 0 10px rgba(229,62,62,0.18); }
+      100% { transform: scale(1);     box-shadow: 0 6px 18px rgba(229,62,62,0.35), 0 0 0 18px rgba(229,62,62,0); }
+    }
+    .animate-pulse:hover { animation-play-state: paused; }
+    /* Selo do plano PRO pulsando junto */
+    .plan-vip-badge { animation: pulsarSelo 1.8s ease-in-out infinite; }
+    @keyframes pulsarSelo {
+      0%, 100% { transform: translateX(-50%) scale(1);    box-shadow: 0 0 0 0 rgba(246,201,14,0.6); }
+      50%      { transform: translateX(-50%) scale(1.08); box-shadow: 0 0 0 8px rgba(246,201,14,0); }
+    }
+    @media (prefers-reduced-motion: reduce) { .animate-pulse, .plan-vip-badge { animation: none !important; } }
     body { margin: 0; padding: 0; scroll-behavior: smooth; overflow-x: hidden; background: #f8fafc; }
 
     /* ---- COLORS / BACKGROUNDS ---- */
@@ -906,7 +919,7 @@
       </div>
 
       <div class="plan-vip hover-card-neon ordem-mobile-pro" style="max-width: 420px; width: 100%;">
-        <div class="plan-vip-badge">🔥 MAIS ESCOLHIDO</div>
+        <div class="plan-vip-badge">⭐ MAIS COMPLETO</div>
         <div style="text-align:center;margin-bottom:20px;">
           <div style="font-size:1.1rem;font-weight:800;color:#e53e3e;margin-bottom:4px;">PLANO PRO</div>
           <div style="font-size:0.8rem;color:#718096;">Pagamento único — Acesso vitalício — Tudo liberado</div>
