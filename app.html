@@ -1518,6 +1518,32 @@
         .conta-bonus .bonus-btn { flex: 0 1 auto; padding: 10px 18px; font-size: 0.9rem; }
         .conta-bonus .bonus-aviso { flex-basis: 100%; }
         @media (max-width: 600px) { .conta-bonus .bonus-btn { flex: 1 1 100%; } }
+
+        /* Cardápio pronto */
+        .card-cardapio .card-header { background: linear-gradient(135deg, #43a047, #2e7d32) !important; color: #fff !important; }
+        .revisar-preco { display: inline-block; margin-top: 3px; background: #fff3e0; color: #e65100; font-size: 0.72rem; font-weight: 700; padding: 2px 7px; border-radius: 6px; }
+        .sem-preco { color: #e65100; font-size: 0.85rem; }
+        .ficha-meta-sug { margin: 8px 0 0; font-size: 0.82rem; color: #1565c0; background: #e3f2fd; padding: 6px 10px; border-radius: 8px; }
+        .sem-preco-box { background: #fff8e1; border: 1px solid #ffe082; border-radius: 10px; padding: 12px; margin-top: 12px; font-size: 0.88rem; color: #5d4037; }
+        .sem-preco-lista { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+        .sem-preco-lista span { background: #fff; border: 1px solid #ffe082; border-radius: 8px; padding: 4px 8px; font-size: 0.8rem; }
+        .imp-card { max-width: 520px; width: 100%; max-height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+        .imp-topo { padding: 20px 22px 10px; }
+        .imp-topo h2 { margin: 0 0 6px; font-size: 1.2rem; }
+        .imp-topo p { margin: 0; color: #555; font-size: 0.9rem; }
+        .imp-corpo { padding: 6px 22px 12px; overflow-y: auto; flex: 1; }
+        .imp-rodape { padding: 12px 22px 18px; border-top: 1px solid #eee; }
+        .imp-cat { margin-top: 12px; }
+        .imp-cat-tit { font-weight: 800; font-size: 0.78rem; letter-spacing: 0.04em; text-transform: uppercase; color: #888; margin: 10px 0 6px; }
+        .imp-tams { display: flex; flex-wrap: wrap; gap: 8px; }
+        .imp-sabor { display: inline-flex; align-items: center; gap: 6px; margin: 0 8px 8px 0; padding: 7px 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; cursor: pointer; }
+        .imp-sabor.ja { opacity: 0.55; cursor: default; }
+        .imp-acoes-sel { margin-top: 10px; font-size: 0.82rem; color: #888; }
+        .imp-acoes-sel button { background: none; border: 0; color: #1565c0; text-decoration: underline; cursor: pointer; padding: 0; font-size: inherit; }
+        .imp-passos { margin: 6px 0 10px 18px; padding: 0; line-height: 1.55; font-size: 0.92rem; }
+        .imp-passos li { margin-bottom: 8px; }
+        .imp-obs { font-size: 0.82rem; color: #666; background: #f7f7f7; padding: 8px 10px; border-radius: 8px; }
+        #impConfirmar:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>
 </head>
 
@@ -1632,6 +1658,10 @@
                     <div class="bonus-botoes" id="cardBonusBotoes"></div>
                     <button type="button" class="bonus-esconder" onclick="esconderCardBonus()">Já entrei no grupo, esconder este quadro</button>
                 </div>
+            </div>
+            <div class="card card-bonus card-cardapio" id="cardCardapio" hidden>
+                <div class="card-header">📋 Seu Cardápio Pronto</div>
+                <div class="card-body" id="cardCardapioCorpo"></div>
             </div>
             <div class="card">
                 <div class="card-header">📊 Visão Geral</div>
@@ -2253,7 +2283,7 @@
 
     </div><!-- /appContent -->
 
-    <script src="app.js?v=3.5.1"></script>
+    <script src="app.js?v=3.6.0"></script>
     
     <!-- Botão Suporte WhatsApp -->
     <a href="https://wa.me/5598970260090?text=Fala%20Marllon!%20Preciso%20de%20uma%20ajuda%20aqui%20no%20PizzaControl." class="btn-whatsapp-flutuante" target="_blank">

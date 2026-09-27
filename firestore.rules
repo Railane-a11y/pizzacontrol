@@ -9,6 +9,9 @@ rules_version = '2';
 //                         e só enquanto o plano estiver ativo ("basico" ou "pro").
 // config/bonusPro      -> link do grupo de pizzaiolos. Só contas com plano "pro" leem.
 //                         Gravado só pelo Make (administrador).
+// extras/{email}        -> compras extras (ex.: cardapioPronto: true). Gravado só pelo Make.
+//                         O cliente lê só o do próprio e-mail.
+// config/cardapioPronto -> sabores do Cardápio Pronto. Só quem comprou lê.
 // Qualquer outra coleção: bloqueada.
 //
 // COMO PUBLICAR: copie tudo e cole em Firebase Console > Firestore Database > Regras > Publicar.
@@ -38,6 +41,21 @@ service cloud.firestore {
     match /config/bonusPro {
       allow read: if request.auth != null
         && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.plano == 'pro';
+      allow write: if false;
+    }
+
+    match /extras/{email} {
+      allow read: if request.auth != null
+        && request.auth.token.email != null
+        && request.auth.token.email.lower() == email;
+      allow write: if false;
+    }
+
+    match /config/cardapioPronto {
+      allow read: if request.auth != null
+        && request.auth.token.email != null
+        && exists(/databases/$(database)/documents/extras/$(request.auth.token.email.lower()))
+        && get(/databases/$(database)/documents/extras/$(request.auth.token.email.lower())).data.cardapioPronto == true;
       allow write: if false;
     }
 

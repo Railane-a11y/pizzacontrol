@@ -219,6 +219,7 @@ function inicializarApp() {
 
     iniciarNuvem();
     carregarBonusPro();
+    carregarExtras();
 }
 
 async function fazerLoginFirebase() {
@@ -276,7 +277,7 @@ function numero(valor, fallback = 0) {
 // Vale sempre a versão alterada por último. Na primeira sincronização de um aparelho que
 // já tem dados diferentes dos da nuvem, o cliente escolhe qual manter (a outra vira cópia).
 const COLECAO_NUVEM = 'dadosClientes';
-const VERSAO_APP = '3.5.1';
+const VERSAO_APP = '3.6.0';
 const LIMITE_NUVEM = 700000; // limite seguro de tamanho do documento
 let nuvemPronta = false;
 let nuvemTimer = null;
@@ -1059,7 +1060,7 @@ function salvarInsumo() {
 
 function mostrarAvisoMudancaPreco(ins, custoAntigo, antes) {
     const afetadas = DB.fichas
-        .filter((f) => antes[f.id] && Math.abs(f.custoTotal - antes[f.id].custo) > 0.004)
+        .filter((f) => f.precoVenda > 0 && antes[f.id] && Math.abs(f.custoTotal - antes[f.id].custo) > 0.004)
         .map((f) => ({ f, antes: antes[f.id] }));
     if (afetadas.length === 0) return;
 
@@ -1067,7 +1068,7 @@ function mostrarAvisoMudancaPreco(ins, custoAntigo, antes) {
     const subiu = variacao > 0;
     const meta = metaLucroFracao() * 100;
     const caiuAbaixo = isPro ? afetadas.filter((a) => a.antes.margem >= meta - 0.05 && a.f.margemReal < meta - 0.05).length : 0;
-    const abaixoTotal = isPro ? DB.fichas.filter((f) => f.margemReal < meta - 0.05).length : 0;
+    const abaixoTotal = isPro ? DB.fichas.filter((f) => f.precoVenda > 0 && f.margemReal < meta - 0.05).length : 0;
     const somaDif = afetadas.reduce((acc, a) => acc + (a.f.lucro - a.antes.lucro), 0);
 
     const linhas = afetadas.sort((a, b) => (a.f.lucro - a.antes.lucro) - (b.f.lucro - b.antes.lucro)).slice(0, 6).map((a) =>
@@ -1151,7 +1152,7 @@ function renderInsumos() {
     tbody.innerHTML = DB.insumos
         .map(
             (i) =>
-                `<tr><td><strong>${esc(i.nome)}</strong></td><td><span class="badge badge-info">${esc(i.categoria)}</span></td><td>${esc(i.unidade)}</td><td>${String(i.qtdEmb).replace('.', ',')}</td><td>${brl(i.precoEmb)}</td><td><strong style="color:var(--primary)">${brl(custoNaUnidadeCompra(i))}/${esc(i.unidade)}</strong></td><td class="actions"><button class="btn btn-info btn-sm" onclick="abrirModalInsumo('${i.id}')">✏️</button><button class="btn btn-danger btn-sm" onclick="excluirInsumo('${i.id}')">🗑️</button></td></tr>`
+                `<tr><td><strong>${esc(i.nome)}</strong>${i.revisarPreco ? '<br><span class="revisar-preco">⚠️ confira o preço</span>' : ''}</td><td><span class="badge badge-info">${esc(i.categoria)}</span></td><td>${esc(i.unidade)}</td><td>${String(i.qtdEmb).replace('.', ',')}</td><td>${brl(i.precoEmb)}</td><td><strong style="color:var(--primary)">${brl(custoNaUnidadeCompra(i))}/${esc(i.unidade)}</strong></td><td class="actions"><button class="btn btn-info btn-sm" onclick="abrirModalInsumo('${i.id}')">✏️</button><button class="btn btn-danger btn-sm" onclick="excluirInsumo('${i.id}')">🗑️</button></td></tr>`
         )
         .join('');
 }
@@ -1812,7 +1813,7 @@ function renderFichas() {
     grid.innerHTML = fichas
         .map(
             (f) =>
-                `<div class="ficha-card ${f.tamanho}"><div class="ficha-header"><div><h3>${esc(f.nome)}</h3><small>${esc(f.categoria)}</small></div><span class="badge-size ${f.tamanho}">${f.tamanho}</span></div><div class="ficha-body"><div class="ficha-stats"><div class="ficha-stat"><small>Custo</small><div class="val red">${brl(f.custoTotal)}</div></div><div class="ficha-stat"><small>Venda</small><div class="val blue">${brl(f.precoVenda)}</div></div><div class="ficha-stat"><small>Lucro real</small><div class="val ${f.lucro >= 0 ? 'green' : 'red'}">${brl(f.lucro)}</div></div></div><div class="ficha-details">Ing: ${brl((f.custoIng || 0))} | Massa: ${brl(f.custoMassa)} | Fixo: ${brl(f.custoFixo)}${f.taxas > 0 ? ' | Taxas: ' + brl(f.taxas) : ''} | CMV: ${pct(f.cmv)}</div><div class="ficha-actions"><button class="btn btn-warning btn-sm" onclick="editarFicha('${f.id}')">✏️</button><button class="btn btn-purple btn-sm" onclick="duplicarFicha('${f.id}')">📋</button><button class="btn btn-danger btn-sm" onclick="excluirFicha('${f.id}')">🗑️</button></div></div></div>`
+                `<div class="ficha-card ${f.tamanho}"><div class="ficha-header"><div><h3>${esc(f.nome)}</h3><small>${esc(f.categoria)}</small></div><span class="badge-size ${f.tamanho}">${f.tamanho}</span></div><div class="ficha-body"><div class="ficha-stats"><div class="ficha-stat"><small>Custo</small><div class="val red">${brl(f.custoTotal)}</div></div><div class="ficha-stat"><small>Venda</small><div class="val blue">${f.precoVenda > 0 ? brl(f.precoVenda) : '<span class="sem-preco">definir</span>'}</div></div><div class="ficha-stat"><small>Lucro real</small><div class="val ${f.lucro >= 0 ? 'green' : 'red'}">${f.precoVenda > 0 ? brl(f.lucro) : '-'}</div></div></div>${!(f.precoVenda > 0) && isPro && f.precoIdeal ? `<div class="ficha-meta-sug">🎯 Para bater sua meta: <b>${brl(f.precoIdeal)}</b></div>` : ''}<div class="ficha-details">Ing: ${brl((f.custoIng || 0))} | Massa: ${brl(f.custoMassa)} | Fixo: ${brl(f.custoFixo)}${f.taxas > 0 ? ' | Taxas: ' + brl(f.taxas) : ''} | CMV: ${pct(f.cmv)}</div><div class="ficha-actions"><button class="btn btn-warning btn-sm" onclick="editarFicha('${f.id}')">✏️</button><button class="btn btn-purple btn-sm" onclick="duplicarFicha('${f.id}')">📋</button><button class="btn btn-danger btn-sm" onclick="excluirFicha('${f.id}')">🗑️</button></div></div></div>`
         )
         .join('');
 }
@@ -1859,7 +1860,8 @@ function renderDashboard() {
     if (dashMassaM) dashMassaM.textContent = brl(getCustoMassa('M'));
     if (dashMassaG) dashMassaG.textContent = brl(getCustoMassa('G'));
 
-    const lucroMedio = DB.fichas.length ? DB.fichas.reduce((acc, f) => acc + (f.lucro || 0), 0) / DB.fichas.length : 0;
+    const comPreco = DB.fichas.filter((f) => f.precoVenda > 0);
+    const lucroMedio = comPreco.length ? comPreco.reduce((acc, f) => acc + (f.lucro || 0), 0) / comPreco.length : 0;
     const dashFatElem = document.getElementById('dashFat');
     if (dashFatElem) dashFatElem.textContent = brl(lucroMedio);
 
@@ -1881,7 +1883,7 @@ function renderDashboard() {
     if (!topLista) return;
 
     if (DB.fichas.length > 0) {
-        const top = [...DB.fichas].sort((a, b) => b.lucro - a.lucro).slice(0, 5);
+        const top = DB.fichas.filter((f) => f.precoVenda > 0).sort((a, b) => b.lucro - a.lucro).slice(0, 5);
 
         const htmlTable = `<table class="top5-desktop"><thead><tr><th>🍕 Pizza</th><th>$$ Venda</th><th>📈 Lucro</th></tr></thead><tbody>${top
             .map(
@@ -1930,11 +1932,18 @@ function renderAbaixoDaMeta() {
         ? '<div class="alert alert-info" style="margin-bottom:12px">💡 Para o lucro ser real, preencha ' + (semCustos ? 'os <strong>Custos Fixos</strong>' : '') + (semCustos && semTaxas ? ' e ' : '') + (semTaxas ? 'as <strong>taxas</strong> (imposto, maquininha, app)' : '') + ' na aba Custos Fixos.</div>'
         : '';
 
-    const abaixo = DB.fichas.filter((f) => f.margemReal < meta - 0.05).sort((a, b) => a.margemReal - b.margemReal);
-    if (cont) cont.textContent = abaixo.length ? abaixo.length + ' abaixo' : '✅';
+    const comPreco = DB.fichas.filter((f) => f.precoVenda > 0);
+    const semPreco = DB.fichas.filter((f) => !(f.precoVenda > 0));
+    const blocoSemPreco = semPreco.length
+        ? '<div class="sem-preco-box"><strong>🏷️ ' + semPreco.length + (semPreco.length === 1 ? ' pizza ainda sem' : ' pizzas ainda sem') + ' preço de venda.</strong> Preço para bater a meta:'
+          + '<div class="sem-preco-lista">' + semPreco.slice(0, 8).map((f) => '<span>' + esc(f.nome) + ' <b class="badge-size ' + f.tamanho + '">' + f.tamanho + '</b> ' + (f.precoIdeal ? brl(f.precoIdeal) : '-') + '</span>').join('') + '</div>'
+          + (semPreco.length > 8 ? '<small>e mais ' + (semPreco.length - 8) + '. </small>' : '') + '<small>Coloque o preço na aba <b>Fichas</b> (✏️ em cada sabor).</small></div>'
+        : '';
+    const abaixo = comPreco.filter((f) => f.margemReal < meta - 0.05).sort((a, b) => a.margemReal - b.margemReal);
+    if (cont) cont.textContent = abaixo.length ? abaixo.length + ' abaixo' : (comPreco.length ? '✅' : '');
 
     if (abaixo.length === 0) {
-        box.innerHTML = dica + '<div class="alert alert-success" style="margin:0">✅ Todas as ' + DB.fichas.length + ' pizzas estão na sua meta de ' + pct(meta, 0) + ' de lucro real.</div>';
+        box.innerHTML = dica + (comPreco.length ? '<div class="alert alert-success" style="margin:0 0 12px">✅ Todas as ' + comPreco.length + ' pizzas com preço estão na sua meta de ' + pct(meta, 0) + ' de lucro real.</div>' : '') + blocoSemPreco;
         return;
     }
 
@@ -1948,7 +1957,7 @@ function renderAbaixoDaMeta() {
         </div>`;
     }).join('');
 
-    box.innerHTML = dica + '<p style="margin:0 0 12px;color:#555">Sua meta: <strong>' + pct(meta, 0) + ' de lucro real</strong> em cada pizza. Estas estão abaixo:</p>' + linhas;
+    box.innerHTML = dica + '<p style="margin:0 0 12px;color:#555">Sua meta: <strong>' + pct(meta, 0) + ' de lucro real</strong> em cada pizza. Estas estão abaixo:</p>' + linhas + blocoSemPreco;
 }
 
 function renderRankingProdutosProntos() {
@@ -2900,4 +2909,217 @@ function esconderCardBonus() {
     const card = document.getElementById('cardBonus');
     if (card) card.hidden = true;
     status('Os links continuam na aba Config, em "Minha Conta".');
+}
+
+
+// =====================================================================
+// CARDÁPIO PRONTO (order bump)
+// A compra libera extras/{email}.cardapioPronto (gravado pelo Make). Os sabores
+// ficam no Firestore em config/cardapioPronto e só quem comprou consegue ler.
+// A importação SÓ ADICIONA: ingredientes com o mesmo nome são reaproveitados
+// (mantém o preço do cliente) e sabores que já existem são pulados.
+// =====================================================================
+let temCardapioPronto = false;
+let cacheCardapioPronto = null;
+
+async function carregarExtras() {
+    temCardapioPronto = false;
+    if (!firebaseUser || !firebaseUser.email) return renderCardCardapio();
+    try {
+        const doc = await dbFirestore.collection('extras').doc(firebaseUser.email.toLowerCase()).get();
+        temCardapioPronto = !!(doc.exists && doc.data().cardapioPronto === true);
+    } catch (err) {
+        console.warn('⚠️ Não foi possível verificar os extras:', err && err.message);
+    }
+    renderCardCardapio();
+}
+
+function insumosParaConferir() {
+    return DB.insumos.filter((i) => i.revisarPreco);
+}
+
+function renderCardCardapio() {
+    const card = document.getElementById('cardCardapio');
+    if (!card) return;
+    if (!temCardapioPronto) { card.hidden = true; return; }
+    const importado = DB.config && DB.config.cardapioImportadoEm;
+    const conferir = insumosParaConferir().length;
+    let oculto = false;
+    try { oculto = localStorage.getItem('pcCardapioOculto_' + firebaseUser.uid) === '1'; } catch (e) { /* sem storage */ }
+    card.hidden = oculto && importado && conferir === 0;
+    const corpo = document.getElementById('cardCardapioCorpo');
+    if (!importado) {
+        corpo.innerHTML = `<p class="bonus-texto">Você tem 20 sabores clássicos prontos para importar, com as quantidades de cada tamanho. Escolha os que estão no seu cardápio e em segundos eles aparecem nas suas fichas.</p>
+            <button type="button" class="btn btn-success" onclick="abrirImportarCardapio()">📥 Importar cardápio pronto</button>`;
+    } else {
+        corpo.innerHTML = `<p class="bonus-texto">✅ Cardápio importado. ${conferir > 0
+            ? `Falta conferir o preço de <b>${conferir}</b> ${conferir === 1 ? 'ingrediente' : 'ingredientes'}: eles vieram com um preço de referência. Troque pelo que você paga para o lucro ficar certo.`
+            : 'Todos os ingredientes já estão com o seu preço. Agora coloque o preço de venda de cada sabor na aba Fichas.'}</p>
+            <div class="bonus-botoes">
+                ${conferir > 0 ? `<button type="button" class="btn btn-warning" onclick="irParaConferir()">⚠️ Conferir preços dos ingredientes</button>` : ''}
+                <button type="button" class="btn btn-info" onclick="abrirImportarCardapio()">📥 Importar mais sabores</button>
+            </div>
+            ${conferir === 0 ? `<button type="button" class="bonus-esconder" onclick="esconderCardCardapio()">Esconder este quadro</button>` : ''}`;
+    }
+}
+
+function esconderCardCardapio() {
+    try { localStorage.setItem('pcCardapioOculto_' + firebaseUser.uid, '1'); } catch (e) { /* sem storage */ }
+    document.getElementById('cardCardapio').hidden = true;
+}
+
+function irParaConferir() {
+    document.querySelector('.nav-tab[data-page="insumos"]')?.click();
+    const busca = document.getElementById('buscaIns');
+    if (busca) { busca.value = ''; filtrarInsumos(); }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    status('⚠️ Ingredientes marcados com "confira o preço": toque em ✏️ e coloque o preço que você paga.');
+}
+
+async function buscarCardapioPronto() {
+    if (cacheCardapioPronto) return cacheCardapioPronto;
+    const doc = await dbFirestore.collection('config').doc('cardapioPronto').get();
+    if (!doc.exists) throw new Error('Cardápio não encontrado');
+    cacheCardapioPronto = JSON.parse(doc.data().dados);
+    return cacheCardapioPronto;
+}
+
+async function abrirImportarCardapio() {
+    let dados;
+    try {
+        status('⏳ Carregando o cardápio pronto...');
+        dados = await buscarCardapioPronto();
+    } catch (err) {
+        console.error(err);
+        alert('Não foi possível carregar o cardápio pronto agora. Confira sua internet e tente de novo. Se continuar, fale com o suporte.');
+        return;
+    }
+    const existentes = new Set(DB.fichas.map((f) => normalizarNome(f.nome)));
+    let tams = [];
+    try { tams = JSON.parse(localStorage.getItem('pcTamanhosPadrao') || '[]'); } catch (e) { tams = []; }
+    if (!Array.isArray(tams) || !tams.length) tams = TAMANHOS.filter((t) => DB.fichas.some((f) => f.tamanho === t));
+    if (!tams.length) tams = [...TAMANHOS];
+
+    const porCat = {};
+    dados.fichas.forEach((f, i) => { (porCat[f.categoria] = porCat[f.categoria] || []).push({ f, i }); });
+    const secoes = Object.keys(porCat).map((cat) => `<div class="imp-cat"><div class="imp-cat-tit">${esc(cat)}</div>` + porCat[cat].map(({ f, i }) => {
+        const ja = existentes.has(normalizarNome(f.nome));
+        return `<label class="imp-sabor${ja ? ' ja' : ''}"><input type="checkbox" value="${i}" ${ja ? 'disabled' : 'checked'}> ${esc(f.nome)}${ja ? ' <small>(já existe)</small>' : ''}</label>`;
+    }).join('') + '</div>').join('');
+
+    const ov = document.createElement('div');
+    ov.className = 'mup-overlay'; ov.id = 'modalImportar';
+    ov.innerHTML = `<div class="mup-card imp-card" role="dialog" aria-modal="true" aria-labelledby="impTit">
+        <button type="button" class="mup-fechar" aria-label="Fechar">✕</button>
+        <div class="imp-topo"><h2 id="impTit">📥 Importar cardápio pronto</h2><p>Desmarque o que você não vende. Nada do que você já cadastrou é apagado.</p></div>
+        <div class="imp-corpo">
+            <div class="imp-cat-tit">Tamanhos que você vende</div>
+            <div class="imp-tams">${TAMANHOS.map((t) => `<label class="tam-chip"><input type="checkbox" value="${t}" ${tams.includes(t) ? 'checked' : ''}> ${NOMES_TAMANHO[t]}</label>`).join('')}</div>
+            <div class="imp-acoes-sel"><button type="button" data-sel="1">Marcar todos</button> · <button type="button" data-sel="0">Desmarcar todos</button></div>
+            ${secoes}
+        </div>
+        <div class="imp-rodape"><button type="button" class="btn btn-success btn-block" id="impConfirmar">Importar</button></div>
+    </div>`;
+    document.body.appendChild(ov);
+    const fechar = () => ov.remove();
+    ov.querySelector('.mup-fechar').onclick = fechar;
+    ov.addEventListener('click', (e) => { if (e.target === ov) fechar(); });
+    const btn = ov.querySelector('#impConfirmar');
+    const atualizar = () => {
+        const n = ov.querySelectorAll('.imp-sabor input:checked').length;
+        const nt = ov.querySelectorAll('.imp-tams input:checked').length;
+        btn.disabled = !n || !nt;
+        btn.textContent = !nt ? 'Escolha pelo menos um tamanho' : n ? `Importar ${n} ${n === 1 ? 'sabor' : 'sabores'}` : 'Escolha pelo menos um sabor';
+    };
+    ov.querySelectorAll('input').forEach((i) => i.addEventListener('change', atualizar));
+    ov.querySelectorAll('[data-sel]').forEach((b) => b.onclick = () => {
+        ov.querySelectorAll('.imp-sabor input:not(:disabled)').forEach((i) => { i.checked = b.dataset.sel === '1'; });
+        atualizar();
+    });
+    atualizar();
+    btn.onclick = () => {
+        const sabores = [...ov.querySelectorAll('.imp-sabor input:checked')].map((i) => dados.fichas[+i.value]);
+        const tamanhos = TAMANHOS.filter((t) => ov.querySelector('.imp-tams input[value="' + t + '"]').checked);
+        const res = importarCardapioPronto(dados, sabores, tamanhos);
+        fechar();
+        mostrarResultadoImportacao(res);
+    };
+}
+
+function importarCardapioPronto(dados, sabores, tamanhos) {
+    const chaveParaId = {};
+    const usadas = new Set();
+    sabores.forEach((f) => tamanhos.forEach((t) => Object.keys(f.qtd[t] || {}).forEach((c) => usadas.add(c))));
+    const massaVazia = !(DB.massa && DB.massa.ingredientes && DB.massa.ingredientes.length);
+    if (massaVazia && dados.massa) dados.massa.ingredientes.forEach((m) => usadas.add(m.chave));
+
+    const baseNome = (n) => normalizarNome(String(n).split('(')[0]);
+    let novosIns = 0, reaproveitados = 0;
+    dados.insumos.forEach((ins) => {
+        if (!usadas.has(ins.chave)) return;
+        const achado = DB.insumos.find((i) => normalizarNome(i.nome) === normalizarNome(ins.nome) || baseNome(i.nome) === baseNome(ins.nome));
+        if (achado) { chaveParaId[ins.chave] = achado.id; reaproveitados++; return; }
+        const novo = {
+            id: gerarId(), nome: ins.nome, categoria: ins.categoria, unidade: ins.unidade,
+            qtdEmb: ins.qtdEmb, precoEmb: ins.precoEmb, custoUn: calcCustoUnBase(ins.precoEmb, ins.qtdEmb, ins.unidade),
+            revisarPreco: true
+        };
+        DB.insumos.push(novo); chaveParaId[ins.chave] = novo.id; novosIns++;
+    });
+
+    let massaPreenchida = false;
+    if (massaVazia && dados.massa) {
+        DB.massa.ingredientes = dados.massa.ingredientes.filter((m) => chaveParaId[m.chave]).map((m) => ({ insumoId: chaveParaId[m.chave], quantidade: m.quantidade }));
+        DB.massa.pesoTotal = dados.massa.pesoTotal;
+        massaPreenchida = DB.massa.ingredientes.length > 0;
+    }
+
+    const existentes = new Set(DB.fichas.map((f) => normalizarNome(f.nome)));
+    let novosSabores = 0, pulados = 0;
+    sabores.forEach((sab) => {
+        if (existentes.has(normalizarNome(sab.nome))) { pulados++; return; }
+        const grupoId = gerarId();
+        tamanhos.forEach((t) => {
+            const ingredientes = Object.entries(sab.qtd[t] || {}).filter(([c]) => chaveParaId[c]).map(([c, q]) => {
+                const ins = DB.insumos.find((i) => i.id === chaveParaId[c]);
+                return { insumoId: ins.id, nome: ins.nome, quantidade: q, unidade: unidadeBase(ins.unidade), custo: (ins.custoUn || 0) * q };
+            });
+            DB.fichas.push({ id: gerarId(), grupoId, nome: sab.nome, categoria: sab.categoria, tamanho: t, precoVenda: 0, incMassa: true, ingredientes });
+        });
+        existentes.add(normalizarNome(sab.nome));
+        novosSabores++;
+    });
+
+    DB.config = DB.config || {};
+    DB.config.cardapioImportadoEm = Date.now();
+    lembrarTamanhos(tamanhos);
+    persistirDados(true, '✅ Cardápio importado!');
+    sincronizarUI();
+    loadMassaUI();
+    renderCardCardapio();
+    return { novosSabores, pulados, novosIns, reaproveitados, massaPreenchida, tamanhos };
+}
+
+function mostrarResultadoImportacao(r) {
+    const ov = document.createElement('div');
+    ov.className = 'mup-overlay'; ov.id = 'modalImportado';
+    ov.innerHTML = `<div class="mup-card imp-card" role="dialog" aria-modal="true">
+        <div class="imp-topo"><h2>✅ ${r.novosSabores} ${r.novosSabores === 1 ? 'sabor importado' : 'sabores importados'}</h2>
+        <p>${r.novosSabores * r.tamanhos.length} fichas criadas (${r.tamanhos.join(', ')}).${r.pulados ? ' ' + r.pulados + ' já existiam e foram mantidos como estavam.' : ''}</p></div>
+        <div class="imp-corpo">
+            <p><b>Faltam 2 passos para o lucro ficar certo:</b></p>
+            <ol class="imp-passos">
+                <li>${r.novosIns ? `<b>Confira o preço de ${r.novosIns} ${r.novosIns === 1 ? 'ingrediente' : 'ingredientes'}</b> na aba Insumos (marcados com ⚠️). Eles vieram com um preço de referência.` : 'Os ingredientes já estavam cadastrados, com o seu preço.'}${r.reaproveitados ? ` ${r.reaproveitados} já existiam e mantiveram o seu preço.` : ''}</li>
+                <li><b>Coloque o preço de venda</b> de cada sabor na aba Fichas (✏️). ${isPro ? 'O painel já mostra quanto cobrar para bater sua meta.' : ''}</li>
+            </ol>
+            ${r.massaPreenchida ? '<p class="imp-obs">🥖 Sua massa estava vazia: colocamos uma receita básica (1 kg de farinha, fermento, sal, açúcar e óleo). Ajuste na aba Massa se a sua for diferente.</p>' : ''}
+            <p class="imp-obs">As quantidades são uma base para pizza de 35 cm na Grande. Ajuste qualquer sabor ao jeito da sua casa.</p>
+        </div>
+        <div class="imp-rodape"><button type="button" class="btn btn-warning btn-block" id="impIrConferir">${r.novosIns ? '⚠️ Conferir preços agora' : 'Ir para as fichas'}</button></div>
+    </div>`;
+    document.body.appendChild(ov);
+    ov.querySelector('#impIrConferir').onclick = () => {
+        ov.remove();
+        if (r.novosIns) irParaConferir(); else document.querySelector('.nav-tab[data-page="fichas"]')?.click();
+    };
 }
