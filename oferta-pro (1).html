@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Complete para o PRO | PizzaControl</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍕</text></svg>">
+<style>
+:root{--vermelho:#e53e3e;--vermelho2:#c53030;--amarelo:#f6c90e;--escuro:#0f1419;--card:#1a202c;--texto:#e2e8f0;--cinza:#a0aec0;--verde:#38a169}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--escuro);color:var(--texto);font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.6}
+.aprovado{background:linear-gradient(135deg,#2f855a,#276749);color:#fff;text-align:center;padding:14px 16px;font-size:.95rem}
+.aprovado b{display:block;font-size:1.05rem}
+.espere{background:var(--amarelo);color:#1a202c;text-align:center;font-weight:900;letter-spacing:.04em;padding:8px 12px;font-size:.85rem}
+main{max-width:620px;margin:0 auto;padding:28px 18px 60px}
+h1{font-size:clamp(1.55rem,5.5vw,2.1rem);line-height:1.2;font-weight:900;text-align:center;margin-bottom:14px;color:#fff}
+h1 span{color:var(--amarelo)}
+.sub{text-align:center;color:var(--cinza);font-size:1rem;margin-bottom:26px}
+.card{background:var(--card);border:1px solid #2d3748;border-radius:16px;padding:22px 20px;margin-bottom:18px}
+.card h2{font-size:1.1rem;color:#fff;margin-bottom:12px}
+.lista{list-style:none}
+.lista li{padding:7px 0 7px 30px;position:relative;border-bottom:1px dashed #2d3748;font-size:.95rem}
+.lista li:last-child{border-bottom:0}
+.lista li::before{content:"✓";position:absolute;left:4px;top:7px;color:var(--verde);font-weight:900}
+.lista li b{color:#fff}
+.conta{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:.95rem}
+.conta .tot{font-weight:900;color:#fff;border-top:1px solid #4a5568;padding-top:8px;margin-top:4px}
+.preco{text-align:center;margin:22px 0 8px}
+.preco small{display:block;color:var(--cinza);font-size:.85rem}
+.preco strong{display:block;font-size:2.6rem;font-weight:900;color:var(--amarelo);line-height:1.1}
+.oferta-box{background:linear-gradient(180deg,#1f2733,#1a202c);border:2px solid var(--vermelho);border-radius:18px;padding:22px 18px;margin:24px 0 10px;box-shadow:0 10px 30px rgba(229,62,62,.18)}
+/* área onde entra o código de upsell da Cakto */
+#cakto-upsell{min-height:60px;display:flex;flex-direction:column;align-items:center;gap:10px}
+/* estilo dos botões da Cakto (eles ficam dentro de um "shadow DOM", por isso ::part) */
+cakto-upsell-buttons{display:block;width:100%}
+/* A janela de pagamento da Cakto (Pix e cartão) é branca e herda a cor do texto da página.
+   Como o texto da página é claro, forçamos texto escuro aqui para a janela ficar legível. */
+cakto-upsell-accept{color:#1a202c;line-height:1.5;text-align:center}
+cakto-upsell-accept{display:block;width:100%;max-width:440px;margin:0 auto}
+cakto-upsell-accept::part(button){width:100%;border:0;border-radius:12px;padding:17px 18px;font-size:1.12rem;font-weight:900;letter-spacing:.01em;box-shadow:0 8px 22px rgba(229,62,62,.35);font-family:inherit}
+cakto-upsell-reject::part(button){color:#a0aec0;font-size:.9rem;font-family:inherit}
+cakto-upsell-reject:hover::part(button){color:#fff}
+.aviso-codigo{border:2px dashed #718096;border-radius:12px;padding:16px;color:var(--cinza);font-size:.85rem;text-align:center;width:100%}
+.recusar{display:block;text-align:center;color:var(--cinza);font-size:.85rem;margin-top:14px;text-decoration:underline}
+.recusar:hover{color:#fff}
+.garantia{display:flex;gap:12px;align-items:center;font-size:.85rem;color:var(--cinza);margin-top:18px}
+.garantia b{color:#fff}
+.nota{font-size:.78rem;color:#718096;text-align:center;margin-top:26px}
+.depoimento{font-style:italic}
+@media (prefers-reduced-motion:no-preference){.oferta-box{animation:brilho 2.4s ease-in-out infinite}
+@keyframes brilho{0%,100%{box-shadow:0 10px 30px rgba(229,62,62,.15)}50%{box-shadow:0 10px 36px rgba(229,62,62,.35)}}}
+</style>
+</head>
+<body>
+<div class="aprovado"><b>✅ Pagamento aprovado!</b>Seu acesso ao PizzaControl chega no seu e-mail em alguns minutos.</div>
+<div class="espere">⏳ ESPERE: ANTES DE FECHAR, VEJA ISTO</div>
+<main>
+  <h1>Você já tem as fichas.<br>Agora veja o <span>lucro real</span> de cada pizza.</h1>
+  <p class="sub">O Básico mostra quanto sobra tirando só os ingredientes. O PRO desconta tudo o que sai do seu bolso: aluguel, luz, gás, funcionário, iFood, maquininha e imposto.</p>
+
+  <div class="card">
+    <h2>O que você libera no PRO</h2>
+    <ul class="lista">
+      <li><b>Lucro real</b> de cada pizza, com custo fixo, massa e taxas</li>
+      <li><b>Taxas do iFood, maquininha e imposto</b> descontadas automaticamente</li>
+      <li><b>Painel das pizzas abaixo da sua meta</b>, com o preço certo de cada uma</li>
+      <li><b>Gerador de preço</b>, meio a meio e combos</li>
+      <li>Cálculo da <b>massa por tamanho</b>, bebidas, adicionais e backup</li>
+      <li>🎁 <b>Suporte VIP no WhatsApp</b> direto comigo</li>
+      <li>🎁 <b>Grupo Pizzaiolos de Elite</b>, só com donos de pizzaria</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Você não paga o PRO inteiro de novo</h2>
+    <p style="font-size:.95rem">O Básico que você acabou de comprar já conta. Para liberar tudo do PRO, você paga só o complemento, uma vez, e o acesso continua vitalício.</p>
+  </div>
+
+  <div class="oferta-box">
+    <div class="preco"><small>Complete seu plano para o PRO por</small><strong>R$ 10,89</strong><small>pagamento único · no cartão é um clique; no Pix, aparece um novo QR Code</small></div>
+      <div id="cakto-upsell">
+        <!-- Código de upsell da Cakto (Básico -> Upgrade PRO R$ 9,90, oferta 33yyq3b).
+             Destinos trocados de "members_area" para a página de acesso do PizzaControl. -->
+        <cakto-upsell-buttons>
+          <cakto-upsell-accept
+            bg-color="#e53e3eff"
+            text-color="#ffffff"
+            upsell-accept-url="https://app.pizzacontrol.com.br/acesso.html"
+            offer-id="33yyq3b"
+            app-base-url="https://app.cakto.com.br"
+            offer-type="upsell"
+            upsell-reject-url="https://app.pizzacontrol.com.br/acesso.html"
+          >Sim, quero completar para o PRO</cakto-upsell-accept>
+          <cakto-upsell-reject
+            upsell-reject-url="https://app.pizzacontrol.com.br/acesso.html"
+          >Não, quero continuar só com o Básico</cakto-upsell-reject>
+        </cakto-upsell-buttons>
+        <script type="text/javascript" src="https://caktoscripts.nyc3.cdn.digitaloceanspaces.com/upsell.js"></script>
+      </div>
+  </div>
+
+  <div class="garantia"><span style="font-size:1.6rem">🛡️</span><span><b>Garantia de 7 dias.</b> Se não gostar do PRO, você pede o reembolso do upgrade e continua com o Básico normalmente.</span></div>
+  <p class="nota">Você também pode fazer o upgrade depois, de dentro do app, mas lá ele custa R$ 15,99. O complemento de R$ 10,89 vale só nesta página.</p>
+</main>
+</body>
+</html>
