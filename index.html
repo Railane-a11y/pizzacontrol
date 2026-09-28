@@ -339,6 +339,19 @@
     @media (max-width: 768px) { .bonus-img { max-height: 170px; } .bonus-grid { gap: 16px; } .bonus-sec .sec-h2 { font-size: 1.5rem !important; } }
   
 </style>
+<!-- Meta Pixel (Facebook) -->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1611668300494175');
+fbq('track', 'PageView');
+fbq('track', 'ViewContent', { content_name: 'PizzaControl - página de vendas', content_category: 'software' });
+</script>
+<noscript><img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id=1611668300494175&ev=PageView&noscript=1"></noscript>
+<!-- Fim do Meta Pixel -->
 </head>
 <body>
 
@@ -1224,6 +1237,29 @@ const DEPOIMENTOS = [];
     trilho.addEventListener('scroll', () => requestAnimationFrame(atualizar), { passive: true });
     window.addEventListener('resize', atualizar);
     atualizar();
+  })();
+
+  // Marcações do Pixel na página. A COMPRA é marcada pela Cakto (Pixel configurado nos produtos),
+  // por isso aqui não disparamos InitiateCheckout nem Purchase, para não contar em dobro.
+  (function () {
+    const px = (nome, dados) => { try { if (window.fbq) fbq('trackCustom', nome, dados || {}); } catch (e) { /* bloqueador de anúncios */ } };
+    const PLANOS = {
+      '8rdpouv_1139386': { plano: 'Básico', value: 10.89 },
+      '3dsh6k4_1139407': { plano: 'PRO', value: 20.89 },
+      'd8b4dys_1144165': { plano: 'PRO Oferta Especial', value: 15.99 }
+    };
+    document.addEventListener('click', function (e) {
+      const vsl = e.target.closest('.vsl-video button');
+      if (vsl) { px('PlayVideo'); return; }
+      const a = e.target.closest('a[href*="pay.cakto.com.br"]');
+      if (!a) return;
+      if ((a.getAttribute('onclick') || '').indexOf('abrirOfertaPro') !== -1 && document.getElementById('ofertaPro')) {
+        px('AbriuOfertaPopup'); return;          // clicou no Básico e viu a oferta do PRO
+      }
+      const codigo = Object.keys(PLANOS).find((c) => a.href.indexOf(c) !== -1);
+      const p = codigo ? PLANOS[codigo] : { plano: 'outro', value: 0 };
+      px('CliqueCheckout', { plano: p.plano, value: p.value, currency: 'BRL' });
+    }, true);
   })();
 </script>
 </body>
