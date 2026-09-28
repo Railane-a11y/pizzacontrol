@@ -2283,7 +2283,7 @@
 
     </div><!-- /appContent -->
 
-    <script src="app.js?v=3.6.0"></script>
+    <script src="app.js?v=3.6.1"></script>
     
     <!-- Botão Suporte WhatsApp -->
     <a href="https://wa.me/5598970260090?text=Fala%20Marllon!%20Preciso%20de%20uma%20ajuda%20aqui%20no%20PizzaControl." class="btn-whatsapp-flutuante" target="_blank">
@@ -2321,7 +2321,7 @@
     <!-- Função Inteligente de Recuperação de Senha do Firebase -->
     <script>
     function recuperarSenha() {
-        var emailCliente = document.getElementById("loginEmail").value; 
+        var emailCliente = document.getElementById("loginEmail").value.trim().toLowerCase();
 
         if (emailCliente != "") {
             firebase.auth().sendPasswordResetEmail(emailCliente)
@@ -2329,11 +2329,7 @@
                     alert("Pronto! Enviamos para o seu e-mail um link para criar sua senha. Confira também a caixa de spam.");
                 })
                 .catch(function(error) {
-                    if(error.code === 'auth/user-not-found') {
-                        alert("Não encontramos acesso para esse e-mail. Confira se digitou o mesmo e-mail usado na compra.");
-                    } else {
-                        alert("Ocorreu um erro: " + error.message);
-                    }
+                    alert(mensagemErroAuth(error, 'senha'));
                 });
         } else {
             alert("Por favor, digite o seu e-mail na caixinha acima e clique em 'Esqueci minha senha' de novo.");

@@ -222,6 +222,38 @@ function inicializarApp() {
     carregarExtras();
 }
 
+// Mensagens claras para os erros do login e do "Esqueci minha senha".
+// O detalhe técnico vai só para o console, nunca para a tela do cliente.
+function mensagemErroAuth(err, contexto) {
+    const codigo = (err && err.code) || '';
+    console.warn('Erro de autenticação:', codigo, err && err.message);
+    const semConexao = '📴 Sem conexão com a internet. Confira sua conexão e tente de novo.';
+    const emailInvalido = '❌ Esse e-mail não parece estar certo. Confira se digitou o mesmo e-mail usado na compra.';
+    if (contexto === 'senha') {
+        const m = {
+            'auth/user-not-found': 'Não encontramos acesso para esse e-mail. Confira se digitou o mesmo e-mail usado na compra.',
+            'auth/invalid-email': emailInvalido,
+            'auth/missing-email': emailInvalido,
+            'auth/too-many-requests': 'Você pediu vários links em pouco tempo. Aguarde alguns minutos e confira também a caixa de spam: um dos e-mails pode já ter chegado.',
+            'auth/network-request-failed': semConexao
+        };
+        return m[codigo] || 'Não foi possível enviar o link agora. Tente de novo em alguns minutos. Se continuar, fale com o suporte pelo botão do WhatsApp.';
+    }
+    const credenciais = '❌ E-mail ou senha incorretos. Se é seu primeiro acesso, use o link que chegou no seu e-mail para criar a senha (confira também o spam). Não recebeu? Clique em "Esqueci minha senha".';
+    const m = {
+        'auth/invalid-credential': credenciais,
+        'auth/invalid-login-credentials': credenciais,
+        'auth/wrong-password': credenciais,
+        'auth/user-not-found': credenciais,
+        'auth/invalid-email': emailInvalido,
+        'auth/missing-password': '⚠️ Digite sua senha.',
+        'auth/user-disabled': '⚠️ Este acesso está desativado. Fale com o suporte pelo botão do WhatsApp.',
+        'auth/too-many-requests': '⚠️ Muitas tentativas seguidas. Aguarde alguns minutos ou clique em "Esqueci minha senha" para criar uma senha nova.',
+        'auth/network-request-failed': semConexao
+    };
+    return m[codigo] || '❌ Não foi possível entrar agora. Tente de novo em instantes. Se continuar, fale com o suporte pelo botão do WhatsApp.';
+}
+
 async function fazerLoginFirebase() {
     const email = document.getElementById('loginEmail').value.trim();
     const senha = document.getElementById('loginSenha').value;
@@ -245,16 +277,7 @@ async function fazerLoginFirebase() {
         btnLogin.disabled = false;
         btnLogin.textContent = '🔑 Entrar';
 
-        const mensagens = {
-            'auth/user-not-found': '❌ E-mail não encontrado.',
-            'auth/wrong-password': '❌ Senha incorreta.',
-            'auth/invalid-email': '❌ E-mail inválido.',
-            'auth/too-many-requests': '⚠️ Muitas tentativas. Aguarde um momento.',
-            'auth/invalid-credential': '❌ E-mail ou senha incorretos.',
-            'auth/network-request-failed': '❌ Sem conexão com a internet.'
-        };
-
-        erroDiv.textContent = mensagens[err.code] || '❌ Erro: ' + err.message;
+        erroDiv.textContent = mensagemErroAuth(err, 'login');
         erroDiv.style.display = 'block';
     }
 }
@@ -277,7 +300,7 @@ function numero(valor, fallback = 0) {
 // Vale sempre a versão alterada por último. Na primeira sincronização de um aparelho que
 // já tem dados diferentes dos da nuvem, o cliente escolhe qual manter (a outra vira cópia).
 const COLECAO_NUVEM = 'dadosClientes';
-const VERSAO_APP = '3.6.0';
+const VERSAO_APP = '3.6.1';
 const LIMITE_NUVEM = 700000; // limite seguro de tamanho do documento
 let nuvemPronta = false;
 let nuvemTimer = null;
