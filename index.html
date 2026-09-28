@@ -234,6 +234,8 @@
     .vsl-video button { position: absolute; inset: 0; cursor: pointer; background: #000 center/cover no-repeat; }
     .vsl-video button span { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 76px; height: 76px; border-radius: 50%; background: #e53e3e; color: #fff; font-size: 1.9rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 10px rgba(229,62,62,0.35); }
     .vsl-video button small { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; color: #fff; font-weight: 700; text-shadow: 0 1px 4px #000; }
+    .vsl-video.vertical button span { top: 80%; }
+    .vsl-video.vertical button small { bottom: 10px; font-size: 0.85rem; }
     .vsl-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
     .barra-fixa { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; background: #0d1117; border-top: 2px solid #e53e3e; padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); display: none; align-items: center; gap: 12px; transform: translateY(110%); transition: transform 0.25s; }
     .barra-fixa.on { transform: none; }
@@ -1101,8 +1103,8 @@
 
 // Código do vídeo no YouTube. Ex.: para https://youtu.be/AbC123xyz coloque 'AbC123xyz'.
 // Vazio ('') = mostra o notebook e o celular no topo, como antes.
-const VSL_YOUTUBE_ID = '';
-const VSL_VERTICAL = false; // true se o vídeo for gravado em pé (formato celular)
+const VSL_YOUTUBE_ID = '3WCROtGAhEo';
+const VSL_VERTICAL = true; // true se o vídeo for gravado em pé (formato celular)
 
 // Fim do preço de lançamento. Depois dessa data a faixa amarela some sozinha.
 // ATENÇÃO: só use se você realmente for subir o preço nessa data. Coloque null para desligar.
@@ -1124,7 +1126,8 @@ const DEPOIMENTOS = [];
     const b = document.createElement('button');
     b.type = 'button';
     b.setAttribute('aria-label', 'Assistir ao vídeo');
-    b.style.backgroundImage = "url('https://i.ytimg.com/vi/" + encodeURIComponent(VSL_YOUTUBE_ID) + "/hqdefault.jpg')";
+    // capa própria (vsl-capa.jpg); se ela faltar, usa a imagem que o YouTube gera
+    b.style.backgroundImage = "url('vsl-capa.jpg'), url('https://i.ytimg.com/vi/" + encodeURIComponent(VSL_YOUTUBE_ID) + "/hqdefault.jpg')";
     b.innerHTML = '<span>▶</span><small>Toque para assistir</small>';
     b.addEventListener('click', function () {
       v.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(VSL_YOUTUBE_ID) + '?autoplay=1&rel=0&playsinline=1" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="Vídeo do PizzaControl"></iframe>';
