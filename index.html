@@ -482,6 +482,33 @@ fbq('track', 'ViewContent', { content_name: 'PizzaControl - página de vendas', 
   </div>
 </section>
 
+<section class="section-white sec-pad">
+  <div class="container" style="padding: 0 4px;">
+    <div style="text-align:center; margin-bottom: 36px;">
+      <h2 class="sec-h2" style="color:#1a202c; font-weight:900; font-size:2rem; margin-bottom:10px;">Como funciona</h2>
+      <p style="color:#4a5568;">Não é planilha. Você preenche o que já sabe e o sistema faz as contas.</p>
+    </div>
+    <div class="grid-3 passos-video" style="text-align:center;">
+      <div class="feature-card passo-card">
+        <div class="passo-topo"><div class="passo-n">1</div><h3 style="font-weight:800;color:#1a202c;margin:0;">Cadastre seus ingredientes</h3></div>
+        <div class="celular"><video class="demo" muted playsinline loop preload="none" poster="como-funciona-1.jpg" data-src="como-funciona-1.mp4" aria-label="Vídeo: cadastrando a mussarela no PizzaControl"></video></div>
+        <p style="color:#4a5568;font-size:0.92rem;line-height:1.6;margin:0;">Coloque o que você paga na farinha, no queijo, na calabresa e nas embalagens. O sistema já calcula o custo por grama.</p>
+      </div>
+      <div class="feature-card passo-card">
+        <div class="passo-topo"><div class="passo-n">2</div><h3 style="font-weight:800;color:#1a202c;margin:0;">Monte a ficha do sabor</h3></div>
+        <div class="celular"><video class="demo" muted playsinline loop preload="none" poster="como-funciona-2.jpg" data-src="como-funciona-2.mp4" aria-label="Vídeo: montando a ficha da calabresa em dois tamanhos"></video></div>
+        <p style="color:#4a5568;font-size:0.92rem;line-height:1.6;margin:0;">Todos os tamanhos na mesma tela. Preencheu a Grande? O sistema sugere a Média e a Pequena pelo peso da massa.</p>
+      </div>
+      <div class="feature-card passo-card">
+        <div class="passo-topo"><div class="passo-n">3</div><h3 style="font-weight:800;color:#1a202c;margin:0;">Acompanhe o lucro real</h3></div>
+        <div class="celular"><video class="demo" muted playsinline loop preload="none" poster="como-funciona-3.jpg" data-src="como-funciona-3.mp4" aria-label="Vídeo: aviso de aumento da mussarela e pizzas abaixo da meta"></video></div>
+        <p style="color:#4a5568;font-size:0.92rem;line-height:1.6;margin:0;">Mudou o preço de um ingrediente? Ele avisa na hora quais pizzas foram afetadas e qual o preço certo de cada uma.</p>
+      </div>
+    </div>
+    <p style="text-align:center;color:#718096;font-size:0.8rem;margin-top:18px;">Vídeos gravados no PizzaControl com dados de uma pizzaria de exemplo.</p>
+  </div>
+</section>
+
 <section class="section-light sec-pad">
   <div class="container" style="padding: 0 4px;">
     <div style="text-align:center; margin-bottom:22px;">
@@ -1165,6 +1192,24 @@ const DEPOIMENTOS = [];
   }
 })();
 
+  // Vídeos do "Como funciona": só baixam quando aparecem na tela e pausam quando saem
+  (function () {
+    const videos = document.querySelectorAll('video.demo');
+    const semMovimento = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const carregar = (v) => { if (!v.src) { v.src = v.dataset.src; v.load(); } };
+    if (semMovimento || !('IntersectionObserver' in window)) {
+      videos.forEach((v) => { v.controls = true; carregar(v); });
+      return;
+    }
+    const obs = new IntersectionObserver((entradas) => {
+      entradas.forEach((e) => {
+        const v = e.target;
+        if (e.isIntersecting) { carregar(v); const p = v.play(); if (p && p.catch) p.catch(() => { v.controls = true; }); }
+        else v.pause();
+      });
+    }, { threshold: 0.4 });
+    videos.forEach((v) => obs.observe(v));
+  })();
 
   // Carrossel de recursos: setas no computador, pontos e deslizar no celular
   (function () {
