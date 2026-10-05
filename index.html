@@ -1117,7 +1117,7 @@ fbq('track', 'ViewContent', { content_name: 'PizzaControl - página de vendas', 
 
 // Código do vídeo no YouTube. Ex.: para https://youtu.be/AbC123xyz coloque 'AbC123xyz'.
 // Vazio ('') = mostra o notebook e o celular no topo, como antes.
-const VSL_YOUTUBE_ID = 'jwgEvc59o24';
+const VSL_YOUTUBE_ID = 'O6xXW7XaLtM';
 const VSL_VERTICAL = true; // true se o vídeo for gravado em pé (formato celular)
 
 // Fim do preço de lançamento. Depois dessa data a faixa amarela some sozinha.
@@ -1141,7 +1141,7 @@ const DEPOIMENTOS = [];
     b.type = 'button';
     b.setAttribute('aria-label', 'Assistir ao vídeo');
     // capa própria (vsl-capa.jpg); se ela faltar, usa a imagem que o YouTube gera
-    b.style.backgroundImage = "url('vsl-capa.jpg?v=2'), url('https://i.ytimg.com/vi/" + encodeURIComponent(VSL_YOUTUBE_ID) + "/hqdefault.jpg')";
+    b.style.backgroundImage = "url('vsl-capa.jpg?v=3'), url('https://i.ytimg.com/vi/" + encodeURIComponent(VSL_YOUTUBE_ID) + "/hqdefault.jpg')";
     b.innerHTML = '<span>▶</span><small>Toque para assistir</small>';
     b.addEventListener('click', function () {
       v.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(VSL_YOUTUBE_ID) + '?autoplay=1&rel=0&playsinline=1" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="Vídeo do PizzaControl"></iframe>';
