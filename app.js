@@ -300,7 +300,7 @@ function numero(valor, fallback = 0) {
 // Vale sempre a versão alterada por último. Na primeira sincronização de um aparelho que
 // já tem dados diferentes dos da nuvem, o cliente escolhe qual manter (a outra vira cópia).
 const COLECAO_NUVEM = 'dadosClientes';
-const VERSAO_APP = '3.6.1';
+const VERSAO_APP = '3.6.2';
 const LIMITE_NUVEM = 700000; // limite seguro de tamanho do documento
 let nuvemPronta = false;
 let nuvemTimer = null;
@@ -2762,7 +2762,7 @@ function mostrarModalUpgrade(origem) {
                     <li>🎁 Suporte VIP no WhatsApp e Grupo de Pizzaiolos</li>
                 </ul>
                 <div class="mup-preco">
-                    <span class="mup-valor">R$ 15,99</span>
+                    <span class="mup-valor">R$ 26,99</span>
                     <span class="mup-legenda">pagamento único · acesso vitalício</span>
                 </div>
                 ${email ? `
