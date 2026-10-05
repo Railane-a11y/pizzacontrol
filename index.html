@@ -956,7 +956,7 @@ fbq('track', 'ViewContent', { content_name: 'PizzaControl - página de vendas', 
         </ul>
         <div style="text-align:center;margin-bottom:20px;">
           <div class="vip-price" style="font-size:3rem;font-weight:900;color:#f6c90e; line-height: 1;">R$ 47,99</div>
-          <div style="color:#a0aec0;font-size:0.85rem;margin-top:10px;">Só R$ 10 a mais que o Básico para ver seu lucro real</div>
+          <div style="color:#a0aec0;font-size:0.85rem;margin-top:10px;">Só R$ 27 a mais que o Básico para ver seu lucro real</div>
         </div>
         <a href="https://pay.cakto.com.br/3dsh6k4_1139407" target="_blank" class="btn-red animate-pulse" style="display:block;text-align:center;text-decoration:none;text-transform:uppercase;font-size:1rem;padding:18px 20px;">
           QUERO O PRO COMPLETO
@@ -1074,14 +1074,14 @@ fbq('track', 'ViewContent', { content_name: 'PizzaControl - página de vendas', 
     <p style="color:#e2e8f0;font-size:0.95rem;line-height:1.55;margin:0 0 16px;">
       Por isso, aqui vai uma oferta especial: leve o <strong>PizzaControl PRO completo</strong>
     </p>
-    <div style="margin-bottom:6px;"><span style="color:#718096;text-decoration:line-through;font-size:1rem;">De R$ 20,89</span></div>
-    <div style="color:#22c55e;font-weight:900;font-size:2.6rem;line-height:1;margin-bottom:6px;">R$15,99</div>
-    <div style="color:#a0aec0;font-size:0.8rem;margin-bottom:20px;">Pagamento único · Acesso vitalício · Só R$ 5,10 a mais que o Básico</div>
+    <div style="margin-bottom:6px;"><span style="color:#718096;text-decoration:line-through;font-size:1rem;">De R$ 47,99</span></div>
+    <div style="color:#22c55e;font-weight:900;font-size:2.6rem;line-height:1;margin-bottom:6px;">R$34,99</div>
+    <div style="color:#a0aec0;font-size:0.8rem;margin-bottom:20px;">Pagamento único · Acesso vitalício · Só R$ 14,10 a mais que o Básico</div>
     <a href="https://pay.cakto.com.br/d8b4dys_1144165" target="_blank" class="btn-red animate-pulse" style="display:block;text-align:center;text-decoration:none;text-transform:uppercase;font-size:1rem;padding:16px 18px;margin-bottom:12px;">
-      SIM! QUERO O PRO POR R$&nbsp;15,99
+      SIM! QUERO O PRO POR R$&nbsp;34,99
     </a>
     <a href="https://pay.cakto.com.br/8rdpouv_1139386" target="_blank" onclick="fecharOfertaPro()" style="display:block;color:#a0aec0;font-size:0.82rem;text-decoration:underline;">
-      Não, obrigado. Quero só o Básico por R$&nbsp;10,89
+      Não, obrigado. Quero só o Básico por R$&nbsp;20,89
     </a>
   </div>
 </div>
@@ -1108,7 +1108,7 @@ fbq('track', 'ViewContent', { content_name: 'PizzaControl - página de vendas', 
 </script>
 <!-- Barra fixa no celular -->
 <div class="barra-fixa" id="barraFixa" aria-hidden="true">
-  <div class="info">Plano PRO completo<br><b>R$ 20,89</b></div>
+  <div class="info">Plano PRO completo<br><b>R$ 47,99</b></div>
   <a href="#planos" class="btn-red" tabindex="-1">VER PLANOS</a>
 </div>
 
@@ -1245,9 +1245,9 @@ const DEPOIMENTOS = [];
   (function () {
     const px = (nome, dados) => { try { if (window.fbq) fbq('trackCustom', nome, dados || {}); } catch (e) { /* bloqueador de anúncios */ } };
     const PLANOS = {
-      '8rdpouv_1139386': { plano: 'Básico', value: 10.89 },
-      '3dsh6k4_1139407': { plano: 'PRO', value: 20.89 },
-      'd8b4dys_1144165': { plano: 'PRO Oferta Especial', value: 15.99 }
+      '8rdpouv_1139386': { plano: 'Básico', value: 20.89 },
+      '3dsh6k4_1139407': { plano: 'PRO', value: 47.99 },
+      'd8b4dys_1144165': { plano: 'PRO Oferta Especial', value: 34.99 }
     };
     document.addEventListener('click', function (e) {
       const vsl = e.target.closest('.vsl-video button');
