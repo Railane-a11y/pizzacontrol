@@ -1179,5 +1179,17 @@ const DEPOIMENTOS = [];
     }, true);
   })();
 </script>
+<script>
+/* Repassa as UTMs do anúncio para o checkout da Cakto (para saber qual anúncio vendeu) */
+(function(){
+  var q=new URLSearchParams(location.search), p=new URLSearchParams();
+  ['utm_source','utm_medium','utm_campaign','utm_term','utm_content','sck','src'].forEach(function(k){ if(q.get(k)) p.set(k,q.get(k)); });
+  if(!p.toString()) return;
+  function marca(a){ try{ var u=new URL(a.href); p.forEach(function(v,k){ if(!u.searchParams.has(k)) u.searchParams.set(k,v); }); a.href=u.toString(); }catch(e){} }
+  function tudo(){ document.querySelectorAll('a[href*="pay.cakto.com.br"]').forEach(marca); }
+  tudo(); document.addEventListener('DOMContentLoaded',tudo);
+  document.addEventListener('click',function(e){ var a=e.target.closest&&e.target.closest('a[href*="pay.cakto.com.br"]'); if(a) marca(a); },true);
+})();
+</script>
 </body>
 </html>
