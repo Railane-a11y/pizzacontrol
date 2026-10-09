@@ -48,6 +48,10 @@ cakto-upsell-reject:hover::part(button){color:#fff}
 .garantia b{color:#fff}
 .nota{font-size:.78rem;color:#718096;text-align:center;margin-top:26px}
 .depoimento{font-style:italic}
+.video-wrap{position:relative;width:100%;max-width:290px;margin:0 auto 6px;aspect-ratio:9/16;border-radius:18px;overflow:hidden;background:#000;box-shadow:0 12px 34px rgba(0,0,0,.5);border:2px solid #2d3748}
+.video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.video-dica{text-align:center;color:var(--cinza);font-size:.82rem;margin-bottom:6px}
+
 @media (prefers-reduced-motion:no-preference){.oferta-box{animation:brilho 2.4s ease-in-out infinite}
 @keyframes brilho{0%,100%{box-shadow:0 10px 30px rgba(229,62,62,.15)}50%{box-shadow:0 10px 36px rgba(229,62,62,.35)}}}
 </style>
@@ -56,24 +60,10 @@ cakto-upsell-reject:hover::part(button){color:#fff}
 <div class="aprovado"><b>✅ Pagamento aprovado!</b>Seu acesso ao PizzaControl chega no seu e-mail em alguns minutos.</div>
 <div class="espere">⏳ ESPERE: ANTES DE FECHAR, VEJA ISTO</div>
 <main>
-  <h1>Quer sair com o <span>lucro real</span> de cada pizza <span>ainda esta semana?</span></h1>
-  <p class="sub">Na Implantação VIP, a gente monta o seu PizzaControl juntos, numa chamada de vídeo. Você não precisa descobrir nada sozinho.</p>
+  <h1>Antes de fechar, <span>assista este vídeo</span> de 1 minuto</h1>
 
-  <div class="card">
-    <h2>Como funciona</h2>
-    <ul class="lista">
-      <li><b>1 chamada de até 1 hora</b> comigo, por vídeo no WhatsApp, em até 7 dias</li>
-      <li>Cadastramos os <b>seus ingredientes</b>, com o preço que você paga</li>
-      <li>Montamos as <b>fichas dos seus sabores</b>, em todos os tamanhos</li>
-      <li>Colocamos seus <b>custos fixos, taxas do iFood e maquininha</b> e a sua meta de lucro</li>
-      <li>Você termina a chamada sabendo <b>quais pizzas estão abaixo da meta e quanto cobrar</b> em cada uma</li>
-    </ul>
-  </div>
-
-  <div class="card">
-    <h2>Quem faz a implantação</h2>
-    <p style="font-size:.95rem">Eu, Marllon: pizzaiolo, dono de pizzaria e criador do PizzaControl. Sei como é a rotina de quem não tem tempo sobrando, por isso a chamada é direta ao ponto e no horário que for melhor para você.</p>
-  </div>
+  <div class="video-wrap"><iframe src="https://www.youtube.com/embed/niabBkBiesY?rel=0&modestbranding=1&playsinline=1" title="Implantação VIP" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
+  <p class="video-dica">🔊 Toque no vídeo e ligue o som</p>
 
   <div class="oferta-box">
     <div class="preco"><small>Implantação VIP completa</small><strong>R$ 47,99</strong><small>pagamento único · no cartão é um clique; no Pix, aparece um novo QR Code</small></div>
@@ -97,6 +87,18 @@ cakto-upsell-reject:hover::part(button){color:#fff}
         <script type="text/javascript" src="https://caktoscripts.nyc3.cdn.digitaloceanspaces.com/upsell.js"></script>
       </div>
   </div>
+
+  <div class="card">
+    <h2>Como funciona</h2>
+    <ul class="lista">
+      <li><b>1 chamada de até 1 hora</b> comigo, por vídeo no WhatsApp, em até 7 dias</li>
+      <li>Cadastramos os <b>seus ingredientes</b>, com o preço que você paga</li>
+      <li>Montamos as <b>fichas dos seus sabores</b>, em todos os tamanhos</li>
+      <li>Colocamos seus <b>custos fixos, taxas do iFood e maquininha</b> e a sua meta de lucro</li>
+      <li>Você termina a chamada sabendo <b>quais pizzas estão abaixo da meta e quanto cobrar</b> em cada uma</li>
+    </ul>
+  </div>
+
 
   <div class="garantia"><span style="font-size:1.6rem">📅</span><span><b>Depois da compra</b>, você recebe no e-mail o link para marcar o horário comigo no WhatsApp.</span></div>
 </main>
