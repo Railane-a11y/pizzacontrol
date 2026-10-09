@@ -1,2341 +1,3148 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#d32f2f">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-    <link rel="manifest" href="manifest.json">
-    <title>🍕 PizzaControl - Sistema Completo</title>
-    <!-- Firebase SDK v9 Compat (CDN) -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box
-        }
-
-        :root {
-            --primary: #d32f2f;
-            --primary-dark: #b71c1c;
-            --secondary: #ff9800;
-            --success: #2e7d32;
-            --danger: #c62828;
-            --warning: #f57c00;
-            --info: #1976d2;
-            --purple: #7b1fa2;
-            --teal: #00897b;
-            --brown: #795548;
-            --dark: #333;
-            --light: #f5f5f5;
-            --white: #fff;
-            --shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            --radius: 12px
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh
-        }
-
-        .status-bar {
-            background: #4caf50;
-            color: white;
-            padding: 10px 15px;
-            text-align: center;
-            font-weight: bold;
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 9999
-        }
-
-        .status-bar.show {
-            display: block
-        }
-
-        .status-bar.error {
-            background: #f44336
-        }
-
-        .header {
-            background: var(--primary-dark);
-            color: white;
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px
-        }
-
-        .logo {
-            font-size: 1.6em;
-            font-weight: bold
-        }
-
-        .logo span {
-            color: var(--secondary)
-        }
-
-        .header-stats {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            align-items: center
-        }
-
-        .stat-box {
-            background: rgba(255, 255, 255, 0.15);
-            padding: 8px 15px;
-            border-radius: 8px;
-            text-align: center;
-            min-width: 80px
-        }
-
-        .stat-box small {
-            opacity: 0.8;
-            font-size: 0.7em;
-            display: block
-        }
-
-        .stat-box .valor {
-            font-size: 1.2em;
-            font-weight: bold
-        }
-
-        .btn-logout {
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.85em;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 6px
-        }
-
-        .btn-logout:hover {
-            background: rgba(255, 255, 255, 0.25);
-            transform: translateY(-1px)
-        }
-
-        .nav-tabs {
-            background: white;
-            display: flex;
-            overflow-x: auto;
-            box-shadow: var(--shadow);
-            position: sticky;
-            top: 0;
-            z-index: 100
-        }
-
-        .nav-tab {
-            padding: 14px 16px;
-            border: none;
-            background: none;
-            font-size: 0.9em;
-            font-weight: 600;
-            color: var(--dark);
-            cursor: pointer;
-            white-space: nowrap;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s
-        }
-
-        .nav-tab:hover {
-            background: var(--light)
-        }
-
-        .nav-tab.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
-            background: #ffebee
-        }
-
-        .main-container {
-            max-width: 1400px;
-            margin: 20px auto;
-            padding: 0 15px;
-        }
-
-        .page {
-            display: none
-        }
-
-        .page.active {
-            display: block
-        }
-
-        .card {
-            background: white;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            margin-bottom: 20px;
-            overflow: hidden
-        }
-
-        .card-header {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            color: white;
-            padding: 15px 20px;
-            font-weight: bold;
-            font-size: 1.1em;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px
-        }
-
-        .card-header.success {
-            background: linear-gradient(135deg, var(--success), #1b5e20)
-        }
-
-        .card-header.info {
-            background: linear-gradient(135deg, var(--info), #0d47a1)
-        }
-
-        .card-header.warning {
-            background: linear-gradient(135deg, var(--warning), #e65100)
-        }
-
-        .card-header.brown {
-            background: linear-gradient(135deg, var(--brown), #4e342e)
-        }
-
-        .card-header.purple {
-            background: linear-gradient(135deg, var(--purple), #4a148c)
-        }
-
-        .card-header.teal {
-            background: linear-gradient(135deg, var(--teal), #004d40)
-        }
-
-        .card-body {
-            padding: 20px
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 15px
-        }
-
-        .form-group {
-            margin-bottom: 15px
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: var(--dark)
-        }
-
-        .form-group .required {
-            color: var(--danger)
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 1em;
-            transition: border-color 0.3s
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--primary)
-        }
-
-        .form-control.large {
-            font-size: 1.2em;
-            padding: 15px;
-            font-weight: bold
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.3s
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            filter: brightness(0.95)
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: white
-        }
-
-        .btn-success {
-            background: var(--success);
-            color: white
-        }
-
-        .btn-info {
-            background: var(--info);
-            color: white
-        }
-
-        .btn-warning {
-            background: var(--warning);
-            color: white
-        }
-
-        .btn-danger {
-            background: var(--danger);
-            color: white
-        }
-
-        .btn-secondary {
-            background: #757575;
-            color: white
-        }
-
-        .btn-brown {
-            background: var(--brown);
-            color: white
-        }
-
-        .btn-purple {
-            background: var(--purple);
-            color: white
-        }
-
-        .btn-teal {
-            background: var(--teal);
-            color: white
-        }
-
-        .btn-sm {
-            padding: 6px 12px;
-            font-size: 0.85em
-        }
-
-        .btn-block {
-            width: 100%;
-            justify-content: center
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse
-        }
-
-        th,
-        td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #eee
-        }
-
-        th {
-            background: var(--dark);
-            color: white;
-            font-weight: 600
-        }
-
-        tr:hover {
-            background: #f9f9f9
-        }
-
-        .actions {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap
-        }
-
-        .badge {
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.8em;
-            font-weight: bold
-        }
-
-        .badge-success {
-            background: #e8f5e9;
-            color: var(--success)
-        }
-
-        .badge-warning {
-            background: #fff3e0;
-            color: var(--warning)
-        }
-
-        .badge-danger {
-            background: #ffebee;
-            color: var(--danger)
-        }
-
-        .badge-info {
-            background: #e3f2fd;
-            color: var(--info)
-        }
-
-        .badge-size {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            color: white
-        }
-
-        .badge-size.P {
-            background: #4caf50
-        }
-
-        .badge-size.M {
-            background: #2196f3
-        }
-
-        .badge-size.G {
-            background: #ff9800
-        }
-
-        .badge-size.GG {
-            background: #9c27b0
-        }
-
-        .size-tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap
-        }
-
-        .size-tab {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 25px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s
-        }
-
-        .size-tab.all {
-            background: #333;
-            color: white
-        }
-
-        .size-tab.P {
-            background: #e8f5e9;
-            color: #4caf50
-        }
-
-        .size-tab.M {
-            background: #e3f2fd;
-            color: #2196f3
-        }
-
-        .size-tab.G {
-            background: #fff3e0;
-            color: #ff9800
-        }
-
-        .size-tab.GG {
-            background: #f3e5f5;
-            color: #9c27b0
-        }
-
-        .size-tab.active.all {
-            background: #333
-        }
-
-        .size-tab.active.P {
-            background: #4caf50;
-            color: white
-        }
-
-        .size-tab.active.M {
-            background: #2196f3;
-            color: white
-        }
-
-        .size-tab.active.G {
-            background: #ff9800;
-            color: white
-        }
-
-        .size-tab.active.GG {
-            background: #9c27b0;
-            color: white
-        }
-
-        .size-count {
-            margin-left: 5px;
-            opacity: 0.8
-        }
-
-        .fichas-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px
-        }
-
-        .ficha-card {
-            background: white;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            margin-bottom: 20px;
-            overflow: hidden;
-            transition: transform 0.3s;
-            border-top: 5px solid #ccc
-        }
-
-        .ficha-card:hover {
-            transform: translateY(-5px)
-        }
-
-        .ficha-card.P {
-            border-top-color: #4caf50
-        }
-
-        .ficha-card.M {
-            border-top-color: #2196f3
-        }
-
-        .ficha-card.G {
-            border-top-color: #ff9800
-        }
-
-        .ficha-card.GG {
-            border-top-color: #9c27b0
-        }
-
-        .ficha-header {
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start
-        }
-
-        .ficha-header h3 {
-            font-size: 1.1em;
-            margin-bottom: 5px
-        }
-
-        .ficha-header small {
-            color: #777
-        }
-
-        .ficha-body {
-            padding: 0 15px 15px
-        }
-
-        .ficha-stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            background: var(--light);
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 10px
-        }
-
-        .ficha-stat {
-            text-align: center
-        }
-
-        .ficha-stat small {
-            color: #777;
-            font-size: 0.7em;
-            display: block
-        }
-
-        .ficha-stat .val {
-            font-weight: bold
-        }
-
-        .ficha-stat .val.red {
-            color: var(--danger)
-        }
-
-        .ficha-stat .val.green {
-            color: var(--success)
-        }
-
-        .ficha-stat .val.blue {
-            color: var(--info)
-        }
-
-        .ficha-details {
-            font-size: 0.8em;
-            color: #666;
-            margin-bottom: 10px;
-            padding: 8px;
-            background: #fafafa;
-            border-radius: 5px
-        }
-
-        .ficha-actions {
-            display: flex;
-            gap: 5px
-        }
-
-        .ficha-actions .btn {
-            flex: 1;
-            justify-content: center;
-            font-size: 0.85em
-        }
-
-        .ingredientes-list {
-            background: var(--light);
-            border-radius: 8px;
-            padding: 15px;
-            margin: 15px 0;
-            max-height: 300px;
-            overflow-y: auto
-        }
-
-        .ingrediente-item {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            padding: 10px;
-            background: white;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            flex-wrap: wrap
-        }
-
-        .ingrediente-item select {
-            flex: 2;
-            min-width: 150px
-        }
-
-        .ingrediente-item input {
-            flex: 1;
-            min-width: 80px
-        }
-
-        .ingrediente-item .custo {
-            min-width: 80px;
-            text-align: right;
-            font-weight: bold;
-            color: var(--primary)
-        }
-
-        .resumo-box {
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
-            color: white;
-            padding: 20px;
-            border-radius: var(--radius);
-            margin-top: 20px
-        }
-
-        .resumo-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px
-        }
-
-        .resumo-item {
-            text-align: center;
-            padding: 15px 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px
-        }
-
-        .resumo-item small {
-            opacity: 0.8;
-            font-size: 0.8em;
-            display: block;
-            margin-bottom: 5px
-        }
-
-        .resumo-item .val {
-            font-size: 1.4em;
-            font-weight: bold
-        }
-
-        .resumo-item .val.green {
-            color: #4caf50
-        }
-
-        .resumo-item .val.red {
-            color: #f44336
-        }
-
-        .resumo-item .val.yellow {
-            color: #ff9800
-        }
-
-        .resumo-item .val.blue {
-            color: #42a5f5
-        }
-
-        .cmv-bar {
-            height: 8px;
-            background: #ddd;
-            border-radius: 4px;
-            margin-top: 5px;
-            overflow: hidden
-        }
-
-        .cmv-fill {
-            height: 100%;
-            border-radius: 4px;
-            transition: width 0.5s
-        }
-
-        .cmv-fill.good {
-            background: var(--success)
-        }
-
-        .cmv-fill.medium {
-            background: var(--warning)
-        }
-
-        .cmv-fill.bad {
-            background: var(--danger)
-        }
-
-        .custo-item {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 12px 15px;
-            background: var(--light);
-            border-radius: 8px;
-            margin-bottom: 10px;
-            border-left: 4px solid var(--info)
-        }
-
-        .custo-item .icon {
-            font-size: 1.5em
-        }
-
-        .custo-item .info {
-            flex: 1
-        }
-
-        .custo-item .info strong {
-            display: block
-        }
-
-        .custo-item .info small {
-            color: #777
-        }
-
-        .custo-item input {
-            width: 130px;
-            text-align: right
-        }
-
-        .massa-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr 100px auto;
-            gap: 10px;
-            align-items: center;
-            padding: 10px;
-            background: white;
-            border-radius: 8px;
-            margin-bottom: 8px
-        }
-
-        .massa-resultado {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 15px;
-            margin-top: 20px
-        }
-
-        .massa-resultado-item {
-            background: var(--light);
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            border-top: 4px solid var(--brown)
-        }
-
-        .massa-resultado-item .val {
-            font-size: 1.6em;
-            font-weight: bold;
-            color: var(--brown)
-        }
-
-        .massa-resultado-item small {
-            color: #777;
-            display: block;
-            margin-top: 5px
-        }
-
-        .total-box {
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
-            color: white;
-            padding: 25px;
-            border-radius: var(--radius);
-            margin-top: 20px
-        }
-
-        .total-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 20px;
-            text-align: center
-        }
-
-        .total-item {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 20px;
-            border-radius: 10px
-        }
-
-        .total-item .label {
-            font-size: 0.85em;
-            opacity: 0.8;
-            margin-bottom: 5px
-        }
-
-        .total-item .value {
-            font-size: 1.8em;
-            font-weight: bold
-        }
-
-        .total-item .value.highlight {
-            color: #4caf50
-        }
-
-        .total-item .value.warning {
-            color: #ff9800
-        }
-
-        .alert {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            border-left: 4px solid
-        }
-
-        .alert-info {
-            background: #e3f2fd;
-            color: #1565c0;
-            border-color: #1565c0
-        }
-
-        .alert-success {
-            background: #e8f5e9;
-            color: #2e7d32;
-            border-color: #2e7d32
-        }
-
-        .alert-warning {
-            background: #fff3e0;
-            color: #e65100;
-            border-color: #e65100
-        }
-
-        .counters {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px
-        }
-
-        .counter {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            box-shadow: var(--shadow);
-            border-left: 4px solid
-        }
-
-        .counter.P {
-            border-color: #4caf50
-        }
-
-        .counter.M {
-            border-color: #2196f3
-        }
-
-        .counter.G {
-            border-color: #ff9800
-        }
-
-        .counter.GG {
-            border-color: #9c27b0
-        }
-
-        .counter .num {
-            font-size: 2em;
-            font-weight: bold
-        }
-
-        .counter.P .num {
-            color: #4caf50
-        }
-
-        .counter.M .num {
-            color: #2196f3
-        }
-
-        .counter.G .num {
-            color: #ff9800
-        }
-
-        .counter.GG .num {
-            color: #9c27b0
-        }
-
-        .counter small {
-            color: #777
-        }
-
-        .empty {
-            text-align: center;
-            padding: 40px;
-            color: #999
-        }
-
-        .empty .icon {
-            font-size: 3em;
-            margin-bottom: 10px
-        }
-
-        .modal-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.6);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            padding: 20px
-        }
-
-        .modal-bg.show {
-            display: flex
-        }
-
-        .modal {
-            background: white;
-            border-radius: var(--radius);
-            max-width: 800px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto
-        }
-
-        .modal-header {
-            background: var(--primary);
-            color: white;
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center
-        }
-
-        .modal-header h3 {
-            margin: 0
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.5em;
-            cursor: pointer
-        }
-
-        .modal-body {
-            padding: 20px
-        }
-
-        .search-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap
-        }
-
-        .search-row input {
-            flex: 1;
-            min-width: 200px
-        }
-
-        .calc-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px
-        }
-
-        .slider-group {
-            margin: 15px 0
-        }
-
-        .slider-group label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px
-        }
-
-        .slider-group input[type="range"] {
-            width: 100%
-        }
-
-        .slider-val {
-            font-weight: bold;
-            color: var(--primary)
-        }
-
-        .cenarios {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 20px
-        }
-
-        .cenario {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            box-shadow: var(--shadow);
-            border-top: 4px solid
-        }
-
-        .cenario.c1 {
-            border-color: #4caf50
-        }
-
-        .cenario.c2 {
-            border-color: #ff9800
-        }
-
-        .cenario.c3 {
-            border-color: #f44336
-        }
-
-        .cenario .preco {
-            font-size: 1.5em;
-            font-weight: bold;
-            margin: 10px 0
-        }
-
-        .cenario.c1 .preco {
-            color: #4caf50
-        }
-
-        .cenario.c2 .preco {
-            color: #ff9800
-        }
-
-        .cenario.c3 .preco {
-            color: #f44336
-        }
-
-        .senha-section {
-            background: var(--light);
-            border-radius: 12px;
-            padding: 20px;
-            margin-top: 20px;
-            border-left: 4px solid var(--info)
-        }
-
-        .senha-section h4 {
-            margin-bottom: 15px;
-            color: var(--dark)
-        }
-
-        .top5-mobile { display: none; }
-        .top5-desktop { width: 100%; display: table; }
-
-        @media(max-width:768px) {
-            .header {
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
-                padding-top: 65px; /* Space for hamburger fixed button */
-            }
-            .header-stats {
-                justify-content: center;
-                width: 100%;
-                gap: 8px;
-            }
-            .header-stats .btn-logout {
-                width: 100%;
-                margin-top: 5px;
-                justify-content: center;
-            }
-
-            /* Hamburger Menu Styles */
-            .menu-toggle {
-                display: block;
-            }
-
-            .nav-tabs {
-                position: fixed;
-                top: 0;
-                left: -280px;
-                width: 280px;
-                height: 100vh;
-                background: white;
-                flex-direction: column;
-                justify-content: flex-start;
-                box-shadow: 2px 0 15px rgba(0,0,0,0.2);
-                padding-top: 60px;
-                padding-bottom: 20px;
-                transition: left 0.3s ease;
-                z-index: 999;
-                overflow-y: auto;
-            }
-
-            .nav-tabs.open {
-                left: 0;
-            }
-
-            .nav-tab {
-                padding: 15px 20px;
-                font-size: 1.1em;
-                border-bottom: 1px solid #eee;
-                border-top: none;
-                display: flex;
-                flex-direction: row;
-                align-items: center;
-                justify-content: flex-start;
-                gap: 15px;
-                min-height: 50px;
-                text-align: left;
-            }
-
-            .nav-tab.active {
-                border-top: none;
-                border-left: 4px solid var(--primary);
-                background: #ffebee;
-            }
-
-            .nav-tab br {
-                display: none;
-            }
-
-            .btn, .form-control, .size-tab, .nav-tab {
-                min-height: 44px; /* Apple/Android touch target minimum */
-            }
-
-            .btn {
-               margin-bottom: 5px; /* Prevent touching buttons */
-               width: 100%; /* Better for mobile thumbs */
-               justify-content: center;
-            }
-            .ficha-actions .btn {
-               width: auto;
-               margin-bottom: 0;
-            }
-
-            .card-body {
-               overflow-x: auto; /* Responsive tables inside cards */
-            }
-
-            .card-body table {
-                min-width: 500px; /* Force minimum width to enable scroll on small screens */
-            }
-            
-            .resumo-grid, .total-grid {
-                grid-template-columns: 1fr; /* Force single column stacked cards on mobile */
-            }
-            
-            .resumo-item, .total-item {
-                margin-bottom: 5px;
-            }
-
-            .top5-list {
-                display: flex;
-                flex-direction: column;
-                gap: 12px;
-            }
-            
-            .top5-mobile-card {
-                background: var(--light);
-                border: 1px solid #ddd;
-                border-left: 5px solid var(--success);
-                padding: 12px;
-                border-radius: 8px;
-                display: flex;
-                flex-direction: column;
-                gap: 5px;
-            }
-            
-            .top5-mobile-card .t-title {
-                font-size: 1.15em;
-                font-weight: 800;
-                color: var(--dark);
-                margin-bottom: 5px;
-            }
-            
-            .top5-mobile-card .t-row {
-                display: flex;
-                justify-content: space-between;
-                font-size: 0.9em;
-                color: #555;
-            }
-            
-            .top5-mobile-card .t-profit {
-                font-weight: 800;
-                color: var(--success);
-                font-size: 1.1em;
-                padding-top: 8px;
-                margin-top: 5px;
-                border-top: 1px dashed #ccc;
-            }
-
-            .top5-mobile { display: block; }
-            .top5-desktop { display: none; }
-
-            .form-row {
-                grid-template-columns: 1fr
-            }
-
-            .ingrediente-item {
-                flex-direction: column;
-                align-items: stretch
-            }
-
-            .ingrediente-item select,
-            .ingrediente-item input {
-                width: 100%
-            }
-
-            .massa-grid {
-                grid-template-columns: 1fr
-            }
-
-            .custo-item {
-                flex-wrap: wrap
-            }
-
-            .custo-item input {
-                width: 100%
-            }
-        }
-
-        .menu-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 998;
-            display: none;
-        }
-        .menu-overlay.show {
-            display: block;
-        }
-
-        .menu-toggle {
-            display: none;
-            position: fixed;
-            top: 15px;
-            left: 15px;
-            z-index: 1000;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 15px;
-            font-size: 1.5em;
-            cursor: pointer;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        }
-
-        @media(max-width:768px) {
-            .menu-toggle { display: block; }
-            table {
-                display: block;
-                overflow-x: auto;
-                white-space: nowrap;
-            }
-            .card-body {
-                padding: 15px 10px; /* slightly less padding on mobile */
-            }
-        }
-        /* ===== TELAS DE AUTH (Login / Loading / Expired) ===== */
-        .auth-screen {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .auth-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            width: 100%;
-            max-width: 420px;
-            overflow: hidden;
-        }
-
-        .auth-card-header {
-            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-            padding: 30px 25px;
-            text-align: center;
-            color: white;
-        }
-
-        .auth-card-header .auth-logo {
-            font-size: 2.2em;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .auth-card-header .auth-logo span {
-            color: var(--secondary);
-        }
-
-        .auth-card-header p {
-            opacity: 0.9;
-            font-size: 0.9em;
-        }
-
-        .auth-card-body {
-            padding: 30px 25px;
-        }
-
-        .auth-card-body .form-group {
-            margin-bottom: 18px;
-        }
-
-        .auth-card-body .form-group label {
-            font-weight: 600;
-            margin-bottom: 6px;
-            display: block;
-            color: var(--dark);
-        }
-
-        .auth-card-body .form-control {
-            padding: 14px;
-            font-size: 1em;
-        }
-
-        .btn-login {
-            width: 100%;
-            padding: 14px;
-            font-size: 1.1em;
-            font-weight: bold;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .btn-login-primary {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-login-primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(211,47,47,0.4);
-        }
-
-        .btn-login-cta {
-            background: linear-gradient(135deg, #ff9800, #f57c00);
-            color: white;
-            margin-top: 12px;
-            text-decoration: none;
-        }
-
-        .btn-login-cta:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(255,152,0,0.4);
-        }
-
-        .auth-erro {
-            background: #ffebee;
-            color: var(--danger);
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            display: none;
-            font-weight: 600;
-            text-align: center;
-            border-left: 4px solid var(--danger);
-        }
-
-        .auth-divider {
-            text-align: center;
-            margin: 20px 0 15px;
-            color: #999;
-            font-size: 0.85em;
-        }
-
-        .loading-spinner {
-            text-align: center;
-        }
-
-        .loading-spinner .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid rgba(255,255,255,0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .loading-spinner p {
-            color: white;
-            font-size: 1.2em;
-            font-weight: 600;
-        }
-
-        .expired-icon {
-            font-size: 4em;
-            margin-bottom: 15px;
-        }
-
-        .expired-msg {
-            color: #555;
-            line-height: 1.6;
-            margin-bottom: 20px;
-        }
-
-        .conta-info {
-            background: var(--light);
-            border-radius: 12px;
-            padding: 20px;
-            margin-top: 20px;
-            border-left: 4px solid var(--info);
-        }
-
-        .conta-info h4 {
-            margin-bottom: 15px;
-            color: var(--dark);
-        }
-
-        .conta-info-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #eee;
-            font-size: 0.95em;
-        }
-
-        .conta-info-item:last-child {
-            border-bottom: none;
-        }
-
-        .conta-info-item .label {
-            color: #777;
-        }
-
-        .conta-info-item .value {
-            font-weight: 600;
-            color: var(--dark);
-        }
-        /* Quantidade com a unidade visível (g, ml, un) */
-        .massa-item { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
-        .massa-item select { flex: 2; min-width: 150px; }
-        .massa-item .custo { min-width: 80px; text-align: right; font-weight: bold; }
-        .qtd-wrap { flex: 1; min-width: 90px; position: relative; }
-        .qtd-wrap input { width: 100%; padding-right: 44px; }
-        .qtd-un { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #777; font-weight: 700; font-size: 0.9em; pointer-events: none; }
-        @media (max-width: 768px) {
-            .massa-item { flex-direction: column; align-items: stretch; }
-            .qtd-wrap { width: 100%; }
-        }
-        /* Ficha com vários tamanhos */
-        .tam-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-        .tam-chip { display: inline-flex; align-items: center; gap: 6px; border: 2px solid #ddd; border-radius: 999px; padding: 8px 14px; cursor: pointer; font-weight: 700; background: #fff; user-select: none; }
-        .tam-chip.on { border-color: var(--primary, #e53935); background: #fff5f5; color: var(--primary, #e53935); }
-        .tam-chip input { accent-color: var(--primary, #e53935); }
-        .precos-tam { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
-        .preco-tam { display: flex; align-items: center; gap: 8px; }
-        .preco-tam span { font-weight: 800; min-width: 26px; }
-        .ingrediente-item.ing-tam { display: block; background: #f8f9fa; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
-        .ing-topo { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
-        .ing-topo select { flex: 1; min-width: 0; }
-        .qtd-tams { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
-        .qtd-tam { display: block; margin: 0; }
-        .qtd-tam-nome { display: block; font-weight: 800; font-size: 0.8em; color: #555; margin-bottom: 3px; }
-        .qtd-tam .qtd-wrap { width: 100%; }
-        .custo-tam { display: block; min-height: 1.2em; color: var(--danger, #c62828); font-weight: 700; font-size: 0.8em; margin-top: 3px; }
-        .ing-acoes { display: flex; flex-wrap: wrap; gap: 10px; }
-        .res-tams { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
-        .res-tam { background: rgba(255,255,255,0.06); border-radius: 10px; padding: 12px; }
-        .res-tam-cab { font-weight: 800; margin-bottom: 8px; }
-        .res-linha { display: flex; justify-content: space-between; gap: 8px; font-size: 0.9em; padding: 2px 0; }
-        .res-linha.res-total { border-top: 1px dashed rgba(255,255,255,0.3); margin-top: 4px; padding-top: 6px; }
-        .res-lucro { text-align: center; margin: 10px 0 4px; }
-        .res-lucro small { display: block; opacity: 0.8; font-size: 0.78em; }
-        .res-lucro strong { display: block; font-size: 1.5em; }
-        .res-lucro.pos strong { color: #66bb6a; }
-        .res-lucro.neg strong { color: #ef5350; }
-        .res-meta { text-align: center; font-size: 0.85em; color: #90caf9; }
-        .ingrediente-item.ing-tam .ing-topo { flex-direction: row !important; align-items: center !important; }
-        .ingrediente-item.ing-tam .ing-topo select { flex: 1 1 auto; width: auto !important; min-width: 0; }
-        .ingrediente-item.ing-tam .ing-topo .btn { flex: 0 0 auto; width: auto !important; padding: 10px 14px; }
-        .ingrediente-item.ing-tam .qtd-tam input { width: 100% !important; }
-    
-        /* Bônus do Plano PRO */
-        .card-bonus[hidden] { display: none !important; }
-        .card-bonus .card-header { background: linear-gradient(135deg, #f6c90e, #f59e0b) !important; color: #1a202c !important; }
-        .bonus-texto { margin: 0 0 12px; color: #4a5568; font-size: 0.92rem; line-height: 1.5; }
-        .bonus-botoes { display: flex; flex-wrap: wrap; gap: 10px; }
-        .bonus-btn { flex: 1 1 220px; text-align: center; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
-        .bonus-esconder { background: none; border: 0; color: #718096; font-size: 0.8rem; text-decoration: underline; cursor: pointer; margin-top: 12px; padding: 4px 0; }
-        .bonus-aviso, .bonus-trava { margin: 0 0 10px; color: #4a5568; font-size: 0.88rem; }
-        .conta-bonus { margin-top: 14px; padding-top: 14px; border-top: 1px solid #e2e8f0; }
-        .conta-bonus-titulo { margin: 0 0 10px; font-size: 0.95rem; }
-        .conta-bonus .bonus-botoes { display: flex; flex-wrap: wrap; gap: 10px; }
-        .conta-bonus .bonus-btn { flex: 0 1 auto; padding: 10px 18px; font-size: 0.9rem; }
-        .conta-bonus .bonus-aviso { flex-basis: 100%; }
-        @media (max-width: 600px) { .conta-bonus .bonus-btn { flex: 1 1 100%; } }
-
-        /* Cardápio pronto */
-        .card-cardapio .card-header { background: linear-gradient(135deg, #43a047, #2e7d32) !important; color: #fff !important; }
-        .revisar-preco { display: inline-block; margin-top: 3px; background: #fff3e0; color: #e65100; font-size: 0.72rem; font-weight: 700; padding: 2px 7px; border-radius: 6px; }
-        .sem-preco { color: #e65100; font-size: 0.85rem; }
-        .ficha-meta-sug { margin: 8px 0 0; font-size: 0.82rem; color: #1565c0; background: #e3f2fd; padding: 6px 10px; border-radius: 8px; }
-        .sem-preco-box { background: #fff8e1; border: 1px solid #ffe082; border-radius: 10px; padding: 12px; margin-top: 12px; font-size: 0.88rem; color: #5d4037; }
-        .sem-preco-lista { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-        .sem-preco-lista span { background: #fff; border: 1px solid #ffe082; border-radius: 8px; padding: 4px 8px; font-size: 0.8rem; }
-        .imp-card { max-width: 520px; width: 100%; max-height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
-        .imp-topo { padding: 20px 22px 10px; }
-        .imp-topo h2 { margin: 0 0 6px; font-size: 1.2rem; }
-        .imp-topo p { margin: 0; color: #555; font-size: 0.9rem; }
-        .imp-corpo { padding: 6px 22px 12px; overflow-y: auto; flex: 1; }
-        .imp-rodape { padding: 12px 22px 18px; border-top: 1px solid #eee; }
-        .imp-cat { margin-top: 12px; }
-        .imp-cat-tit { font-weight: 800; font-size: 0.78rem; letter-spacing: 0.04em; text-transform: uppercase; color: #888; margin: 10px 0 6px; }
-        .imp-tams { display: flex; flex-wrap: wrap; gap: 8px; }
-        .imp-sabor { display: inline-flex; align-items: center; gap: 6px; margin: 0 8px 8px 0; padding: 7px 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; cursor: pointer; }
-        .imp-sabor.ja { opacity: 0.55; cursor: default; }
-        .imp-acoes-sel { margin-top: 10px; font-size: 0.82rem; color: #888; }
-        .imp-acoes-sel button { background: none; border: 0; color: #1565c0; text-decoration: underline; cursor: pointer; padding: 0; font-size: inherit; }
-        .imp-passos { margin: 6px 0 10px 18px; padding: 0; line-height: 1.55; font-size: 0.92rem; }
-        .imp-passos li { margin-bottom: 8px; }
-        .imp-obs { font-size: 0.82rem; color: #666; background: #f7f7f7; padding: 8px 10px; border-radius: 8px; }
-        #impConfirmar:disabled { opacity: 0.6; cursor: not-allowed; }
-</style>
-</head>
-
-<body>
-    <!-- TELA DE LOADING (visível enquanto Firebase verifica auth) -->
-    <div id="loadingScreen" class="auth-screen" style="display:flex">
-        <div class="loading-spinner">
-            <div class="spinner"></div>
-            <p>🍕 Carregando PizzaControl...</p>
-        </div>
-    </div>
-
-    <!-- TELA DE LOGIN -->
-    <div id="loginScreen" class="auth-screen" style="display:none">
-        <div class="auth-card">
-            <div class="auth-card-header">
-                <div class="auth-logo">🍕 Pizza<span>Control</span></div>
-                <p>Sistema profissional de gestão para pizzarias</p>
-            </div>
-            <div class="auth-card-body">
-                <div class="auth-erro" id="loginErro"></div>
-                <div class="form-group">
-                    <label>📧 E-mail</label>
-                    <input type="email" class="form-control" id="loginEmail" placeholder="seu@email.com" autocomplete="email">
+console.log('🍕 APP.JS CARREGADO - MODO SAAS FIREBASE + LOCALSTORAGE');
+
+let isPro = false;
+
+let STORAGE_KEY = 'pizzaControlLocalDB_v1';
+const STORAGE_KEY_BASE = 'pizzaControlLocalDB_v1';
+const SESSION_KEY = 'pizzaControlSession';
+const PIN_MASTER_KEY = 'pizzaControlPinMaster';
+const RECOVERY_HASH_KEY = 'pizzaControlRecoveryKeyHash';
+const LEGACY_KEYS = ['pizzaControlFinal', 'pizzaControlDados', 'pizzaControlV3', 'pizzaControlV2', 'pizzaControl'];
+
+// ===== FIREBASE CONFIG =====
+const firebaseConfig = {
+    apiKey: "AIzaSyAzrYsr6S2hMkgeG9ZOJ0MnkuT0V81a3rc",
+    authDomain: "pizzacontrol-oficial.firebaseapp.com",
+    projectId: "pizzacontrol-oficial",
+    storageBucket: "pizzacontrol-oficial.firebasestorage.app",
+    messagingSenderId: "1066316732970",
+    appId: "1:1066316732970:web:617739279818c1ef698153"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const dbFirestore = firebase.firestore();
+let firebaseUser = null;
+let planoAtual = null; // 'basico' ou 'pro' — acesso vitalício, sem data de vencimento
+
+// TROQUE aqui pelo link de vendas/checkout que você quer usar nos avisos de upgrade para PRO.
+// Se quiser, pode trocar por um link direto de checkout do plano PRO específico.
+const LINK_UPGRADE_PRO = 'https://pay.cakto.com.br/wx9esqb_1139423'; // Checkout Cakto: Upgrade PRO
+
+const DB_PADRAO = {
+    versao: 2,
+    insumos: [],
+    fichas: [],
+    custos: {
+        aluguel: 0,
+        energia: 0,
+        gas: 0,
+        agua: 0,
+        internet: 0,
+        func: 0,
+        gasolina: 0,
+        emb: 0,
+        mkt: 0,
+        contador: 0,
+        outros: 0,
+        pizzas: 300
+    },
+    massa: {
+        ingredientes: [],
+        pesoTotal: 3000,
+        pesoP: 200,
+        pesoM: 300,
+        pesoG: 400,
+        pesoGG: 500
+    },
+    config: {
+        nomePizzaria: '',
+        meta: 15000
+    },
+    produtosProntos: [],
+    // Taxas cobradas sobre o valor de cada venda (%) e meta de lucro real (%)
+    taxas: { imposto: 0, cartao: 0, app: 0, vendasApp: 0, metaLucro: 15 }
+};
+
+let DB = clonar(DB_PADRAO);
+let editandoFichaId = null;
+let editandoProdutoId = null;
+let filtroTam = 'all';
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Enter na tela de login dispara o botão Entrar
+    document.getElementById('loginSenha')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') fazerLoginFirebase();
+    });
+    document.getElementById('loginEmail')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') document.getElementById('loginSenha')?.focus();
+    });
+
+    // Garantir redirecionamento limpo para a Landing Page sem intercepção local
+    document.addEventListener('click', (e) => {
+        const link = e.target.closest('a');
+        if (link && (link.getAttribute('href') === '/' || link.getAttribute('href') === 'https://pizzacontrol.com.br')) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.location.href = 'https://pizzacontrol.com.br';
+        }
+    });
+
+    // Observador de estado de autenticação Firebase
+    auth.onAuthStateChanged(async (user) => {
+        if (!user) {
+            firebaseUser = null;
+            mostrarTela('login');
+            return;
+        }
+        firebaseUser = user;
+        mostrarTela('loading');
+
+        const valido = await verificarAssinatura(user.uid);
+        if (!valido) {
+            mostrarTela('expired');
+            return;
+        }
+
+        // Assinatura válida — configurar storage e liberar o sistema
+        configurarStorageUsuario(user.uid);
+        mostrarTela('app');
+        inicializarApp();
+    });
+});
+
+window.addEventListener('storage', (event) => {
+    if (event.key !== STORAGE_KEY) return;
+
+    carregarDados();
+    renderAll();
+    loadMassaUI();
+    loadCustosUI();
+    loadConfigUI();
+    refreshIngSelects();
+    refreshMassaSelects();
+    loadFichasSelect();
+});
+
+// ===== FIREBASE AUTH & ASSINATURA =====
+function mostrarTela(tela) {
+    document.getElementById('loadingScreen').style.display = tela === 'loading' ? 'flex' : 'none';
+    document.getElementById('loginScreen').style.display = tela === 'login' ? 'flex' : 'none';
+    document.getElementById('expiredScreen').style.display = tela === 'expired' ? 'flex' : 'none';
+    document.getElementById('appContent').style.display = tela === 'app' ? '' : 'none';
+
+    // Resetar botão de login ao exibir a tela (corrige bug pós-logout)
+    if (tela === 'login') {
+        const btn = document.getElementById('btnLogin');
+        if (btn) { btn.disabled = false; btn.textContent = '🔑 Entrar'; }
+        const erro = document.getElementById('loginErro');
+        if (erro) erro.style.display = 'none';
+    }
+}
+
+async function verificarAssinatura(uid) {
+    // MODELO ATUAL: acesso vitalício por plano (Básico ou Pro), sem data de vencimento.
+    // O campo "plano" é gravado automaticamente pela automação (Make) no momento da compra.
+    // Se um dia você criar um produto por assinatura recorrente, adicione de volta a checagem
+    // de "dataVencimento" apenas para documentos que tiverem tipo: 'assinatura'.
+    try {
+        const doc = await dbFirestore.collection('usuarios').doc(uid).get();
+        if (!doc.exists) {
+            console.warn('⚠️ Documento do usuário não encontrado no Firestore (acesso ainda não liberado):', uid);
+            return false;
+        }
+
+        const dados = doc.data();
+        // Só libera planos válidos. "reembolsado" (ou qualquer outro valor) = sem acesso.
+        if (dados.plano !== 'basico' && dados.plano !== 'pro') {
+            console.warn('⚠️ Plano sem acesso ativo para:', uid, '| plano =', dados.plano);
+            return false;
+        }
+
+        isPro = dados.plano === 'pro';
+        planoAtual = dados.plano;
+        console.log(isPro ? '⭐ Plano: PRO (vitalício)' : '📋 Plano: BÁSICO (vitalício)');
+
+        return true; // Documento existe com plano definido = compra confirmada = acesso liberado
+    } catch (err) {
+        console.error('❌ Erro ao verificar acesso:', err);
+        return false;
+    }
+}
+
+function configurarStorageUsuario(uid) {
+    const chaveUsuario = STORAGE_KEY_BASE + '_' + uid;
+    const chaveGenerica = STORAGE_KEY_BASE;
+
+    // Migrar dados antigos (sem UID) para o PRIMEIRO usuário que fizer login.
+    // Após migrar, a chave genérica é REMOVIDA para que novos usuários comecem limpos.
+    if (!localStorage.getItem(chaveUsuario) && localStorage.getItem(chaveGenerica)) {
+        localStorage.setItem(chaveUsuario, localStorage.getItem(chaveGenerica));
+        localStorage.removeItem(chaveGenerica);
+        console.log('📦 Dados migrados para o usuário:', uid, '| Chave genérica removida.');
+    }
+
+    STORAGE_KEY = chaveUsuario;
+
+    // Criar PIN e sessão automaticamente (bypass legado)
+    // Garante que nenhum código remanescente bloqueie o acesso do cliente
+    if (!localStorage.getItem(PIN_MASTER_KEY)) {
+        localStorage.setItem(PIN_MASTER_KEY, '000000');
+    }
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+        authenticated: true,
+        unlockedAt: new Date().toISOString()
+    }));
+}
+
+function inicializarApp() {
+    carregarDados();
+    setupNav();
+    aplicarTravaPlanos();
+    renderAll();
+    loadMassaUI();
+    loadCustosUI();
+    loadConfigUI();
+
+    if (document.getElementById('ficIngLista')) limparFicha();
+
+    refreshIngSelects();
+    refreshMassaSelects();
+    loadFichasSelect();
+
+    // Exibir info da conta na aba Config
+    const contaEmail = document.getElementById('contaEmail');
+    const contaVenc = document.getElementById('contaVencimento');
+    if (contaEmail && firebaseUser) contaEmail.textContent = firebaseUser.email;
+    if (contaVenc) {
+        contaVenc.textContent = isPro ? '⭐ PRO (acesso vitalício)' : '📋 Básico (acesso vitalício)';
+    }
+
+    iniciarNuvem();
+    carregarBonusPro();
+    carregarExtras();
+}
+
+// Mensagens claras para os erros do login e do "Esqueci minha senha".
+// O detalhe técnico vai só para o console, nunca para a tela do cliente.
+function mensagemErroAuth(err, contexto) {
+    const codigo = (err && err.code) || '';
+    console.warn('Erro de autenticação:', codigo, err && err.message);
+    const semConexao = '📴 Sem conexão com a internet. Confira sua conexão e tente de novo.';
+    const emailInvalido = '❌ Esse e-mail não parece estar certo. Confira se digitou o mesmo e-mail usado na compra.';
+    if (contexto === 'senha') {
+        const m = {
+            'auth/user-not-found': 'Não encontramos acesso para esse e-mail. Confira se digitou o mesmo e-mail usado na compra.',
+            'auth/invalid-email': emailInvalido,
+            'auth/missing-email': emailInvalido,
+            'auth/too-many-requests': 'Você pediu vários links em pouco tempo. Aguarde alguns minutos e confira também a caixa de spam: um dos e-mails pode já ter chegado.',
+            'auth/network-request-failed': semConexao
+        };
+        return m[codigo] || 'Não foi possível enviar o link agora. Tente de novo em alguns minutos. Se continuar, fale com o suporte pelo botão do WhatsApp.';
+    }
+    const credenciais = '❌ E-mail ou senha incorretos. Se é seu primeiro acesso, use o link que chegou no seu e-mail para criar a senha (confira também o spam). Não recebeu? Clique em "Esqueci minha senha".';
+    const m = {
+        'auth/invalid-credential': credenciais,
+        'auth/invalid-login-credentials': credenciais,
+        'auth/wrong-password': credenciais,
+        'auth/user-not-found': credenciais,
+        'auth/invalid-email': emailInvalido,
+        'auth/missing-password': '⚠️ Digite sua senha.',
+        'auth/user-disabled': '⚠️ Este acesso está desativado. Fale com o suporte pelo botão do WhatsApp.',
+        'auth/too-many-requests': '⚠️ Muitas tentativas seguidas. Aguarde alguns minutos ou clique em "Esqueci minha senha" para criar uma senha nova.',
+        'auth/network-request-failed': semConexao
+    };
+    return m[codigo] || '❌ Não foi possível entrar agora. Tente de novo em instantes. Se continuar, fale com o suporte pelo botão do WhatsApp.';
+}
+
+async function fazerLoginFirebase() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const senha = document.getElementById('loginSenha').value;
+    const btnLogin = document.getElementById('btnLogin');
+    const erroDiv = document.getElementById('loginErro');
+
+    if (!email || !senha) {
+        erroDiv.textContent = '⚠️ Preencha e-mail e senha!';
+        erroDiv.style.display = 'block';
+        return;
+    }
+
+    btnLogin.disabled = true;
+    btnLogin.textContent = '⏳ Entrando...';
+    erroDiv.style.display = 'none';
+
+    try {
+        await auth.signInWithEmailAndPassword(email, senha);
+        // onAuthStateChanged cuida do resto
+    } catch (err) {
+        btnLogin.disabled = false;
+        btnLogin.textContent = '🔑 Entrar';
+
+        erroDiv.textContent = mensagemErroAuth(err, 'login');
+        erroDiv.style.display = 'block';
+    }
+}
+
+function clonar(valor) {
+    return JSON.parse(JSON.stringify(valor));
+}
+
+function gerarId() {
+    return Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 9);
+}
+
+function numero(valor, fallback = 0) {
+    const n = Number(valor);
+    return Number.isFinite(n) ? n : fallback;
+}
+
+// ===== NUVEM (Firestore) =====
+// Os dados ficam no aparelho (funciona sem internet) E numa cópia na conta do cliente.
+// Vale sempre a versão alterada por último. Na primeira sincronização de um aparelho que
+// já tem dados diferentes dos da nuvem, o cliente escolhe qual manter (a outra vira cópia).
+const COLECAO_NUVEM = 'dadosClientes';
+const VERSAO_APP = '3.6.2';
+const LIMITE_NUVEM = 700000; // limite seguro de tamanho do documento
+let nuvemPronta = false;
+let nuvemTimer = null;
+let nuvemUnsub = null;
+let nuvemEstado = 'local';
+
+function idDispositivo() {
+    let id = localStorage.getItem('pcDispositivo');
+    if (!id) {
+        id = gerarId();
+        localStorage.setItem('pcDispositivo', id);
+    }
+    return id;
+}
+
+function refNuvem() {
+    return firebaseUser ? dbFirestore.collection(COLECAO_NUVEM).doc(firebaseUser.uid) : null;
+}
+
+function chaveSincronizado() {
+    return 'pcSincronizado_' + (firebaseUser ? firebaseUser.uid : '');
+}
+
+function mostrarEstadoNuvem(estado) {
+    nuvemEstado = estado;
+    const el = document.getElementById('nuvemStatus');
+    if (!el) return;
+    const textos = {
+        sincronizando: '⏳',
+        salvo: '✅ Salvo',
+        offline: '📴 Offline',
+        erro: '⚠️ Erro',
+        local: '…'
+    };
+    el.textContent = textos[estado] || '…';
+    const box = document.getElementById('nuvemBox');
+    if (box) box.title = explicacaoNuvem();
+}
+
+function explicacaoNuvem() {
+    return {
+        sincronizando: 'Enviando suas alterações para a nuvem...',
+        salvo: 'Tudo salvo na nuvem. Seus dados aparecem em qualquer aparelho com o seu login.',
+        offline: 'Sem internet. Suas alterações estão salvas neste aparelho e vão para a nuvem quando a conexão voltar.',
+        erro: 'Não foi possível salvar na nuvem agora. Suas alterações estão salvas neste aparelho e o sistema vai tentar de novo.',
+        local: 'Conectando à nuvem...'
+    }[nuvemEstado] || '';
+}
+
+function temDados(d) {
+    if (!d) return false;
+    const c = d.custos || {};
+    const custos = ['aluguel', 'energia', 'gas', 'agua', 'internet', 'func', 'gasolina', 'emb', 'mkt', 'contador', 'outros'].some((k) => numero(c[k]) > 0);
+    return (d.insumos || []).length > 0 || (d.fichas || []).length > 0 || (d.produtosProntos || []).length > 0 ||
+        ((d.massa && d.massa.ingredientes) || []).length > 0 || custos;
+}
+
+function conteudoIgual(a, b) {
+    const limpar = (d) => JSON.stringify({ ...d, atualizadoEm: 0 });
+    return limpar(a) === limpar(b);
+}
+
+function resumoDados(d) {
+    const n = (qtd, um, varios) => qtd + ' ' + (qtd === 1 ? um : varios);
+    return n((d.insumos || []).length, 'insumo', 'insumos') + ', ' + n((d.fichas || []).length, 'ficha', 'fichas');
+}
+
+function dataAlteracao(ts) {
+    return numero(ts) > 1e12 ? 'salva em ' + new Date(numero(ts)).toLocaleString('pt-BR') : 'data não registrada';
+}
+
+function agendarSalvarNuvem() {
+    if (!nuvemPronta || !firebaseUser) return;
+    clearTimeout(nuvemTimer);
+    mostrarEstadoNuvem('sincronizando');
+    nuvemTimer = setTimeout(salvarNuvemAgora, 1500);
+}
+
+async function salvarNuvemAgora() {
+    clearTimeout(nuvemTimer);
+    nuvemTimer = null;
+    const ref = refNuvem();
+    if (!nuvemPronta || !ref) return false;
+
+    const json = JSON.stringify(DB);
+    if (json.length > LIMITE_NUVEM) {
+        mostrarEstadoNuvem('erro');
+        status('⚠️ Seus dados ficaram grandes demais para a nuvem. Eles continuam salvos neste aparelho. Fale com o suporte.', true);
+        return false;
+    }
+    if (!navigator.onLine) {
+        mostrarEstadoNuvem('offline');
+        return false;
+    }
+
+    mostrarEstadoNuvem('sincronizando');
+    try {
+        await ref.set({
+            db: json,
+            atualizadoEm: DB.atualizadoEm || Date.now(),
+            dispositivo: idDispositivo(),
+            versaoApp: VERSAO_APP
+        });
+        localStorage.setItem(chaveSincronizado(), '1');
+        mostrarEstadoNuvem('salvo');
+        return true;
+    } catch (err) {
+        console.error('Erro ao salvar na nuvem:', err);
+        mostrarEstadoNuvem(navigator.onLine ? 'erro' : 'offline');
+        return false;
+    }
+}
+
+function aplicarDadosDaNuvem(json, atualizadoEm) {
+    DB = normalizarDados(JSON.parse(json));
+    DB.atualizadoEm = atualizadoEm;
+    persistirDados(false, undefined, false);
+    renderAll();
+    loadMassaUI();
+    loadCustosUI();
+    loadConfigUI();
+    refreshIngSelects();
+    refreshMassaSelects();
+    loadFichasSelect();
+}
+
+function guardarCopia(d, origem) {
+    try {
+        localStorage.setItem(STORAGE_KEY + '_copia_' + origem + '_' + Date.now(), JSON.stringify(d));
+    } catch (e) {
+        console.warn('Não foi possível guardar a cópia:', e);
+    }
+}
+
+function perguntarQualManter(local, nuvem) {
+    return new Promise((resolve) => {
+        const dataNuvem = dataAlteracao(nuvem.atualizadoEm);
+        const dataLocal = dataAlteracao(local.atualizadoEm);
+        fecharModalUpgrade();
+        const overlay = document.createElement('div');
+        overlay.id = 'modalUpgradePro';
+        overlay.className = 'mup-overlay';
+        overlay.innerHTML = `
+            <div class="mup-card" role="dialog" aria-modal="true" aria-labelledby="escolhaTitulo">
+                <div class="mup-topo" style="background:linear-gradient(135deg,#1565c0,#0d47a1)">
+                    <div class="mup-cadeado">☁️</div>
+                    <h2 id="escolhaTitulo" class="mup-titulo">Qual versão dos seus dados você quer usar?</h2>
                 </div>
-                <div class="form-group">
-                    <label>🔒 Senha</label>
-                    <input type="password" class="form-control" id="loginSenha" placeholder="Sua senha" autocomplete="current-password">
+                <div class="mup-corpo">
+                    <p class="mup-texto">Agora seus dados ficam salvos na nuvem e aparecem em todos os seus aparelhos. Encontramos duas versões diferentes:</p>
+                    <button type="button" class="mup-cta" id="escolhaNuvem" style="width:100%;border:0;cursor:pointer;margin-bottom:10px;text-align:left">☁️ Da nuvem<br><small style="font-weight:600">${esc(resumoDados(nuvem))} · ${esc(dataNuvem)}</small></button>
+                    <button type="button" class="mup-cta" id="escolhaLocal" style="width:100%;border:0;cursor:pointer;text-align:left;background:linear-gradient(135deg,#455a64,#263238)">📱 Deste aparelho<br><small style="font-weight:600">${esc(resumoDados(local))} · ${esc(dataLocal)}</small></button>
+                    <p class="mup-rodape">A versão que você não escolher fica guardada como cópia neste aparelho. Nada é apagado.</p>
                 </div>
-                <button class="btn-login btn-login-primary" id="btnLogin" onclick="fazerLoginFirebase()">🔑 Entrar</button>
-                
-                <!-- Botão Recuperar Senha Integrado -->
-                <div style="text-align: center; margin-top: 15px;">
-                    <a href="#" onclick="recuperarSenha(); return false;" style="color: var(--primary); text-decoration: underline; font-weight: 600; font-size: 0.95em;">Esqueci minha senha</a>
-                </div>
+            </div>`;
+        document.body.appendChild(overlay);
+        overlay.querySelector('#escolhaNuvem').addEventListener('click', () => { overlay.remove(); resolve('nuvem'); });
+        overlay.querySelector('#escolhaLocal').addEventListener('click', () => { overlay.remove(); resolve('local'); });
+    });
+}
 
-                <div class="auth-footer" style="text-align: center; margin-top: 25px;">
-                    <a href="https://pizzacontrol.com.br" style="color: var(--primary); text-decoration: none; font-weight: 600; font-size: 0.95em; transition: color 0.3s;" onmouseover="this.style.color='var(--primary-dark)'" onmouseout="this.style.color='var(--primary)'">Ainda não tem acesso? Conheça o PizzaControl</a>
-                </div>
-            </div>
-        </div>
-    </div>
+async function iniciarNuvem() {
+    pararNuvem();
+    const ref = refNuvem();
+    if (!ref) return;
+    mostrarEstadoNuvem('local');
 
-    <!-- TELA DE ASSINATURA EXPIRADA -->
-    <div id="expiredScreen" class="auth-screen" style="display:none">
-        <div class="auth-card">
-            <div class="auth-card-header" style="background:linear-gradient(135deg, #e65100, #ff9800)">
-                <div class="auth-logo">🍕 Pizza<span>Control</span></div>
-                <p>Acesso não encontrado</p>
-            </div>
-            <div class="auth-card-body" style="text-align:center">
-                <div class="expired-icon">⏰</div>
-                <h3 style="margin-bottom:10px;color:var(--danger)">Acesso Bloqueado</h3>
-                <p class="expired-msg">Não encontramos seu acesso ao PizzaControl neste e-mail.<br>Se você acabou de comprar, aguarde alguns minutos — a liberação é automática. Se já passou de 10 minutos, fale com a gente no WhatsApp.<br>Se ainda não é cliente, garanta seu acesso vitalício abaixo.</p>
-                <a href="https://pizzacontrol.com.br" class="btn-login btn-login-cta" target="_blank" style="margin-bottom:12px">🍕 Ver Planos e Garantir Acesso</a>
-                <button class="btn-login" style="background:#eee;color:var(--dark);margin-top:8px" onclick="fazerLogout()">🚪 Sair e trocar de conta</button>
-            </div>
-        </div>
-    </div>
+    let doc;
+    try {
+        doc = await ref.get();
+    } catch (err) {
+        console.error('Erro ao buscar dados da nuvem:', err);
+        mostrarEstadoNuvem(navigator.onLine ? 'erro' : 'offline');
+        // Tenta de novo quando a internet voltar
+        window.addEventListener('online', iniciarNuvem, { once: true });
+        return;
+    }
 
-    <!-- APP CONTENT (oculto até validar assinatura Firebase) -->
-    <div id="appContent" style="display:none">
-    <div class="status-bar" id="statusBar"></div>
-    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
-    <div class="menu-overlay" id="menuOverlay" onclick="toggleMenu()"></div>
-    <header class="header">
-        <div class="logo">🍕 Pizza<span>Control</span></div>
-        <div class="header-stats">
-            <div class="stat-box"><small>Insumos</small>
-                <div class="valor" id="hdrInsumos">0</div>
-            </div>
-            <div class="stat-box"><small>Fichas</small>
-                <div class="valor" id="hdrFichas">0</div>
-            </div>
-            <div class="stat-box"><small>Custo Fixo</small>
-                <div class="valor" id="hdrCustoFixo">R$0</div>
-            </div>
-            <div class="stat-box" id="nuvemBox" style="cursor:pointer" onclick="status(explicacaoNuvem())"><small>Nuvem</small>
-                <div class="valor" id="nuvemStatus" style="font-size:0.95em">…</div>
-            </div>
-            <button class="btn-logout" id="btnLogout" onclick="fazerLogout()">🚪 Sair</button>
-        </div>
-    </header>
-    <nav class="nav-tabs" id="navTabs">
-        <button class="nav-tab active" data-page="dashboard">📊 Dashboard</button>
-        <button class="nav-tab" data-page="insumos">📦 Insumos</button>
-        <button class="nav-tab" data-page="fichas">📋 Fichas</button>
-        <button class="nav-tab" data-page="nova-ficha">➕ Criar Ficha</button>
-        <button class="nav-tab" data-page="massa">🥖 Massa</button>
-        <button class="nav-tab" data-page="custos">💼 Custos Fixos</button>
-        <button class="nav-tab" data-page="produtos">🥤 Bebidas</button>
-        <button class="nav-tab" data-page="precificar">💰 Gerar Preço</button>
-        <button class="nav-tab" data-page="config">⚙️ Configurações</button>
-        
-        <!-- Link Instagram do PizzaControl -->
-        <div style="margin-top: auto; padding: 15px 10px;">
-            <a href="https://www.instagram.com/pizzacontrol0/" target="_blank" rel="noopener" style="display: flex; align-items: center; gap: 8px; color: #E1306C; text-decoration: none; font-weight: 500; font-family: sans-serif; padding: 10px; background: #fff0f5; border-radius: 8px; transition: 0.3s; border: 1px solid #f8bbd0;">
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm3.98-10.822a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
-              </svg>
-              <span>Siga o PizzaControl no Instagram</span>
-            </a>
-        </div>
-    </nav>
-    <div class="main-container">
-        <!-- DASHBOARD -->
-        <div class="page active" id="page-dashboard">
-            <div class="card card-bonus" id="cardBonus" hidden>
-                <div class="card-header">🎁 Seus bônus do Plano PRO</div>
-                <div class="card-body">
-                    <p class="bonus-texto">Você tem acesso direto ao suporte no WhatsApp e ao grupo com outros donos de pizzaria.</p>
-                    <div class="bonus-botoes" id="cardBonusBotoes"></div>
-                    <button type="button" class="bonus-esconder" onclick="esconderCardBonus()">Já entrei no grupo, esconder este quadro</button>
-                </div>
-            </div>
-            <div class="card card-bonus card-cardapio" id="cardCardapio" hidden>
-                <div class="card-header">📋 Seu Cardápio Pronto</div>
-                <div class="card-body" id="cardCardapioCorpo"></div>
-            </div>
-            <div class="card">
-                <div class="card-header">📊 Visão Geral</div>
-                <div class="card-body">
-                    <div class="counters">
-                        <div class="counter P">
-                            <div class="num" id="cntP">0</div><small>Pequenas</small>
-                        </div>
-                        <div class="counter M">
-                            <div class="num" id="cntM">0</div><small>Médias</small>
-                        </div>
-                        <div class="counter G">
-                            <div class="num" id="cntG">0</div><small>Grandes</small>
-                        </div>
-                        <div class="counter GG">
-                            <div class="num" id="cntGG">0</div><small>Gigantes</small>
-                        </div>
-                    </div>
-                    <div class="resumo-box">
-                        <div class="resumo-grid">
-                            <div class="resumo-item"><small>Insumos</small>
-                                <div class="val" id="dashIns">0</div>
-                            </div>
-                            <div class="resumo-item"><small>Fichas</small>
-                                <div class="val" id="dashFic">0</div>
-                            </div>
-                            <div class="resumo-item"><small>Lucro médio por pizza</small>
-                                <div class="val green" id="dashFat">R$ 0</div>
-                            </div>
-                            <div class="resumo-item"><small>Maior Margem</small>
-                                <div class="val purple" id="dashMaiorMargem">-</div>
-                            </div>
-                            <div class="resumo-item"><small>Custo Fixo/Pizza</small>
-                                <div class="val yellow" id="dashCF">R$ 0</div>
-                            </div>
-                            <div class="resumo-item"><small>Massa M</small>
-                                <div class="val" id="dashMassaM">R$ 0</div>
-                            </div>
-                            <div class="resumo-item"><small>Massa G</small>
-                                <div class="val" id="dashMassaG">R$ 0</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="card" id="cardMeta">
-                <div class="card-header warning" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-                    <span>🎯 Pizzas abaixo da sua meta</span><span id="metaContador" style="font-size:0.85em"></span>
-                </div>
-                <div class="card-body">
-                    <div id="metaLista"></div>
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-header success">🏆 Top 5 Pizzas Mais Lucrativas</div>
-                <div class="card-body">
-                    <div id="topLista">
-                        <div class="empty">Cadastre fichas para ver o ranking</div>
-                    </div>
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-header" style="background:linear-gradient(135deg, #00796b, #00897b)">🥤 Top Produtos Prontos (Bebidas e Adicionais)</div>
-                <div class="card-body">
-                    <div id="topProdutosLista">
-                        <div class="empty">Cadastre produtos prontos para ver o ranking</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- INSUMOS -->
-        <div class="page" id="page-insumos">
-            <div class="card">
-                <div class="card-header">📦 Insumos <button class="btn btn-warning btn-sm"
-                        onclick="abrirModalInsumo()">+ Novo</button></div>
-                <div class="card-body">
-                    <div class="search-row"><input type="text" class="form-control" placeholder="🔍 Buscar insumo..."
-                            id="buscaIns" oninput="filtrarInsumos()"></div>
-                    <div style="overflow-x:auto">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Nome</th>
-                                    <th>Categoria</th>
-                                    <th>Un</th>
-                                    <th>Qtd Emb</th>
-                                    <th>Preço Emb</th>
-                                    <th>Custo/Un</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tblInsumos"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- FICHAS -->
-        <div class="page" id="page-fichas">
-            <div class="card">
-                <div class="card-header">📋 Fichas Técnicas</div>
-                <div class="card-body">
-                    <div class="search-row"><input type="text" class="form-control" placeholder="🔍 Buscar ficha..."
-                            id="buscaFic" oninput="filtrarFichas()"></div>
-                    <div class="size-tabs"><button class="size-tab all active"
-                            onclick="filtrarTamanho('all',this)">Todas <span class="size-count"
-                                id="cntAll">0</span></button><button class="size-tab P"
-                            onclick="filtrarTamanho('P',this)">P <span class="size-count"
-                                id="cntTabP">0</span></button><button class="size-tab M"
-                            onclick="filtrarTamanho('M',this)">M <span class="size-count"
-                                id="cntTabM">0</span></button><button class="size-tab G"
-                            onclick="filtrarTamanho('G',this)">G <span class="size-count"
-                                id="cntTabG">0</span></button><button class="size-tab GG"
-                            onclick="filtrarTamanho('GG',this)">GG <span class="size-count"
-                                id="cntTabGG">0</span></button></div>
-                    <div class="fichas-grid" id="fichasGrid"></div>
-                </div>
-            </div>
-        </div>
-        <!-- NOVA FICHA -->
-        <div class="page" id="page-nova-ficha">
-            <div class="card">
-                <div class="card-header" id="fichaHeader">➕ Nova Ficha Técnica</div>
-                <div class="card-body">
-                    <div class="form-row">
-                        <div class="form-group"><label>Nome do sabor <span class="required">*</span></label><input
-                                type="text" class="form-control" id="ficNome" placeholder="Ex: Calabresa"></div>
-                        <div class="form-group"><label>Categoria</label><select class="form-control" id="ficCat">
-                                <option>Tradicional</option>
-                                <option>Especial</option>
-                                <option>Premium</option>
-                                <option>Doce</option>
-                            </select></div>
-                        <div class="form-group"><label>Incluir massa?</label><select class="form-control" id="ficMassa"
-                                onchange="calcFicha()">
-                                <option value="1">✅ Sim</option>
-                                <option value="0">❌ Não</option>
-                            </select></div>
-                    </div>
-                    <div class="form-group"><label>Tamanhos que você vende deste sabor</label>
-                        <div class="tam-chips" id="ficTamanhos">
-                            <label class="tam-chip"><input type="checkbox" value="P" onchange="aplicarVisibilidadeTamanhos();calcFicha()"> Pequena</label>
-                            <label class="tam-chip"><input type="checkbox" value="M" onchange="aplicarVisibilidadeTamanhos();calcFicha()"> Média</label>
-                            <label class="tam-chip"><input type="checkbox" value="G" onchange="aplicarVisibilidadeTamanhos();calcFicha()" checked> Grande</label>
-                            <label class="tam-chip"><input type="checkbox" value="GG" onchange="aplicarVisibilidadeTamanhos();calcFicha()"> Gigante</label>
-                        </div>
-                    </div>
-                    <div class="form-group"><label>Preço de venda <span class="required">*</span></label>
-                        <div class="precos-tam">
-                            <label class="preco-tam" data-tam="P"><span>P</span><input type="number" class="form-control" id="ficPreco_P" placeholder="0,00" step="0.01" inputmode="decimal" oninput="calcFicha()"></label>
-                            <label class="preco-tam" data-tam="M"><span>M</span><input type="number" class="form-control" id="ficPreco_M" placeholder="0,00" step="0.01" inputmode="decimal" oninput="calcFicha()"></label>
-                            <label class="preco-tam" data-tam="G"><span>G</span><input type="number" class="form-control" id="ficPreco_G" placeholder="0,00" step="0.01" inputmode="decimal" oninput="calcFicha()"></label>
-                            <label class="preco-tam" data-tam="GG"><span>GG</span><input type="number" class="form-control" id="ficPreco_GG" placeholder="0,00" step="0.01" inputmode="decimal" oninput="calcFicha()"></label>
-                        </div>
-                    </div>
-                    <h4 style="margin:20px 0 4px">🧀 Ingredientes (sem a massa)</h4>
-                    <p style="color:#666;font-size:0.9em;margin:0 0 12px">Coloque quanto vai de cada ingrediente em cada tamanho.</p>
-                    <div class="ingredientes-list" id="ficIngLista" style="max-height:none"></div>
-                    <div class="ing-acoes">
-                        <button class="btn btn-info" onclick="addIngFicha()">+ Ingrediente</button>
-                        <button class="btn btn-secondary" id="btnProporcional" onclick="preencherProporcional()" title="Usa o peso da massa de cada tamanho (aba Massa) para calcular as quantidades">⚖️ Preencher os outros tamanhos</button>
-                    </div>
-                    <div class="resumo-box">
-                        <h4 style="text-align:center;margin-bottom:15px">📊 Resumo por tamanho</h4>
-                        <div class="res-tams" id="ficResumoTabela"></div>
-                    </div>
-                    <div style="display:flex;gap:15px;margin-top:20px"><button class="btn btn-success btn-block"
-                            onclick="salvarFicha()">💾 Salvar Ficha</button><button class="btn btn-secondary"
-                            onclick="limparFicha()">🗑️ Limpar</button></div>
-                </div>
-            </div>
-        </div>
-        <!-- MASSA -->
-        <div class="page" id="page-massa">
-            <div class="alert alert-info">🥖 Cadastre os ingredientes da sua receita de massa.</div>
-            <div class="card">
-                <div class="card-header brown">🥖 Receita da Massa</div>
-                <div class="card-body">
-                    <h4 style="margin-bottom:15px">📝 Ingredientes da Receita</h4>
-                    <div class="ingredientes-list" id="massaIngLista" style="max-height:none"></div>
-                    <button class="btn btn-brown" onclick="addIngMassa()">+ Ingrediente</button>
-                    <hr style="margin:25px 0">
-                    <div class="form-group"><label style="font-size:1.1em">⚖️ Peso TOTAL dessa receita (em
-                            gramas)</label><input type="number" class="form-control large" id="massaPesoTotal"
-                            placeholder="Ex: 3000" value="3000" oninput="calcMassa()"><small style="color:#777">Informe
-                            a soma de todos os ingredientes em gramas.</small></div>
-                    <hr style="margin:25px 0">
-                    <h4 style="margin-bottom:15px">🍕 Quantos GRAMAS de massa cada pizza usa:</h4>
-                    <div class="form-row">
-                        <div class="form-group"><label>🟢 Pequena (P)</label><input type="number" class="form-control"
-                                id="pesoP" value="200" oninput="calcMassa()"><small style="color:#777">gramas</small>
-                        </div>
-                        <div class="form-group"><label>🔵 Média (M)</label><input type="number" class="form-control"
-                                id="pesoM" value="300" oninput="calcMassa()"><small style="color:#777">gramas</small>
-                        </div>
-                        <div class="form-group"><label>🟠 Grande (G)</label><input type="number" class="form-control"
-                                id="pesoG" value="400" oninput="calcMassa()"><small style="color:#777">gramas</small>
-                        </div>
-                        <div class="form-group"><label>🟣 Gigante (GG)</label><input type="number" class="form-control"
-                                id="pesoGG" value="500" oninput="calcMassa()"><small style="color:#777">gramas</small>
-                        </div>
-                    </div>
-                    <div class="total-box">
-                        <h4 style="text-align:center;margin-bottom:20px">📊 Resultado do Cálculo</h4>
-                        <div class="total-grid">
-                            <div class="total-item">
-                                <div class="label">Custo Total da Receita</div>
-                                <div class="value" id="massaCustoTotal">R$ 0,00</div>
-                            </div>
-                            <div class="total-item">
-                                <div class="label">Peso Total</div>
-                                <div class="value" id="massaPesoTotalRes">0 g</div>
-                            </div>
-                            <div class="total-item">
-                                <div class="label">Custo por Grama</div>
-                                <div class="value highlight" id="massaCustoGrama">R$ 0,0000</div>
-                            </div>
-                        </div>
-                    </div>
-                    <h4 style="margin:25px 0 15px;text-align:center">💰 Custo da Massa por Tamanho</h4>
-                    <div class="massa-resultado">
-                        <div class="massa-resultado-item" style="border-top-color:#4caf50"><small>🟢 Pequena</small>
-                            <div class="val" id="massaCustoP" style="color:#4caf50">R$ 0,00</div><small
-                                id="massaInfoP">0g × R$0</small>
-                        </div>
-                        <div class="massa-resultado-item" style="border-top-color:#2196f3"><small>🔵 Média</small>
-                            <div class="val" id="massaCustoM" style="color:#2196f3">R$ 0,00</div><small
-                                id="massaInfoM">0g × R$0</small>
-                        </div>
-                        <div class="massa-resultado-item" style="border-top-color:#ff9800"><small>🟠 Grande</small>
-                            <div class="val" id="massaCustoG" style="color:#ff9800">R$ 0,00</div><small
-                                id="massaInfoG">0g × R$0</small>
-                        </div>
-                        <div class="massa-resultado-item" style="border-top-color:#9c27b0"><small>🟣 Gigante</small>
-                            <div class="val" id="massaCustoGG" style="color:#9c27b0">R$ 0,00</div><small
-                                id="massaInfoGG">0g × R$0</small>
-                        </div>
-                    </div>
-                    <div class="alert alert-success" style="margin-top:20px"><strong>📌 Exemplo:</strong> Receita custa
-                        R$ 30 e pesa 3000g → Custo = R$ 0,01/g<br>• Pizza M (300g): 300 × 0,01 = <strong>R$
-                            3,00</strong><br>• Pizza G (400g): 400 × 0,01 = <strong>R$ 4,00</strong></div>
-                    <button class="btn btn-success btn-block" style="margin-top:20px" onclick="salvarMassa()">💾 Salvar
-                        Massa</button>
-                </div>
-            </div>
-        </div>
-        <!-- CUSTOS FIXOS -->
-        <div class="page" id="page-custos">
-            <div class="alert alert-info">💼 Informe seus gastos fixos mensais e quantas pizzas vende por mês.</div>
-            <div class="card">
-                <div class="card-header info">💼 Custos Fixos Mensais</div>
-                <div class="card-body">
-                    <div class="custo-item">
-                        <div class="icon">🏠</div>
-                        <div class="info"><strong>Aluguel</strong><small>Valor mensal</small></div><input type="number"
-                            class="form-control" id="cfAluguel" placeholder="0" oninput="calcCustos()">
-                    </div>
-                    <div class="custo-item">
-                        <div class="icon">⚡</div>
-                        <div class="info"><strong>Energia</strong><small>Conta de luz</small></div><input type="number"
-                            class="form-control" id="cfEnergia" placeholder="0" oninput="calcCustos()">
-                    </div>
-                    <div class="custo-item">
-                        <div class="icon">🔥</div>
-                        <div class="info"><strong>Gás</strong><small>Gás de cozinha</small></div><input type="number"
-                            class="form-control" id="cfGas" placeholder="0" oninput="calcCustos()">
-                    </div>
-                    <div class="custo-item">
-                        <div class="icon">💧</div>
-                        <div class="info"><strong>Água</strong><small>Conta de água</small></div><input type="number"
-                            class="form-control" id="cfAgua" placeholder="0" oninput="calcCustos()">
-                    </div>
-                    <div class="custo-item">
-                        <div class="icon">📶</div>
-                        <div class="info"><strong>Internet</strong><small>Internet/Telefone</small></div><input
-                            type="number" class="form-control" id="cfInternet" placeholder="0" oninput="calcCustos()">
-                    </div>
-                    <div class="custo-item">
-                        <div class="icon">👨‍🍳</div>
-                        <div class="info"><strong>Funcionários</strong><small>Salários + encargos</small></div><input
-                            type="number" class="form-control" id="cfFunc" placeholder="0" oninput="calcCustos()">
-                    </div>
-                    <div class="custo-item">
-                        <div class="icon">⛽</div>
-                        <div class="info"><strong>Combustível</strong><small>Gasolina/Transporte</small></div><input
-                            type="number" class="form-control" id="cfGasolina" placeholder="0" oninput="calcCustos()">
-                    </div>
-                    <div class="custo-item">
-                        <div class="icon">📦</div>
-                        <div class="info"><strong>Embalagens</strong><small>Caixas, sacolas</small></div><input
-                            type="number" class="form-control" id="cfEmb" placeholder="0" oninput="calcCustos()">
-                    </div>
-                    <div class="custo-item">
-                        <div class="icon">📱</div>
-                        <div class="info"><strong>Marketing</strong><small>Anúncios</small></div><input type="number"
-                            class="form-control" id="cfMkt" placeholder="0" oninput="calcCustos()">
-                    </div>
-                    <div class="custo-item">
-                        <div class="icon">📋</div>
-                        <div class="info"><strong>Contador/Impostos fixos</strong><small>Contador, DAS do MEI</small></div><input
-                            type="number" class="form-control" id="cfContador" placeholder="0" oninput="calcCustos()">
-                    </div>
-                    <div class="custo-item">
-                        <div class="icon">➕</div>
-                        <div class="info"><strong>Outros</strong><small>Demais gastos</small></div><input type="number"
-                            class="form-control" id="cfOutros" placeholder="0" oninput="calcCustos()">
-                    </div>
-                    <hr style="margin:25px 0">
-                    <div class="form-group"><label style="font-size:1.1em">🍕 Quantas pizzas você vende por
-                            mês?</label><input type="number" class="form-control large" id="cfPizzas" value="300"
-                            oninput="calcCustos()"></div>
-                    <div class="total-box">
-                        <h4 style="text-align:center;margin-bottom:20px">📊 Resultado</h4>
-                        <div class="total-grid">
-                            <div class="total-item">
-                                <div class="label">Total Custos/Mês</div>
-                                <div class="value" id="cfTotal">R$ 0</div>
-                            </div>
-                            <div class="total-item">
-                                <div class="label">Custo por Pizza</div>
-                                <div class="value highlight" id="cfPorPizza">R$ 0</div>
-                            </div>
-                        </div>
-                    </div>
-                    <button class="btn btn-success btn-block" style="margin-top:20px" onclick="salvarCustos()">💾 Salvar
-                        Custos</button>
-                </div>
-            </div>
-            <div class="card" id="cardTaxas">
-                <div class="card-header warning">🧾 Taxas sobre a venda e meta de lucro</div>
-                <div class="card-body">
-                    <p style="color:#555;margin:0 0 16px">São os valores que saem de <strong>cada venda</strong> em porcentagem. Eles entram no lucro real de todas as pizzas.</p>
-                    <div class="custo-item"><div class="icon">🏛️</div><div class="info"><strong>Imposto sobre a venda (%)</strong><small>Ex.: Simples Nacional. Se é MEI com DAS fixo, deixe 0</small></div><input type="number" class="form-control" id="txImposto" placeholder="0" step="0.1" inputmode="decimal" oninput="calcTaxasPreview()"></div>
-                    <div class="custo-item"><div class="icon">💳</div><div class="info"><strong>Taxa da maquininha (%)</strong><small>Média entre débito, crédito e Pix</small></div><input type="number" class="form-control" id="txCartao" placeholder="0" step="0.1" inputmode="decimal" oninput="calcTaxasPreview()"></div>
-                    <div class="custo-item"><div class="icon">🛵</div><div class="info"><strong>Comissão do app de delivery (%)</strong><small>Ex.: iFood, somando comissão e pagamento online</small></div><input type="number" class="form-control" id="txApp" placeholder="0" step="0.1" inputmode="decimal" oninput="calcTaxasPreview()"></div>
-                    <div class="custo-item"><div class="icon">📲</div><div class="info"><strong>Vendas pelo app (% do total)</strong><small>Quanto dos seus pedidos vem do app</small></div><input type="number" class="form-control" id="txVendasApp" placeholder="0" step="1" inputmode="decimal" oninput="calcTaxasPreview()"></div>
-                    <hr style="margin:20px 0">
-                    <div class="custo-item"><div class="icon">🎯</div><div class="info"><strong>Meta de lucro real (%)</strong><small>Quanto quer que sobre limpo de cada pizza</small></div><input type="number" class="form-control" id="txMeta" value="15" step="1" inputmode="decimal" oninput="calcTaxasPreview()"></div>
-                    <div class="total-box">
-                        <div class="total-grid">
-                            <div class="total-item">
-                                <div class="label">Taxa média por venda</div>
-                                <div class="value highlight" id="txMedia">0,0%</div>
-                            </div>
-                        </div>
-                        <p id="txAviso" style="text-align:center;margin:12px 0 0;font-size:0.9em"></p>
-                    </div>
-                    <button class="btn btn-success btn-block" style="margin-top:20px" onclick="salvarTaxas()">💾 Salvar taxas e meta</button>
-                </div>
-            </div>
-        </div>
-        <!-- BEBIDAS E ADICIONAIS -->
-        <div class="page" id="page-produtos">
-            <div class="alert alert-info">🥤 Cadastre bebidas, cervejas, doces e adicionais. Esses itens serão usados no <strong>Simulador de Combos</strong>.</div>
-            <div class="card">
-                <div class="card-header" style="background:linear-gradient(135deg, #00796b, #26a69a)">🥤 Bebidas e Adicionais <button class="btn btn-warning btn-sm" onclick="abrirModalProduto()">+ Novo</button></div>
-                <div class="card-body">
-                    <div class="search-row"><input type="text" class="form-control" placeholder="🔍 Buscar produto..." id="buscaProd" oninput="filtrarProdutosBusca()"></div>
-                    <div class="size-tabs">
-                        <button class="size-tab all prod-cat-tab active" onclick="filtrarProdutos('all',this)">Todos <span class="size-count" id="cntProdAll">0</span></button>
-                        <button class="size-tab prod-cat-tab" style="border-color:#2196f3" onclick="filtrarProdutos('Bebida',this)">🥤 Bebidas <span class="size-count" id="cntProdBeb">0</span></button>
-                        <button class="size-tab prod-cat-tab" style="border-color:#ff9800" onclick="filtrarProdutos('Cerveja',this)">🍺 Cervejas <span class="size-count" id="cntProdCerv">0</span></button>
-                        <button class="size-tab prod-cat-tab" style="border-color:#e91e63" onclick="filtrarProdutos('Doce',this)">🍫 Doces <span class="size-count" id="cntProdDoce">0</span></button>
-                        <button class="size-tab prod-cat-tab" style="border-color:#9c27b0" onclick="filtrarProdutos('Adicional',this)">➕ Adicionais <span class="size-count" id="cntProdAdic">0</span></button>
-                    </div>
-                    <div style="overflow-x:auto">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Nome</th>
-                                    <th>Categoria</th>
-                                    <th>Custo</th>
-                                    <th>Venda</th>
-                                    <th>Lucro</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tblProdutos"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- PRECIFICAR -->
-        <div class="page" id="page-precificar">
-            <div class="alert alert-info">💰 Use as calculadoras para encontrar o preço ideal. CMV recomendado:
-                <strong>25% a 35%</strong></div>
-            <div class="calc-grid">
-                <div class="card">
-                    <div class="card-header warning">📊 Calcular por CMV</div>
-                    <div class="card-body">
-                        <div class="form-group"><label>Custo dos ingredientes + massa (R$)</label><input type="number" class="form-control"
-                                id="calcCusto" placeholder="18.00" oninput="calcPorCMV()"></div>
-                        <div class="slider-group"><label><span>CMV Desejado:</span><span class="slider-val"
-                                    id="calcCMVVal">30%</span></label><input type="range" id="calcCMV" min="15" max="50"
-                                value="30" oninput="calcPorCMV()"></div>
-                        
-                        <hr style="margin:20px 0">
-                        <div class="form-row">
-                            <div class="form-group"><label>Markup (Multiplicador)</label><input type="number" class="form-control" id="calcMarkup" value="3" step="0.1" oninput="calcPorMarkup()"></div>
-                            <div class="form-group"><label>Impostos Totais (%)</label><input type="number" class="form-control" id="calcImposto" value="6" oninput="calcPorMarkup()"></div>
-                        </div>
-                        <div class="resumo-box">
-                            <div style="text-align:center"><small>Preço Sugerido (CMV/Markup)</small>
-                                <div style="font-size:2em;font-weight:bold;color:#4caf50" id="calcPreco">R$ 0,00</div>
-                                <small id="calcLucro">Lucro Bruto: R$ 0,00</small><br>
-                                <small id="calcLucroReal" style="color:var(--info); font-weight:bold">Lucro Líquido (Pós Imposto): R$ 0,00 (-)</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-header purple">📋 Precificar Ficha</div>
-                    <div class="card-body">
-                        <div class="form-group"><label>Selecione uma Ficha</label><select class="form-control"
-                                id="calcFicha" onchange="calcComFicha()">
-                                <option value="">-- Selecione --</option>
-                            </select></div>
-                        <div id="calcFichaRes" style="display:none">
-                            <table style="margin:15px 0;font-size:0.9em">
-                                <tr>
-                                    <td>Ingredientes:</td>
-                                    <td style="text-align:right" id="cfIng">R$ 0</td>
-                                </tr>
-                                <tr>
-                                    <td>Massa:</td>
-                                    <td style="text-align:right" id="cfMassaVal">R$ 0</td>
-                                </tr>
-                                <tr>
-                                    <td>Custo Fixo:</td>
-                                    <td style="text-align:right" id="cfFixo">R$ 0</td>
-                                </tr>
-                                <tr>
-                                    <td>Taxas sobre a venda:</td>
-                                    <td style="text-align:right" id="cfTaxasPct">0%</td>
-                                </tr>
-                                <tr style="font-weight:bold;border-top:2px solid #333">
-                                    <td>CUSTO TOTAL (com custo fixo):</td>
-                                    <td style="text-align:right;color:var(--danger)" id="cfTot">R$ 0</td>
-                                </tr>
-                            </table>
-                            <div id="cfMeta" class="alert alert-success" style="display:none"></div>
-                            <div class="cenarios">
-                                <div class="cenario c1"><small>CMV 35%</small>
-                                    <div class="preco" id="cfP35">R$ 0</div>
-                                </div>
-                                <div class="cenario c2"><small>CMV 30%</small>
-                                    <div class="preco" id="cfP30">R$ 0</div>
-                                </div>
-                                <div class="cenario c3"><small>CMV 25%</small>
-                                    <div class="preco" id="cfP25">R$ 0</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- SIMULADOR MEIO A MEIO -->
-            <div class="card" style="margin-top:20px">
-                <div class="card-header" style="background:linear-gradient(135deg, #e65100, #ff9800)">🍕 Simulador Meio a Meio (2 Sabores)</div>
-                <div class="card-body">
-                    <div class="alert alert-info" style="margin-bottom:15px">
-                        📐 <strong>Regra:</strong> O preço cobrado é <strong>sempre o do sabor mais caro</strong>. O custo real é a <strong>soma da metade</strong> dos ingredientes de cada sabor.
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>🍕 Sabor A (1ª metade)</label>
-                            <select class="form-control" id="maMSaborA" onchange="calcMeioAMeio()">
-                                <option value="">-- Selecione --</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>🍕 Sabor B (2ª metade)</label>
-                            <select class="form-control" id="maMSaborB" onchange="calcMeioAMeio()">
-                                <option value="">-- Selecione --</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div id="maMResultado" style="display:none"></div>
-                </div>
-            </div>
-            <!-- SIMULADOR DE COMBOS VIP -->
-            <div class="card" style="margin-top:20px">
-                <div class="card-header" style="background:linear-gradient(135deg, #1565c0, #42a5f5)">🎯 Simulador de Combos VIP</div>
-                <div class="card-body">
-                    <div class="alert alert-info" style="margin-bottom:15px">
-                        🍕 Monte um combo <strong>Pizza + Bebida + Adicional</strong> e descubra o lucro real, mesmo com desconto promocional.
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>🍕 Pizza (Ficha Técnica)</label>
-                            <select class="form-control" id="comboPizza" onchange="calcCombo()">
-                                <option value="">-- Selecione a Pizza --</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>🥤 Bebida</label>
-                            <select class="form-control" id="comboBebida" onchange="calcCombo()">
-                                <option value="">-- Selecione a Bebida --</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div style="margin-bottom:15px">
-                        <label style="font-weight:bold;margin-bottom:8px;display:block">➕ Adicionais / Doces (opcional)</label>
-                        <div id="comboAdicionaisContainer"></div>
-                        <button class="btn btn-info btn-sm" onclick="addComboAdicional()" style="margin-top:8px">+ Incluir Adicional</button>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>🏷️ Preço Promocional do Combo (R$)</label>
-                            <input type="number" class="form-control" id="comboPrecoPromo" placeholder="Ex: 49.90" step="0.01" oninput="calcCombo()">
-                            <small style="color:#777">Deixe vazio para usar a soma dos preços individuais</small>
-                        </div>
-                    </div>
-                    <div id="comboResultado" style="display:none"></div>
-                </div>
-            </div>
-        </div>
-        <!-- CONFIG -->
-        <div class="page" id="page-config">
-            <div class="card">
-                <div class="card-header purple">⚙️ Configurações Gerais da Pizzaria</div>
-                <div class="card-body">
-                    <div class="form-row">
-                        <div class="form-group"><label>Nome da Pizzaria</label><input type="text" class="form-control" id="configNome" placeholder="Minha Pizzaria"></div>
-                        <div class="form-group"><label>Meta de Vendas Mensal (Receita R$)</label><input type="number" class="form-control" id="configMeta" placeholder="15000"></div>
-                    </div>
-                    <button class="btn btn-success" onclick="salvarConfig()">💾 Salvar Configurações</button>
-                </div>
-            </div>
+    const local = clonar(DB);
+    const jaSincronizou = localStorage.getItem(chaveSincronizado()) === '1';
 
-            <div class="card">
-                <div class="card-header">💾 Dados & Backup</div>
-                <div class="card-body">
-                    <div style="display:flex;gap:15px;flex-wrap:wrap"><button class="btn btn-primary"
-                            onclick="exportar()">📥 Exportar Dados</button><label class="btn btn-warning"
-                            style="cursor:pointer">📤 Importar<input type="file" accept=".json"
-                                onchange="importar(event)" style="display:none"></label><button class="btn btn-danger"
-                            onclick="limparTudo()">🗑️ Limpar Tudo</button><button class="btn btn-teal"
-                            onclick="testarStorage()">🔧 Testar Storage</button></div>
-                    <div class="alert alert-warning" style="margin-top:20px">⚠️ <strong>Importante:</strong> Faça backup
-                        regularmente exportando seus dados!</div>
-                    <div class="conta-info">
-                        <h4>👤 Minha Conta</h4>
-                        <div class="conta-info-item"><span class="label">E-mail:</span><span class="value" id="contaEmail">-</span></div>
-                        <div class="conta-info-item"><span class="label">Plano:</span><span class="value" id="contaVencimento">-</span></div>
-                        <div class="conta-bonus" id="contaBonus"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- MODAL INSUMO -->
-    <div class="modal-bg" id="modalIns">
-        <div class="modal">
-            <div class="modal-header">
-                <h3 id="modalInsTitle">📦 Novo Insumo</h3><button class="modal-close"
-                    onclick="fecharModal('modalIns')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="insId">
-                <div class="form-row">
-                    <div class="form-group"><label>Nome <span class="required">*</span></label><input type="text"
-                            class="form-control" id="insNome"></div>
-                    <div class="form-group"><label>Categoria</label><select class="form-control" id="insCat">
-                            <option>Queijos</option>
-                            <option>Carnes</option>
-                            <option>Vegetais</option>
-                            <option>Molhos</option>
-                            <option>Massas</option>
-                            <option>Outros</option>
-                        </select></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label>Unidade</label><select class="form-control" id="insUn">
-                            <option value="g">Gramas (g)</option>
-                            <option value="kg">Kilos (kg)</option>
-                            <option value="ml">Mililitros (ml)</option>
-                            <option value="L">Litros (L)</option>
-                            <option value="un">Unidade (un)</option>
-                        </select></div>
-                    <div class="form-group"><label>Qtd Embalagem <span class="required">*</span></label><input
-                            type="number" class="form-control" id="insQtd" placeholder="1000"></div>
-                    <div class="form-group"><label>Preço Embalagem <span class="required">*</span></label><input
-                            type="number" class="form-control" id="insPreco" placeholder="35.00" step="0.01"></div>
-                </div>
-                <div class="alert alert-info" id="insPreview">💡 Preencha para ver o custo unitário</div>
-                <button class="btn btn-success btn-block" onclick="salvarInsumo()">💾 Salvar Insumo</button>
-            </div>
-        </div>
-    </div>
+    if (!doc.exists) {
+        nuvemPronta = true;
+        if (temDados(local)) await salvarNuvemAgora();
+        else { localStorage.setItem(chaveSincronizado(), '1'); mostrarEstadoNuvem('salvo'); }
+    } else {
+        const dados = doc.data();
+        let nuvem;
+        try {
+            nuvem = normalizarDados(JSON.parse(dados.db));
+        } catch (e) {
+            console.error('Dados da nuvem inválidos:', e);
+            nuvemPronta = true;
+            await salvarNuvemAgora();
+            ouvirNuvem();
+            return;
+        }
+        nuvem.atualizadoEm = numero(dados.atualizadoEm);
 
-    <!-- MODAL PRODUTO PRONTO -->
-    <div class="modal-bg" id="modalProd">
-        <div class="modal">
-            <div class="modal-header" style="background:linear-gradient(135deg, #00796b, #26a69a)">
-                <h3 id="modalProdTitle">🥤 Novo Produto</h3><button class="modal-close" onclick="fecharModal('modalProd')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="prodId">
-                <div class="form-row">
-                    <div class="form-group"><label>Nome do Produto <span class="required">*</span></label><input type="text" class="form-control" id="prodNome" placeholder="Ex: Coca-Cola 2L"></div>
-                    <div class="form-group"><label>Categoria</label><select class="form-control" id="prodCat">
-                            <option value="Bebida">🥤 Bebida (Refrigerante/Suco)</option>
-                            <option value="Cerveja">🍺 Cerveja</option>
-                            <option value="Doce">🍫 Doce / Sobremesa</option>
-                            <option value="Adicional">➕ Adicional (Borda, Extra)</option>
-                        </select></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label>Preço de Custo (Compra) <span class="required">*</span></label><input type="number" class="form-control" id="prodCusto" placeholder="4.50" step="0.01" oninput="previewProduto()"></div>
-                    <div class="form-group"><label>Preço de Venda <span class="required">*</span></label><input type="number" class="form-control" id="prodVenda" placeholder="8.00" step="0.01" oninput="previewProduto()"></div>
-                </div>
-                <div class="alert alert-info" id="prodPreview">💡 Preencha custo e venda para ver</div>
-                <button class="btn btn-success btn-block" onclick="salvarProduto()">💾 Salvar Produto</button>
-            </div>
-        </div>
-    </div>
-
-    </div><!-- /appContent -->
-
-    <script src="app.js?v=3.6.2"></script>
-    
-    <!-- Botão Suporte WhatsApp -->
-    <a href="https://wa.me/5598970260090?text=Fala%20Marllon!%20Preciso%20de%20uma%20ajuda%20aqui%20no%20PizzaControl." class="btn-whatsapp-flutuante" target="_blank">
-      <svg viewBox="0 0 32 32" class="whatsapp-ico">
-        <path d="M16 2a13 13 0 0 0-11 20.8l-2.2 6.6 6.8-2.2A13 13 0 1 0 16 2zm0 24a10.8 10.8 0 0 1-5.5-1.5l-.4-.2-4.1 1.3 1.4-4-.3-.4A10.8 10.8 0 1 1 16 26zm6-8.2c-.3-.2-2-.9-2.3-1-.3-.1-.5-.2-.7.1-.2.4-.9 1-1.1 1.3-.2.3-.4.3-.7.2-.3-.2-1.4-.5-2.7-1.7-1-1-1.7-1.6-1.9-1.9-.2-.3 0-.5.2-.6.2-.1.3-.3.5-.5.2-.2.2-.4.4-.6.1-.2.1-.4 0-.5-.1-.2-.7-1.7-1-2.4-.2-.6-.4-.5-.6-.5h-.5c-.2 0-.6.1-.9.4-.3.3-1.1 1-1.1 2.6s1.2 3.1 1.3 3.3c.2.2 2.3 3.5 5.5 4.9.8.3 1.4.5 1.9.6.6.2 1.1.2 1.5.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2-.1-.2-.3-.3-.6-.5z" fill="white"/>
-      </svg>
-    </a>
-    
-    <style>
-      .btn-whatsapp-flutuante {
-        position: fixed;
-        width: 60px;
-        height: 60px;
-        bottom: 25px;
-        right: 25px;
-        background-color: #25d366;
-        color: #FFF;
-        border-radius: 50px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
-        z-index: 1000;
-        transition: transform 0.3s;
-      }
-      .btn-whatsapp-flutuante:hover {
-        transform: scale(1.1);
-      }
-      .whatsapp-ico {
-        width: 35px;
-        height: 35px;
-      }
-    </style>
-
-    <!-- Função Inteligente de Recuperação de Senha do Firebase -->
-    <script>
-    function recuperarSenha() {
-        var emailCliente = document.getElementById("loginEmail").value.trim().toLowerCase();
-
-        if (emailCliente != "") {
-            firebase.auth().sendPasswordResetEmail(emailCliente)
-                .then(function() {
-                    alert("Pronto! Enviamos para o seu e-mail um link para criar sua senha. Confira também a caixa de spam.");
-                })
-                .catch(function(error) {
-                    alert(mensagemErroAuth(error, 'senha'));
-                });
+        if (!temDados(local) || conteudoIgual(local, nuvem)) {
+            aplicarDadosDaNuvem(dados.db, nuvem.atualizadoEm);
+            localStorage.setItem(chaveSincronizado(), '1');
+            nuvemPronta = true;
+            mostrarEstadoNuvem('salvo');
+        } else if (jaSincronizou) {
+            nuvemPronta = true;
+            if (nuvem.atualizadoEm > numero(local.atualizadoEm)) {
+                aplicarDadosDaNuvem(dados.db, nuvem.atualizadoEm);
+                mostrarEstadoNuvem('salvo');
+            } else if (numero(local.atualizadoEm) > nuvem.atualizadoEm) {
+                await salvarNuvemAgora(); // alterações feitas sem internet
+            } else {
+                mostrarEstadoNuvem('salvo');
+            }
+        } else if (!temDados(nuvem)) {
+            nuvemPronta = true;
+            await salvarNuvemAgora();
         } else {
-            alert("Por favor, digite o seu e-mail na caixinha acima e clique em 'Esqueci minha senha' de novo.");
+            const escolha = await perguntarQualManter(local, nuvem);
+            if (escolha === 'nuvem') {
+                guardarCopia(local, 'aparelho');
+                aplicarDadosDaNuvem(dados.db, nuvem.atualizadoEm);
+                localStorage.setItem(chaveSincronizado(), '1');
+                nuvemPronta = true;
+                mostrarEstadoNuvem('salvo');
+                status('☁️ Usando os dados da nuvem. A versão deste aparelho foi guardada como cópia.');
+            } else {
+                guardarCopia(nuvem, 'nuvem');
+                nuvemPronta = true;
+                persistirDados(false); // marca como a versão mais recente
+                await salvarNuvemAgora();
+                status('📱 Usando os dados deste aparelho. A versão da nuvem foi guardada como cópia.');
+            }
         }
     }
-    </script>
-</body>
 
-</html>
+    ouvirNuvem();
+}
+
+// Recebe na hora as alterações feitas em outro aparelho
+function ouvirNuvem() {
+    const ref = refNuvem();
+    if (!ref || nuvemUnsub) return;
+    nuvemUnsub = ref.onSnapshot((doc) => {
+        if (!doc.exists || (doc.metadata && doc.metadata.hasPendingWrites)) return;
+        const d = doc.data();
+        if (d.dispositivo === idDispositivo()) return;
+        if (numero(d.atualizadoEm) > numero(DB.atualizadoEm) && !nuvemTimer) {
+            try {
+                aplicarDadosDaNuvem(d.db, numero(d.atualizadoEm));
+                mostrarEstadoNuvem('salvo');
+                status('🔄 Dados atualizados com as mudanças feitas em outro aparelho.');
+            } catch (e) {
+                console.error('Erro ao aplicar dados da nuvem:', e);
+            }
+        }
+    }, (err) => {
+        console.error('Erro ao ouvir a nuvem:', err);
+    });
+}
+
+function pararNuvem() {
+    if (nuvemUnsub) {
+        try { nuvemUnsub(); } catch (e) {}
+    }
+    nuvemUnsub = null;
+    nuvemPronta = false;
+    clearTimeout(nuvemTimer);
+    nuvemTimer = null;
+}
+
+window.addEventListener('online', () => {
+    if (nuvemPronta && nuvemEstado !== 'salvo') salvarNuvemAgora();
+});
+window.addEventListener('offline', () => {
+    if (nuvemPronta) mostrarEstadoNuvem('offline');
+});
+
+// ===== FORMATAÇÃO, SEGURANÇA E UNIDADES =====
+function brl(v) {
+    return 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function pct(v, casas = 1) {
+    return (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas }) + '%';
+}
+
+function esc(t) {
+    return String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// Versão 2 dos dados: quantidades SEMPRE na unidade base (g, ml ou un).
+// Insumo comprado em kg ou L tem o custo convertido para grama ou mililitro.
+const VERSAO_DADOS = 2;
+const FATOR_UNIDADE = { kg: 1000, L: 1000 };
+
+function fatorUnidade(un) {
+    return FATOR_UNIDADE[un] || 1;
+}
+
+function unidadeBase(un) {
+    if (un === 'kg') return 'g';
+    if (un === 'L') return 'ml';
+    return un || 'g';
+}
+
+function calcCustoUnBase(precoEmb, qtdEmb, un) {
+    const base = numero(qtdEmb) * fatorUnidade(un);
+    return base > 0 ? numero(precoEmb) / base : 0;
+}
+
+function custoNaUnidadeCompra(ins) {
+    return (ins.custoUn || 0) * fatorUnidade(ins.unidade);
+}
+
+function atualizarUnidadeLinha(sel) {
+    const linha = sel.closest('.ingrediente-item, .massa-item');
+    if (!linha) return;
+    const ins = DB.insumos.find((i) => i.id == sel.value);
+    linha.querySelectorAll('.qtd-un').forEach((span) => { span.textContent = ins ? unidadeBase(ins.unidade) : ''; });
+}
+
+function validarFormatoPin(pin) {
+    return /^\d{4,6}$/.test(pin);
+}
+
+function obterPinMaster() {
+    const pin = localStorage.getItem(PIN_MASTER_KEY);
+    if (!pin) return '';
+    return /^\d{4,6}$/.test(pin) ? pin : '';
+}
+
+function normalizarPalavraChave(valor) {
+    return String(valor || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ');
+}
+
+function gerarHashRecuperacao(chave) {
+    const base = 'pc-recovery-v1::' + normalizarPalavraChave(chave);
+    let hashA = 2166136261;
+    let hashB = 2654435761;
+
+    for (let i = 0; i < base.length; i++) {
+        const code = base.charCodeAt(i);
+        hashA ^= code;
+        hashA = Math.imul(hashA, 16777619);
+
+        hashB ^= code + i;
+        hashB = Math.imul(hashB, 2246822519);
+    }
+
+    const partA = (hashA >>> 0).toString(16).padStart(8, '0');
+    const partB = (hashB >>> 0).toString(16).padStart(8, '0');
+    const mix = (partA + partB).split('').reverse().join('');
+    return 'obf:' + partA + partB + mix;
+}
+
+function validarSessao() {
+    // Autenticação agora é feita pelo Firebase Auth
+    // Esta função é mantida como no-op para compatibilidade
+    return true;
+}
+
+function normalizarDados(raw) {
+    const origem = raw || {};
+
+    const insumos = Array.isArray(origem.insumos)
+        ? origem.insumos.map((i) => {
+              const qtdEmb = numero(i.qtdEmb);
+              const precoEmb = numero(i.precoEmb);
+              const unidade = i.unidade || 'g';
+              const custoUn = calcCustoUnBase(precoEmb, qtdEmb, unidade);
+              return {
+                  id: String(i.id || gerarId()),
+                  nome: (i.nome || '').trim(),
+                  categoria: i.categoria || 'Outros',
+                  unidade,
+                  qtdEmb,
+                  precoEmb,
+                  custoUn
+              };
+          })
+        : [];
+
+    const fichas = Array.isArray(origem.fichas)
+        ? origem.fichas.map((f) => ({
+              id: String(f.id || gerarId()),
+              grupoId: f.grupoId ? String(f.grupoId) : '',
+              nome: f.nome || '',
+              categoria: f.categoria || 'Tradicional',
+              tamanho: f.tamanho || 'G',
+              precoVenda: numero(f.precoVenda),
+              incMassa: f.incMassa !== false,
+              ingredientes: Array.isArray(f.ingredientes)
+                  ? f.ingredientes.map((ing) => ({
+                        insumoId: String(ing.insumoId || ''),
+                        nome: ing.nome || '',
+                        quantidade: numero(ing.quantidade),
+                        unidade: ing.unidade || 'g',
+                        custo: numero(ing.custo)
+                    }))
+                  : [],
+              custoIng: numero(f.custoIng),
+              custoMassa: numero(f.custoMassa),
+              custoFixo: numero(f.custoFixo),
+              custoTotal: numero(f.custoTotal),
+              lucro: numero(f.lucro),
+              cmv: numero(f.cmv)
+          }))
+        : [];
+
+    const custosOrigem = origem.custos || origem.custosFixos || {};
+    const custos = {
+        aluguel: numero(custosOrigem.aluguel),
+        energia: numero(custosOrigem.energia),
+        gas: numero(custosOrigem.gas),
+        agua: numero(custosOrigem.agua),
+        internet: numero(custosOrigem.internet),
+        func: numero(custosOrigem.func, numero(custosOrigem.funcionarios)),
+        gasolina: numero(custosOrigem.gasolina),
+        emb: numero(custosOrigem.emb, numero(custosOrigem.embalagens)),
+        mkt: numero(custosOrigem.mkt, numero(custosOrigem.marketing)),
+        contador: numero(custosOrigem.contador),
+        outros: numero(custosOrigem.outros),
+        pizzas: numero(custosOrigem.pizzas, numero(custosOrigem.pizzasMes, 300)) || 300
+    };
+
+    const massaOrigem = origem.massa || {};
+    const massa = {
+        ingredientes: Array.isArray(massaOrigem.ingredientes)
+            ? massaOrigem.ingredientes.map((ing) => ({
+                  insumoId: String(ing.insumoId || ''),
+                  quantidade: numero(ing.quantidade)
+              }))
+            : [],
+        pesoTotal: numero(massaOrigem.pesoTotal, numero(massaOrigem.rendimento) * 300 || 3000) || 3000,
+        pesoP: numero(massaOrigem.pesoP, 200) || 200,
+        pesoM: numero(massaOrigem.pesoM, 300) || 300,
+        pesoG: numero(massaOrigem.pesoG, 400) || 400,
+        pesoGG: numero(massaOrigem.pesoGG, 500) || 500
+    };
+
+    const configOrigem = origem.config || {};
+    const config = {
+        nomePizzaria: (configOrigem.nomePizzaria || '').trim(),
+        meta: numero(configOrigem.meta, 15000) || 15000
+    };
+
+    const produtosProntos = Array.isArray(origem.produtosProntos)
+        ? origem.produtosProntos.map((p) => ({
+              id: String(p.id || gerarId()),
+              nome: (p.nome || '').trim(),
+              categoria: p.categoria || 'Bebida',
+              precoCusto: numero(p.precoCusto),
+              precoVenda: numero(p.precoVenda),
+              lucro: numero(p.lucro, numero(p.precoVenda) - numero(p.precoCusto))
+          }))
+        : [];
+
+    // MIGRAÇÃO v1 -> v2: antes, a quantidade de um insumo comprado em kg/L era digitada em kg/L.
+    // Agora é sempre em g/ml. Valores abaixo de 50 só fazem sentido em kg/L, então são convertidos.
+    // Valores a partir de 50 já estavam em gramas (o custo aparecia absurdo) e ficam como estão.
+    if (numero(origem.versao) < VERSAO_DADOS) {
+        const unidadePorId = {};
+        insumos.forEach((i) => { unidadePorId[i.id] = i.unidade; });
+        const converter = (ing) => {
+            const fator = fatorUnidade(unidadePorId[ing.insumoId]);
+            if (fator > 1 && ing.quantidade > 0 && ing.quantidade < 50) ing.quantidade = ing.quantidade * fator;
+        };
+        fichas.forEach((f) => f.ingredientes.forEach(converter));
+        massa.ingredientes.forEach(converter);
+    }
+    fichas.forEach((f) => f.ingredientes.forEach((ing) => {
+        const ins = insumos.find((i) => i.id === ing.insumoId);
+        if (ins) ing.unidade = unidadeBase(ins.unidade);
+    }));
+
+    const tx = origem.taxas || {};
+    const limitar = (v, max) => Math.min(Math.max(numero(v), 0), max);
+    const taxas = {
+        imposto: limitar(tx.imposto, 60),
+        cartao: limitar(tx.cartao, 30),
+        app: limitar(tx.app, 50),
+        vendasApp: limitar(tx.vendasApp, 100),
+        metaLucro: tx.metaLucro === undefined ? 15 : limitar(tx.metaLucro, 80)
+    };
+
+    return { versao: VERSAO_DADOS, atualizadoEm: Math.round(numero(origem.atualizadoEm)), insumos, fichas, custos, massa, config, produtosProntos, taxas };
+}
+
+function obterPrimeiroValor(keys) {
+    for (const key of keys) {
+        const valor = localStorage.getItem(key);
+        if (valor) return { key, valor };
+    }
+    return null;
+}
+
+function carregarDados() {
+    const encontrado = obterPrimeiroValor([STORAGE_KEY, ...LEGACY_KEYS]);
+
+    if (!encontrado) {
+        DB = clonar(DB_PADRAO);
+        persistirDados(false, undefined, false);
+        return;
+    }
+
+    try {
+        const raw = JSON.parse(encontrado.valor);
+        DB = normalizarDados(raw);
+
+        if (encontrado.key !== STORAGE_KEY || numero(raw.versao) < VERSAO_DADOS) {
+            persistirDados(false, undefined, false);
+        }
+    } catch (err) {
+        console.error('Erro ao carregar dados locais:', err);
+        try { localStorage.setItem(STORAGE_KEY + '_corrompido_' + Date.now(), encontrado.valor); } catch (e) {}
+        DB = clonar(DB_PADRAO);
+        persistirDados(false, undefined, false);
+    }
+}
+
+function persistirDados(mostrarStatus = true, mensagem = '💾 Dados salvos!', marcarAlteracao = true) {
+    try {
+        if (marcarAlteracao) DB.atualizadoEm = Date.now();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
+        if (mostrarStatus) status(mensagem);
+        if (marcarAlteracao) agendarSalvarNuvem();
+        return true;
+    } catch (err) {
+        console.error('Falha ao salvar localStorage:', err);
+        if (mostrarStatus) status('❌ Não foi possível salvar no navegador!', true);
+        return false;
+    }
+}
+
+function salvarDados() {
+    persistirDados(true);
+}
+
+async function fazerLogout() {
+    await salvarNuvemAgora();
+    pararNuvem();
+    auth.signOut();
+    // onAuthStateChanged mostra a tela de login automaticamente
+}
+
+function alterarSenha() {
+    const pinAtual = document.getElementById('pinAtual').value.trim();
+    const novoPin = document.getElementById('novaSenha').value.trim();
+    const conf = document.getElementById('confSenha').value.trim();
+    const novaRecuperacaoRaw = document.getElementById('novaRecuperacao')?.value || '';
+    const novaRecuperacao = normalizarPalavraChave(novaRecuperacaoRaw);
+    const pinSalvo = obterPinMaster();
+
+    if (!pinSalvo) {
+        alert('⚠️ PIN master não encontrado. Acesse novamente pela tela inicial para criar um novo PIN.');
+        return;
+    }
+
+    if (pinAtual !== pinSalvo) {
+        alert('⚠️ PIN atual incorreto!');
+        return;
+    }
+
+    if (!validarFormatoPin(novoPin)) {
+        alert('⚠️ O novo PIN deve ter de 4 a 6 números!');
+        return;
+    }
+
+    if (novoPin !== conf) {
+        alert('⚠️ Os PINs não conferem!');
+        return;
+    }
+
+    if (novoPin === pinAtual) {
+        alert('⚠️ O novo PIN deve ser diferente do PIN atual!');
+        return;
+    }
+
+    if (novaRecuperacaoRaw.trim() && novaRecuperacao.length < 3) {
+        alert('⚠️ A palavra-chave de recuperação deve ter ao menos 3 caracteres!');
+        return;
+    }
+
+    localStorage.setItem(PIN_MASTER_KEY, novoPin);
+    if (novaRecuperacaoRaw.trim()) {
+        localStorage.setItem(RECOVERY_HASH_KEY, gerarHashRecuperacao(novaRecuperacao));
+    }
+
+    document.getElementById('pinAtual').value = '';
+    document.getElementById('novaSenha').value = '';
+    document.getElementById('confSenha').value = '';
+    const campoRecuperacao = document.getElementById('novaRecuperacao');
+    if (campoRecuperacao) campoRecuperacao.value = '';
+
+    if (novaRecuperacaoRaw.trim()) {
+        alert('✅ PIN e palavra-chave de recuperação atualizados com sucesso!');
+    } else {
+        alert('✅ PIN alterado com sucesso!');
+    }
+}
+
+function status(msg, error = false) {
+    const bar = document.getElementById('statusBar');
+    if (!bar) return;
+
+    bar.textContent = msg;
+    bar.className = 'status-bar show' + (error ? ' error' : '');
+    setTimeout(() => bar.classList.remove('show'), 2500);
+}
+
+function testarStorage() {
+    try {
+        localStorage.setItem('_test', '1');
+        localStorage.removeItem('_test');
+        status('✅ Storage OK! ' + DB.insumos.length + ' insumos, ' + DB.fichas.length + ' fichas');
+    } catch (e) {
+        status('❌ Storage não funciona!', true);
+    }
+}
+
+function renderAll() {
+    renderHeader();
+    renderInsumos();
+    renderFichas();
+    renderProdutosProntos();
+    renderDashboard();
+}
+
+function renderHeader() {
+    const hdrInsumos = document.getElementById('hdrInsumos');
+    const hdrFichas = document.getElementById('hdrFichas');
+    const hdrCustoFixo = document.getElementById('hdrCustoFixo');
+
+    if (hdrInsumos) hdrInsumos.textContent = DB.insumos.length;
+    if (hdrFichas) hdrFichas.textContent = DB.fichas.length;
+    if (hdrCustoFixo) hdrCustoFixo.textContent = brl(calcularCustoFixoPorPizza());
+}
+
+function sincronizarUI() {
+    renderHeader();
+    renderInsumos();
+    refreshIngSelects();
+    refreshMassaSelects();
+    renderFichas();
+    renderProdutosProntos();
+    renderDashboard();
+    loadFichasSelect();
+}
+
+// ===== HAMBURGER MENU =====
+function toggleMenu() {
+    const nav = document.getElementById('navTabs');
+    const overlay = document.getElementById('menuOverlay');
+    if (nav.classList.contains('open')) {
+        nav.classList.remove('open');
+        overlay.classList.remove('show');
+    } else {
+        nav.classList.add('open');
+        overlay.classList.add('show');
+    }
+}
+
+let navConfigurado = false;
+function setupNav() {
+    if (navConfigurado) return; // evita listeners duplicados se a pessoa sair e entrar de novo
+    navConfigurado = true;
+    document.querySelectorAll('.nav-tab').forEach((tab) => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.nav-tab').forEach((t) => t.classList.remove('active'));
+            document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('page-' + tab.dataset.page).classList.add('active');
+            if (tab.dataset.page === 'nova-ficha') { refreshIngSelects(); calcFicha(); }
+            if (tab.dataset.page === 'massa') {
+                refreshMassaSelects();
+                calcMassa();
+            }
+            if (tab.dataset.page === 'precificar') {
+                loadFichasSelect();
+                loadFichasSelectMeioAMeio();
+                loadComboSelects();
+                calcMeioAMeio();
+                calcCombo();
+            }
+            if (tab.dataset.page === 'produtos') renderProdutosProntos();
+            if (tab.dataset.page === 'fichas') renderFichas();
+            if (tab.dataset.page === 'dashboard') renderDashboard();
+
+            if (window.innerWidth <= 768) {
+                document.getElementById('navTabs').classList.remove('open');
+                document.getElementById('menuOverlay').classList.remove('show');
+            }
+        });
+    });
+}
+
+// ===== INSUMOS =====
+function abrirModalInsumo(id = null) {
+    document.getElementById('modalIns').classList.add('show');
+    document.getElementById('insId').value = '';
+    document.getElementById('insNome').value = '';
+    document.getElementById('insQtd').value = '';
+    document.getElementById('insPreco').value = '';
+    document.getElementById('modalInsTitle').textContent = '📦 Novo Insumo';
+
+    if (id) {
+        const ins = DB.insumos.find((i) => i.id === id);
+        if (ins) {
+            document.getElementById('insId').value = id;
+            document.getElementById('insNome').value = ins.nome;
+            document.getElementById('insCat').value = ins.categoria;
+            document.getElementById('insUn').value = ins.unidade;
+            document.getElementById('insQtd').value = ins.qtdEmb;
+            document.getElementById('insPreco').value = ins.precoEmb;
+            document.getElementById('modalInsTitle').textContent = '✏️ Editar Insumo';
+        }
+    }
+}
+
+function fecharModal(id) {
+    document.getElementById(id).classList.remove('show');
+}
+
+function salvarInsumo() {
+    const nome = document.getElementById('insNome').value.trim();
+    const cat = document.getElementById('insCat').value;
+    const un = document.getElementById('insUn').value;
+    const qtd = parseFloat(document.getElementById('insQtd').value) || 0;
+    const preco = parseFloat(document.getElementById('insPreco').value) || 0;
+    const editId = document.getElementById('insId').value;
+
+    if (!nome || !qtd || !preco) {
+        alert('⚠️ Preencha todos os campos!');
+        return;
+    }
+
+    const custoUn = calcCustoUnBase(preco, qtd, un);
+    const insAntigo = editId ? DB.insumos.find((i) => i.id === editId) : null;
+    const custoAntigo = insAntigo ? insAntigo.custoUn || 0 : 0;
+    const antes = {};
+    if (insAntigo) {
+        DB.fichas.forEach((f) => {
+            atualizarCustosDaFicha(f);
+            antes[f.id] = { lucro: f.lucro, custo: f.custoTotal, margem: f.margemReal };
+        });
+    }
+    const insumoData = {
+        id: editId || gerarId(),
+        nome,
+        categoria: cat,
+        unidade: un,
+        qtdEmb: qtd,
+        precoEmb: preco,
+        custoUn
+    };
+
+    if (editId) {
+        const idx = DB.insumos.findIndex((i) => i.id === editId);
+        if (idx !== -1) DB.insumos[idx] = insumoData;
+        status('💾 Atualizado!');
+    } else {
+        DB.insumos.push(insumoData);
+        status('💾 Salvo!');
+    }
+
+    persistirDados(false);
+    fecharModal('modalIns');
+    sincronizarUI();
+
+    if (insAntigo && custoAntigo > 0 && Math.abs(custoUn - custoAntigo) / custoAntigo > 0.001) {
+        mostrarAvisoMudancaPreco(insumoData, custoAntigo, antes);
+    }
+}
+
+function mostrarAvisoMudancaPreco(ins, custoAntigo, antes) {
+    const afetadas = DB.fichas
+        .filter((f) => f.precoVenda > 0 && antes[f.id] && Math.abs(f.custoTotal - antes[f.id].custo) > 0.004)
+        .map((f) => ({ f, antes: antes[f.id] }));
+    if (afetadas.length === 0) return;
+
+    const variacao = ((ins.custoUn - custoAntigo) / custoAntigo) * 100;
+    const subiu = variacao > 0;
+    const meta = metaLucroFracao() * 100;
+    const caiuAbaixo = isPro ? afetadas.filter((a) => a.antes.margem >= meta - 0.05 && a.f.margemReal < meta - 0.05).length : 0;
+    const abaixoTotal = isPro ? DB.fichas.filter((f) => f.precoVenda > 0 && f.margemReal < meta - 0.05).length : 0;
+    const somaDif = afetadas.reduce((acc, a) => acc + (a.f.lucro - a.antes.lucro), 0);
+
+    const linhas = afetadas.sort((a, b) => (a.f.lucro - a.antes.lucro) - (b.f.lucro - b.antes.lucro)).slice(0, 6).map((a) =>
+        `<li style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #eee"><span>${esc(a.f.nome)} (${a.f.tamanho})</span><span style="white-space:nowrap">${brl(a.antes.lucro)} → <b style="color:${a.f.lucro < a.antes.lucro ? '#c62828' : '#2e7d32'}">${brl(a.f.lucro)}</b></span></li>`
+    ).join('');
+
+    fecharModalUpgrade();
+    const overlay = document.createElement('div');
+    overlay.id = 'modalUpgradePro';
+    overlay.className = 'mup-overlay';
+    overlay.innerHTML = `
+        <div class="mup-card" role="dialog" aria-modal="true" aria-labelledby="avisoPrecoTitulo">
+            <button type="button" class="mup-fechar" aria-label="Fechar">✕</button>
+            <div class="mup-topo" style="${subiu ? '' : 'background:linear-gradient(135deg,#2e7d32,#1b5e20)'}">
+                <div class="mup-cadeado">${subiu ? '📈' : '📉'}</div>
+                <h2 id="avisoPrecoTitulo" class="mup-titulo">${esc(ins.nome)} ${subiu ? 'subiu' : 'baixou'} ${pct(Math.abs(variacao))}</h2>
+            </div>
+            <div class="mup-corpo">
+                <p class="mup-texto"><strong>${afetadas.length} ${afetadas.length === 1 ? 'pizza foi afetada' : 'pizzas foram afetadas'}.</strong> Vendendo uma de cada, você passa a lucrar ${brl(Math.abs(somaDif))} ${somaDif < 0 ? 'a menos' : 'a mais'}.</p>
+                <ul style="list-style:none;padding:0;margin:0 0 14px;font-size:0.9rem">${linhas}</ul>
+                ${afetadas.length > 6 ? `<p style="font-size:0.8rem;color:#777;margin:-6px 0 12px">e mais ${afetadas.length - 6}.</p>` : ''}
+                ${isPro && abaixoTotal > 0 ? `<div class="mup-email" style="margin-bottom:14px"><div class="mup-email-titulo">⚠️ ${caiuAbaixo > 0 ? caiuAbaixo + (caiuAbaixo === 1 ? ' pizza ficou' : ' pizzas ficaram') + ' abaixo da sua meta agora. ' : ''}${abaixoTotal} no total ${abaixoTotal === 1 ? 'está' : 'estão'} abaixo da meta de ${pct(meta, 0)}.</div></div>
+                <button type="button" class="mup-cta" id="avisoVerMeta" style="width:100%;border:0;cursor:pointer">VER O PREÇO CERTO DE CADA UMA</button>` : ''}
+                <button type="button" class="mup-depois">Ok, entendi</button>
+            </div>
+        </div>`;
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) fecharModalUpgrade(); });
+    overlay.querySelector('.mup-fechar').addEventListener('click', fecharModalUpgrade);
+    overlay.querySelector('.mup-depois').addEventListener('click', fecharModalUpgrade);
+    const btnMeta = overlay.querySelector('#avisoVerMeta');
+    if (btnMeta) btnMeta.addEventListener('click', () => {
+        fecharModalUpgrade();
+        document.querySelector('.nav-tab[data-page="dashboard"]')?.click();
+        setTimeout(() => {
+            const card = document.getElementById('cardMeta');
+            // para um pouco abaixo do topo, para o botão do menu não cobrir o título
+            if (card) window.scrollTo({ top: card.getBoundingClientRect().top + window.scrollY - 76, behavior: 'smooth' });
+        }, 50);
+    });
+    document.addEventListener('keydown', fecharModalUpgradeEsc);
+    document.body.appendChild(overlay);
+}
+
+function excluirInsumo(id) {
+    const ins = DB.insumos.find((i) => i.id === id);
+    const fichasUsando = DB.fichas.filter((f) => (f.ingredientes || []).some((ing) => ing.insumoId === id));
+    const naMassa = (DB.massa.ingredientes || []).some((ing) => ing.insumoId === id);
+    let aviso = 'Excluir "' + (ins ? ins.nome : 'insumo') + '"?';
+    if (fichasUsando.length || naMassa) {
+        aviso += '\n\n⚠️ Ele será retirado de:';
+        if (naMassa) aviso += '\n• Receita da massa';
+        fichasUsando.slice(0, 10).forEach((f) => { aviso += '\n• ' + f.nome + ' (' + f.tamanho + ')'; });
+        if (fichasUsando.length > 10) aviso += '\n• e mais ' + (fichasUsando.length - 10) + ' fichas';
+        aviso += '\n\nO custo dessas pizzas vai mudar.';
+    }
+    if (!confirm(aviso)) return;
+
+    DB.insumos = DB.insumos.filter((i) => i.id !== id);
+    DB.massa.ingredientes = (DB.massa.ingredientes || []).filter((ing) => ing.insumoId !== id);
+    DB.fichas.forEach((f) => {
+        if (Array.isArray(f.ingredientes)) {
+            f.ingredientes = f.ingredientes.filter((ing) => ing.insumoId !== id);
+        }
+    });
+
+    persistirDados(false);
+    loadMassaUI();
+    sincronizarUI();
+    status('🗑️ Excluído!');
+}
+
+function renderInsumos() {
+    const tbody = document.getElementById('tblInsumos');
+    if (!tbody) return;
+
+    if (DB.insumos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty"><div class="icon">📦</div>Nenhum insumo</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = DB.insumos
+        .map(
+            (i) =>
+                `<tr><td><strong>${esc(i.nome)}</strong>${i.revisarPreco ? '<br><span class="revisar-preco">⚠️ confira o preço</span>' : ''}</td><td><span class="badge badge-info">${esc(i.categoria)}</span></td><td>${esc(i.unidade)}</td><td>${String(i.qtdEmb).replace('.', ',')}</td><td>${brl(i.precoEmb)}</td><td><strong style="color:var(--primary)">${brl(custoNaUnidadeCompra(i))}/${esc(i.unidade)}</strong></td><td class="actions"><button class="btn btn-info btn-sm" onclick="abrirModalInsumo('${i.id}')">✏️</button><button class="btn btn-danger btn-sm" onclick="excluirInsumo('${i.id}')">🗑️</button></td></tr>`
+        )
+        .join('');
+}
+
+function iniciarListenerInsumos() {
+    carregarDados();
+    renderAll();
+    loadMassaUI();
+    loadCustosUI();
+}
+
+function filtrarInsumos() {
+    const busca = document.getElementById('buscaIns').value.toLowerCase();
+    document.querySelectorAll('#tblInsumos tr').forEach((tr) => {
+        tr.style.display = tr.textContent.toLowerCase().includes(busca) ? '' : 'none';
+    });
+}
+
+document.getElementById('insQtd')?.addEventListener('input', previewInsumo);
+document.getElementById('insPreco')?.addEventListener('input', previewInsumo);
+function previewInsumo() {
+    const qtd = parseFloat(document.getElementById('insQtd').value) || 0;
+    const preco = parseFloat(document.getElementById('insPreco').value) || 0;
+    const un = document.getElementById('insUn').value;
+    document.getElementById('insPreview').innerHTML =
+        qtd > 0 && preco > 0
+            ? '💡 Custo: <strong>' + brl(preco / qtd) + '</strong>/' + un + (fatorUnidade(un) > 1 ? ' (nas fichas você digita em ' + unidadeBase(un) + ')' : '')
+            : '💡 Preencha para ver';
+}
+
+// ===== CUSTOS FIXOS =====
+function loadCustosUI() {
+    const c = DB.custos;
+    document.getElementById('cfAluguel').value = c.aluguel || '';
+    document.getElementById('cfEnergia').value = c.energia || '';
+    document.getElementById('cfGas').value = c.gas || '';
+    document.getElementById('cfAgua').value = c.agua || '';
+    document.getElementById('cfInternet').value = c.internet || '';
+    document.getElementById('cfFunc').value = c.func || '';
+    document.getElementById('cfGasolina').value = c.gasolina || '';
+    document.getElementById('cfEmb').value = c.emb || '';
+    document.getElementById('cfMkt').value = c.mkt || '';
+    document.getElementById('cfContador').value = c.contador || '';
+    document.getElementById('cfOutros').value = c.outros || '';
+    document.getElementById('cfPizzas').value = c.pizzas || 300;
+    calcCustos();
+    loadTaxasUI();
+}
+
+function loadConfigUI() {
+    const nome = document.getElementById('configNome');
+    const meta = document.getElementById('configMeta');
+    if (nome) nome.value = DB.config.nomePizzaria || '';
+    if (meta) meta.value = DB.config.meta || 15000;
+}
+
+function calcCustos() {
+    const vals = {
+        aluguel: parseFloat(document.getElementById('cfAluguel').value) || 0,
+        energia: parseFloat(document.getElementById('cfEnergia').value) || 0,
+        gas: parseFloat(document.getElementById('cfGas').value) || 0,
+        agua: parseFloat(document.getElementById('cfAgua').value) || 0,
+        internet: parseFloat(document.getElementById('cfInternet').value) || 0,
+        func: parseFloat(document.getElementById('cfFunc').value) || 0,
+        gasolina: parseFloat(document.getElementById('cfGasolina').value) || 0,
+        emb: parseFloat(document.getElementById('cfEmb').value) || 0,
+        mkt: parseFloat(document.getElementById('cfMkt').value) || 0,
+        contador: parseFloat(document.getElementById('cfContador').value) || 0,
+        outros: parseFloat(document.getElementById('cfOutros').value) || 0,
+        pizzas: parseFloat(document.getElementById('cfPizzas').value) || 1
+    };
+
+    const total = Object.values(vals).reduce((a, b) => a + b, 0) - vals.pizzas;
+    Object.assign(DB.custos, vals);
+
+    document.getElementById('cfTotal').textContent = brl(total);
+    document.getElementById('cfPorPizza').textContent = brl(calcularCustoFixoPorPizza());
+
+    renderFichas();
+    renderDashboard();
+}
+
+function salvarCustos() {
+    DB.custos = {
+        aluguel: parseFloat(document.getElementById('cfAluguel').value) || 0,
+        energia: parseFloat(document.getElementById('cfEnergia').value) || 0,
+        gas: parseFloat(document.getElementById('cfGas').value) || 0,
+        agua: parseFloat(document.getElementById('cfAgua').value) || 0,
+        internet: parseFloat(document.getElementById('cfInternet').value) || 0,
+        func: parseFloat(document.getElementById('cfFunc').value) || 0,
+        gasolina: parseFloat(document.getElementById('cfGasolina').value) || 0,
+        emb: parseFloat(document.getElementById('cfEmb').value) || 0,
+        mkt: parseFloat(document.getElementById('cfMkt').value) || 0,
+        contador: parseFloat(document.getElementById('cfContador').value) || 0,
+        outros: parseFloat(document.getElementById('cfOutros').value) || 0,
+        pizzas: parseFloat(document.getElementById('cfPizzas').value) || 300
+    };
+
+    persistirDados(true, '✅ Custos salvos!');
+    sincronizarUI();
+}
+
+function calcularCustoFixoPorPizza() {
+    const c = DB.custos;
+    const total =
+        (c.aluguel || 0) +
+        (c.energia || 0) +
+        (c.gas || 0) +
+        (c.agua || 0) +
+        (c.internet || 0) +
+        (c.func || 0) +
+        (c.gasolina || 0) +
+        (c.emb || 0) +
+        (c.mkt || 0) +
+        (c.contador || 0) +
+        (c.outros || 0);
+
+    let quantidadePizzasMensal = c.pizzas || 1;
+    if (quantidadePizzasMensal <= 0) {
+        quantidadePizzasMensal = 1;
+        if (total > 0 && typeof window.metaAlertShown === 'undefined') {
+            window.metaAlertShown = true;
+            status('⚠️ Atenção: Configure a quantidade de pizzas mensais na aba Custos Fixos!', true);
+        }
+    }
+
+    return total / quantidadePizzasMensal;
+}
+
+// ===== TAXAS SOBRE A VENDA E META DE LUCRO =====
+// Taxa média (fração) descontada de cada venda:
+// imposto em todas + comissão do app na parte vendida pelo app + maquininha no restante.
+function taxaMediaVenda(t = DB.taxas) {
+    if (!t) return 0;
+    const parteApp = Math.min(Math.max(numero(t.vendasApp), 0), 100) / 100;
+    return (numero(t.imposto) + numero(t.app) * parteApp + numero(t.cartao) * (1 - parteApp)) / 100;
+}
+
+function metaLucroFracao() {
+    return numero(DB.taxas && DB.taxas.metaLucro, 15) / 100;
+}
+
+// Preço que cobre todos os custos, as taxas e ainda deixa a meta de lucro real.
+function calcPrecoIdeal(custoTotal) {
+    const divisor = 1 - taxaMediaVenda() - metaLucroFracao();
+    return divisor > 0.05 ? custoTotal / divisor : null;
+}
+
+function loadTaxasUI() {
+    const t = DB.taxas || {};
+    const campos = { txImposto: t.imposto, txCartao: t.cartao, txApp: t.app, txVendasApp: t.vendasApp, txMeta: t.metaLucro };
+    Object.entries(campos).forEach(([id, v]) => {
+        const el = document.getElementById(id);
+        if (el) el.value = v || (id === 'txMeta' ? 15 : '');
+    });
+    calcTaxasPreview();
+}
+
+function lerTaxasUI() {
+    const v = (id) => parseFloat(document.getElementById(id)?.value) || 0;
+    return { imposto: v('txImposto'), cartao: v('txCartao'), app: v('txApp'), vendasApp: Math.min(v('txVendasApp'), 100), metaLucro: v('txMeta') };
+}
+
+function calcTaxasPreview() {
+    const el = document.getElementById('txMedia');
+    if (!el) return;
+    const t = lerTaxasUI();
+    const media = taxaMediaVenda(t) * 100;
+    el.textContent = pct(media);
+    const aviso = document.getElementById('txAviso');
+    if (aviso) {
+        const sobra = 100 - media - t.metaLucro;
+        aviso.textContent = sobra <= 5
+            ? '⚠️ Taxas + meta passam de 95% do preço. Revise os valores.'
+            : 'De cada R$ 100 vendidos, ' + brl(media) + ' vão para taxas e impostos.';
+    }
+}
+
+function salvarTaxas() {
+    DB.taxas = lerTaxasUI();
+    persistirDados(true, '✅ Taxas e meta salvas!');
+    sincronizarUI();
+}
+
+// ===== MASSA =====
+function loadMassaUI() {
+    const m = DB.massa;
+    document.getElementById('massaPesoTotal').value = m.pesoTotal || 3000;
+    document.getElementById('pesoP').value = m.pesoP || 200;
+    document.getElementById('pesoM').value = m.pesoM || 300;
+    document.getElementById('pesoG').value = m.pesoG || 400;
+    document.getElementById('pesoGG').value = m.pesoGG || 500;
+    document.getElementById('massaIngLista').innerHTML = '';
+
+    if (m.ingredientes && m.ingredientes.length > 0) {
+        m.ingredientes.forEach((ing) => addIngMassa(ing.insumoId, ing.quantidade));
+    } else {
+        addIngMassa();
+    }
+
+    setTimeout(calcMassa, 100);
+}
+
+function refreshMassaSelects() {
+    document.querySelectorAll('#massaIngLista select').forEach((sel) => {
+        const val = sel.value;
+        sel.innerHTML = '<option value="">Selecione...</option>' + DB.insumos.map((i) => `<option value="${i.id}">${esc(i.nome)}</option>`).join('');
+        sel.value = val;
+        atualizarUnidadeLinha(sel);
+    });
+}
+
+function addIngMassa(insId = null, qtd = null) {
+    const lista = document.getElementById('massaIngLista');
+    const div = document.createElement('div');
+    div.className = 'massa-item';
+    const insM = DB.insumos.find((i) => i.id == insId);
+    div.innerHTML = `<select class="form-control" onchange="atualizarUnidadeLinha(this);calcMassa()"><option value="">Selecione...</option>${DB.insumos
+        .map((i) => `<option value="${i.id}" ${insId == i.id ? 'selected' : ''}>${esc(i.nome)}</option>`)
+        .join('')}</select><div class="qtd-wrap"><input type="number" class="form-control" placeholder="Qtd" inputmode="decimal" value="${qtd || ''}" oninput="calcMassa()"><span class="qtd-un">${insM ? unidadeBase(insM.unidade) : ''}</span></div><span class="custo">R$ 0</span><button class="btn btn-danger btn-sm" onclick="this.parentElement.remove();calcMassa()">✕</button>`;
+    lista.appendChild(div);
+    if (qtd) setTimeout(calcMassa, 50);
+}
+
+function calcMassa() {
+    let custoTotal = 0;
+    document.querySelectorAll('#massaIngLista .massa-item').forEach((item) => {
+        const sel = item.querySelector('select');
+        const inp = item.querySelector('input');
+        const span = item.querySelector('.custo');
+        const id = sel.value;
+        const qtd = parseFloat(inp.value) || 0;
+
+        if (id && qtd > 0) {
+            const ins = DB.insumos.find((i) => i.id == id);
+            if (ins) {
+                const custo = (ins.custoUn || 0) * qtd;
+                custoTotal += custo;
+                span.textContent = brl(custo);
+            }
+        } else {
+            span.textContent = 'R$ 0';
+        }
+    });
+
+    const pesoTotal = parseFloat(document.getElementById('massaPesoTotal').value) || 1;
+    const cpg = custoTotal / Math.max(pesoTotal, 1);
+    const pesoP = parseFloat(document.getElementById('pesoP').value) || 0;
+    const pesoM = parseFloat(document.getElementById('pesoM').value) || 0;
+    const pesoG = parseFloat(document.getElementById('pesoG').value) || 0;
+    const pesoGG = parseFloat(document.getElementById('pesoGG').value) || 0;
+
+    document.getElementById('massaCustoTotal').textContent = brl(custoTotal);
+    document.getElementById('massaPesoTotalRes').textContent = pesoTotal + ' g';
+    document.getElementById('massaCustoGrama').textContent = 'R$ ' + cpg.toFixed(4).replace('.', ',');
+    document.getElementById('massaCustoP').textContent = brl((cpg * pesoP));
+    document.getElementById('massaCustoM').textContent = brl((cpg * pesoM));
+    document.getElementById('massaCustoG').textContent = brl((cpg * pesoG));
+    document.getElementById('massaCustoGG').textContent = brl((cpg * pesoGG));
+    document.getElementById('massaInfoP').textContent = pesoP + 'g × R$ ' + cpg.toFixed(4).replace('.', ',');
+    document.getElementById('massaInfoM').textContent = pesoM + 'g × R$ ' + cpg.toFixed(4).replace('.', ',');
+    document.getElementById('massaInfoG').textContent = pesoG + 'g × R$ ' + cpg.toFixed(4).replace('.', ',');
+    document.getElementById('massaInfoGG').textContent = pesoGG + 'g × R$ ' + cpg.toFixed(4).replace('.', ',');
+}
+
+function salvarMassa() {
+    const ingredientes = [];
+    document.querySelectorAll('#massaIngLista .massa-item').forEach((item) => {
+        const id = item.querySelector('select').value;
+        const qtd = parseFloat(item.querySelector('input').value) || 0;
+        if (id && qtd > 0) ingredientes.push({ insumoId: id, quantidade: qtd });
+    });
+
+    DB.massa = {
+        ingredientes,
+        pesoTotal: parseFloat(document.getElementById('massaPesoTotal').value) || 3000,
+        pesoP: parseFloat(document.getElementById('pesoP').value) || 200,
+        pesoM: parseFloat(document.getElementById('pesoM').value) || 300,
+        pesoG: parseFloat(document.getElementById('pesoG').value) || 400,
+        pesoGG: parseFloat(document.getElementById('pesoGG').value) || 500
+    };
+
+    persistirDados(true, '✅ Massa salva!');
+    renderFichas();
+    renderDashboard();
+}
+
+function getCustoMassa(tamanho) {
+    const m = DB.massa;
+    if (!m.ingredientes || m.ingredientes.length === 0) return 0;
+
+    let custoTotal = 0;
+    m.ingredientes.forEach((ing) => {
+        const ins = DB.insumos.find((i) => i.id == ing.insumoId);
+        if (ins) custoTotal += (ins.custoUn || 0) * ing.quantidade;
+    });
+
+    const cpg = custoTotal / (m.pesoTotal || 3000);
+    const pesos = { P: m.pesoP || 200, M: m.pesoM || 300, G: m.pesoG || 400, GG: m.pesoGG || 500 };
+    return cpg * (pesos[tamanho] || 0);
+}
+
+// ===== FICHAS: UM SABOR, TODOS OS TAMANHOS =====
+// Na tela, o sabor é cadastrado uma vez com a quantidade e o preço de cada tamanho.
+// Nos dados, continua existindo uma ficha por tamanho (ligadas pelo mesmo grupoId),
+// então Gerar Preço, meio a meio, combos, painel e avisos funcionam do mesmo jeito.
+const TAMANHOS = ['P', 'M', 'G', 'GG'];
+const NOMES_TAMANHO = { P: 'Pequena', M: 'Média', G: 'Grande', GG: 'Gigante' };
+let editandoGrupo = null; // { grupoId, ids: { P: fichaId, ... } }
+
+function normalizarNome(n) {
+    return String(n || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function tamanhosAtivos() {
+    return TAMANHOS.filter((t) => document.querySelector('#ficTamanhos input[value="' + t + '"]')?.checked);
+}
+
+function tamanhosPadrao() {
+    try {
+        const salvos = JSON.parse(localStorage.getItem('pcTamanhosPadrao') || 'null');
+        if (Array.isArray(salvos) && salvos.length) return salvos.filter((t) => TAMANHOS.includes(t));
+    } catch (e) {}
+    const usados = TAMANHOS.filter((t) => DB.fichas.some((f) => f.tamanho === t));
+    return usados.length ? usados : ['G'];
+}
+
+function lembrarTamanhos(ativos) {
+    try { localStorage.setItem('pcTamanhosPadrao', JSON.stringify(ativos)); } catch (e) {}
+}
+
+function opcoesInsumos(selId) {
+    return '<option value="">Selecione o ingrediente...</option>' + DB.insumos
+        .map((i) => `<option value="${i.id}" ${selId == i.id ? 'selected' : ''}>${esc(i.nome)} (${brl(custoNaUnidadeCompra(i))}/${esc(i.unidade)})</option>`)
+        .join('');
+}
+
+function refreshIngSelects() {
+    document.querySelectorAll('#ficIngLista select').forEach((sel) => {
+        const val = sel.value;
+        sel.innerHTML = opcoesInsumos(val);
+        sel.value = val;
+        atualizarUnidadeLinha(sel);
+    });
+}
+
+function addIngFicha(insId = null, qtds = {}) {
+    const lista = document.getElementById('ficIngLista');
+    if (!lista) return;
+    const ins = DB.insumos.find((i) => i.id == insId);
+    const un = ins ? unidadeBase(ins.unidade) : '';
+    const div = document.createElement('div');
+    div.className = 'ingrediente-item ing-tam';
+    div.innerHTML = `<div class="ing-topo"><select class="form-control" onchange="atualizarUnidadeLinha(this);calcFicha()">${opcoesInsumos(insId)}</select><button type="button" class="btn btn-danger btn-sm" title="Remover ingrediente" aria-label="Remover ingrediente" onclick="this.closest('.ingrediente-item').remove();calcFicha()">✕</button></div>
+        <div class="qtd-tams">${TAMANHOS.map((t) => `<label class="qtd-tam" data-tam="${t}"><span class="qtd-tam-nome">${t}</span><div class="qtd-wrap"><input type="number" class="form-control" min="0" step="any" inputmode="decimal" data-tam="${t}" value="${qtds[t] || ''}" placeholder="0" oninput="calcFicha()" aria-label="Quantidade na ${NOMES_TAMANHO[t]}"><span class="qtd-un">${un}</span></div><small class="custo-tam" data-tam="${t}"></small></label>`).join('')}</div>`;
+    lista.appendChild(div);
+    aplicarVisibilidadeTamanhos();
+}
+
+function aplicarVisibilidadeTamanhos() {
+    const ativos = tamanhosAtivos();
+    document.querySelectorAll('#page-nova-ficha .qtd-tam, #page-nova-ficha .preco-tam').forEach((el) => {
+        el.style.display = ativos.includes(el.dataset.tam) ? '' : 'none';
+    });
+    document.querySelectorAll('#ficTamanhos .tam-chip').forEach((c) => c.classList.toggle('on', c.querySelector('input').checked));
+    const btn = document.getElementById('btnProporcional');
+    if (btn) btn.style.display = ativos.length > 1 ? '' : 'none';
+}
+
+function lerFichaForm() {
+    const ativos = tamanhosAtivos();
+    const incMassa = document.getElementById('ficMassa').value === '1';
+    const linhas = [];
+    document.querySelectorAll('#ficIngLista .ingrediente-item').forEach((item) => {
+        const id = item.querySelector('select').value;
+        const qtd = {};
+        item.querySelectorAll('input[data-tam]').forEach((inp) => { qtd[inp.dataset.tam] = parseFloat(inp.value) || 0; });
+        linhas.push({ item, id, ins: DB.insumos.find((i) => i.id == id), qtd });
+    });
+    const precos = {};
+    TAMANHOS.forEach((t) => { precos[t] = parseFloat(document.getElementById('ficPreco_' + t)?.value) || 0; });
+    return { ativos, incMassa, linhas, precos };
+}
+
+function calcFicha() {
+    const box = document.getElementById('ficResumoTabela');
+    if (!box) return;
+    const { ativos, incMassa, linhas, precos } = lerFichaForm();
+    const custoFixo = calcularCustoFixoPorPizza();
+    const taxa = taxaMediaVenda();
+    const custoIng = {};
+    TAMANHOS.forEach((t) => { custoIng[t] = 0; });
+
+    linhas.forEach((l) => {
+        TAMANHOS.forEach((t) => {
+            const c = l.ins && l.qtd[t] > 0 ? (l.ins.custoUn || 0) * l.qtd[t] : 0;
+            custoIng[t] += c;
+            const el = l.item.querySelector('.custo-tam[data-tam="' + t + '"]');
+            if (el) el.textContent = c > 0 ? brl(c) : '';
+        });
+    });
+
+    if (!ativos.length) {
+        box.innerHTML = '<div class="empty">Marque pelo menos um tamanho acima.</div>';
+        return;
+    }
+
+    box.innerHTML = ativos.map((t) => {
+        const massa = incMassa ? getCustoMassa(t) : 0;
+        const total = custoIng[t] + massa + custoFixo;
+        const venda = precos[t];
+        const taxas = venda * taxa;
+        const lucro = venda - total - taxas;
+        const cmv = venda > 0 ? ((custoIng[t] + massa) / venda) * 100 : 0;
+        const margem = venda > 0 ? (lucro / venda) * 100 : 0;
+        const ideal = calcPrecoIdeal(total);
+        const linha = (rotulo, valor, cls = '') => `<div class="res-linha ${cls}"><span>${rotulo}</span><b>${valor}</b></div>`;
+        return `<div class="res-tam">
+            <div class="res-tam-cab"><span class="badge-size ${t}">${t}</span> ${NOMES_TAMANHO[t]}</div>
+            ${linha('Ingredientes', brl(custoIng[t]))}
+            ${linha('Massa', brl(massa))}
+            ${isPro ? linha('Custo fixo', brl(custoFixo)) : ''}
+            ${isPro && taxa > 0 ? linha('Taxas (' + pct(taxa * 100) + ')', brl(taxas)) : ''}
+            ${linha('Custo total', brl(total), 'res-total')}
+            ${linha('Preço de venda', venda > 0 ? brl(venda) : '<span style="color:#c62828">falta</span>')}
+            <div class="res-lucro ${venda > 0 ? (lucro >= 0 ? 'pos' : 'neg') : ''}"><small>${isPro ? 'Lucro real' : 'Lucro (sem custo fixo)'}</small><strong>${venda > 0 ? brl(lucro) : '-'}</strong><small>${venda > 0 ? 'Margem ' + pct(margem) + ' · CMV ' + pct(cmv) : ''}</small></div>
+            ${isPro && ideal && custoIng[t] > 0 ? `<div class="res-meta">🎯 Preço para a meta: <b>${brl(ideal)}</b></div>` : ''}
+        </div>`;
+    }).join('');
+}
+
+function preencherProporcional() {
+    const { ativos, linhas } = lerFichaForm();
+    if (ativos.length < 2) { alert('Marque pelo menos dois tamanhos.'); return; }
+    const m = DB.massa || {};
+    const peso = { P: m.pesoP || 200, M: m.pesoM || 300, G: m.pesoG || 400, GG: m.pesoGG || 500 };
+    const preenchidos = (t) => linhas.filter((l) => l.ins && l.qtd[t] > 0).length;
+    const base = [...ativos].sort((a, b) => preenchidos(b) - preenchidos(a) || (b === 'G') - (a === 'G'))[0];
+    if (!preenchidos(base)) { alert('Preencha as quantidades de pelo menos um tamanho primeiro.'); return; }
+
+    let n = 0;
+    linhas.forEach((l) => {
+        if (!l.ins || !(l.qtd[base] > 0)) return;
+        const casas = unidadeBase(l.ins.unidade) === 'un' ? 100 : 1;
+        ativos.forEach((t) => {
+            if (t === base) return;
+            const inp = l.item.querySelector('input[data-tam="' + t + '"]');
+            if (inp && !(parseFloat(inp.value) > 0)) {
+                inp.value = String(Math.round((l.qtd[base] * peso[t] / peso[base]) * casas) / casas);
+                n++;
+            }
+        });
+    });
+    calcFicha();
+    status(n ? '⚖️ ' + n + ' quantidades preenchidas a partir da ' + NOMES_TAMANHO[base] + '. Confira e ajuste se precisar.' : 'Os outros tamanhos já estavam preenchidos.');
+}
+
+function limparFichaPosSalvar() {
+    limparFicha();
+    filtroTam = 'all';
+    document.querySelectorAll('.size-tab').forEach((t) => t.classList.remove('active'));
+    const allTab = document.querySelector('.size-tab.all');
+    if (allTab) allTab.classList.add('active');
+    document.querySelectorAll('.nav-tab').forEach((t) => t.classList.remove('active'));
+    document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
+    document.querySelector('[data-page="fichas"]').classList.add('active');
+    document.getElementById('page-fichas').classList.add('active');
+}
+
+function salvarFicha() {
+    const nome = document.getElementById('ficNome').value.trim();
+    const cat = document.getElementById('ficCat').value;
+    const { ativos, incMassa, linhas, precos } = lerFichaForm();
+
+    if (!nome) { alert('⚠️ Preencha o nome da pizza!'); return; }
+    if (!ativos.length) { alert('⚠️ Marque pelo menos um tamanho!'); return; }
+    const problemas = [];
+    ativos.forEach((t) => {
+        if (!(precos[t] > 0)) problemas.push(NOMES_TAMANHO[t] + ': falta o preço de venda');
+        if (!linhas.some((l) => l.ins && l.qtd[t] > 0)) problemas.push(NOMES_TAMANHO[t] + ': falta a quantidade dos ingredientes');
+    });
+    if (problemas.length) { alert('⚠️ Complete antes de salvar:\n\n• ' + problemas.join('\n• ')); return; }
+
+    const editando = !!editandoGrupo;
+    const grupoId = editando ? editandoGrupo.grupoId : gerarId();
+    const idsAnteriores = editando ? editandoGrupo.ids : {};
+    const removidos = Object.keys(idsAnteriores).filter((t) => !ativos.includes(t));
+    if (removidos.length && !confirm('Você desmarcou: ' + removidos.map((t) => NOMES_TAMANHO[t]).join(', ') + '.\nA ficha desse tamanho será excluída. Continuar?')) return;
+    DB.fichas = DB.fichas.filter((f) => !removidos.some((t) => idsAnteriores[t] === f.id));
+
+    ativos.forEach((t) => {
+        const ingredientes = linhas
+            .filter((l) => l.ins && l.qtd[t] > 0)
+            .map((l) => ({ insumoId: l.ins.id, nome: l.ins.nome, quantidade: l.qtd[t], unidade: unidadeBase(l.ins.unidade), custo: (l.ins.custoUn || 0) * l.qtd[t] }));
+        const ficha = { id: idsAnteriores[t] || gerarId(), grupoId, nome, categoria: cat, tamanho: t, precoVenda: precos[t], incMassa, ingredientes };
+        atualizarCustosDaFicha(ficha);
+        const idx = DB.fichas.findIndex((f) => f.id === ficha.id);
+        if (idx !== -1) DB.fichas[idx] = ficha;
+        else DB.fichas.push(ficha);
+    });
+
+    lembrarTamanhos(ativos);
+    persistirDados(false);
+    status((editando ? '💾 Ficha atualizada' : '💾 Ficha salva') + (ativos.length > 1 ? ' (' + ativos.length + ' tamanhos)!' : '!'));
+    limparFichaPosSalvar();
+    sincronizarUI();
+}
+
+function limparFicha() {
+    editandoGrupo = null;
+    document.getElementById('ficNome').value = '';
+    document.getElementById('ficCat').value = 'Tradicional';
+    document.getElementById('ficMassa').value = '1';
+    document.getElementById('fichaHeader').textContent = '➕ Nova Ficha Técnica';
+    document.getElementById('fichaHeader').style.background = '';
+    const padrao = tamanhosPadrao();
+    document.querySelectorAll('#ficTamanhos input').forEach((c) => { c.checked = padrao.includes(c.value); });
+    TAMANHOS.forEach((t) => { const p = document.getElementById('ficPreco_' + t); if (p) p.value = ''; });
+    document.getElementById('ficIngLista').innerHTML = '';
+    addIngFicha();
+    aplicarVisibilidadeTamanhos();
+    calcFicha();
+}
+
+// Junta as fichas do mesmo sabor. Fichas antigas (sem grupo) são juntadas pelo nome igual.
+function grupoDaFicha(f) {
+    const grupo = f.grupoId
+        ? DB.fichas.filter((x) => x.grupoId === f.grupoId)
+        : DB.fichas.filter((x) => !x.grupoId && normalizarNome(x.nome) === normalizarNome(f.nome));
+    const porTam = {};
+    porTam[f.tamanho] = f;
+    grupo.forEach((x) => { if (!porTam[x.tamanho]) porTam[x.tamanho] = x; });
+    return porTam;
+}
+
+function editarFicha(id) {
+    const f = DB.fichas.find((x) => x.id === id);
+    if (!f) return;
+    const porTam = grupoDaFicha(f);
+    const tams = TAMANHOS.filter((t) => porTam[t]);
+
+    editandoGrupo = { grupoId: f.grupoId || gerarId(), ids: {} };
+    tams.forEach((t) => { editandoGrupo.ids[t] = porTam[t].id; });
+
+    document.getElementById('ficNome').value = f.nome;
+    document.getElementById('ficCat').value = f.categoria;
+    document.getElementById('ficMassa').value = f.incMassa !== false ? '1' : '0';
+    document.querySelectorAll('#ficTamanhos input').forEach((c) => { c.checked = tams.includes(c.value); });
+    TAMANHOS.forEach((t) => { const p = document.getElementById('ficPreco_' + t); if (p) p.value = porTam[t] ? porTam[t].precoVenda : ''; });
+
+    const ordem = [];
+    const qtds = {};
+    tams.forEach((t) => {
+        (porTam[t].ingredientes || []).forEach((ing) => {
+            if (!qtds[ing.insumoId]) { qtds[ing.insumoId] = {}; ordem.push(ing.insumoId); }
+            qtds[ing.insumoId][t] = ing.quantidade;
+        });
+    });
+    document.getElementById('ficIngLista').innerHTML = '';
+    ordem.forEach((insId) => addIngFicha(insId, qtds[insId]));
+    if (!ordem.length) addIngFicha();
+    aplicarVisibilidadeTamanhos();
+    calcFicha();
+
+    document.getElementById('fichaHeader').textContent = '✏️ Editando: ' + f.nome + (tams.length > 1 ? ' (' + tams.join(', ') + ')' : '');
+    document.getElementById('fichaHeader').style.background = 'linear-gradient(135deg, #ff9800, #e65100)';
+    document.querySelectorAll('.nav-tab').forEach((t) => t.classList.remove('active'));
+    document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
+    document.querySelector('[data-page="nova-ficha"]').classList.add('active');
+    document.getElementById('page-nova-ficha').classList.add('active');
+    refreshIngSelects();
+    window.scrollTo(0, 0);
+}
+
+function excluirFicha(id) {
+    const f = DB.fichas.find((x) => x.id === id);
+    if (!f) return;
+    const outros = Object.keys(grupoDaFicha(f)).length - 1;
+    if (!confirm('Excluir a ficha "' + f.nome + '" (' + NOMES_TAMANHO[f.tamanho] + ')?' + (outros > 0 ? '\n\nOs outros tamanhos deste sabor continuam.' : ''))) return;
+
+    DB.fichas = DB.fichas.filter((x) => x.id !== id);
+    persistirDados(false);
+    sincronizarUI();
+    status('🗑️ Excluída!');
+}
+
+function duplicarFicha(id) {
+    const f = DB.fichas.find((x) => x.id === id);
+    if (!f) return;
+    const porTam = grupoDaFicha(f);
+    const novoGrupo = gerarId();
+    Object.values(porTam).forEach((x) => {
+        const copia = clonar(x);
+        copia.id = gerarId();
+        copia.grupoId = novoGrupo;
+        copia.nome = x.nome + ' (Cópia)';
+        DB.fichas.push(copia);
+    });
+
+    persistirDados(false);
+    sincronizarUI();
+    const n = Object.keys(porTam).length;
+    status('📋 Duplicada' + (n > 1 ? ' com ' + n + ' tamanhos' : '') + '!');
+}
+
+function atualizarCustosDaFicha(f) {
+    if (f.ingredientes) {
+        let custoIng = 0;
+        f.ingredientes.forEach((ing) => {
+            const ins = DB.insumos.find((i) => i.id == ing.insumoId);
+            if (ins && typeof ins.custoUn !== 'undefined') {
+                ing.custo = ins.custoUn * ing.quantidade;
+                custoIng += ing.custo;
+            } else {
+                custoIng += ing.custo || 0;
+            }
+        });
+        f.custoIng = custoIng;
+    }
+
+    f.custoMassa = f.incMassa !== false ? getCustoMassa(f.tamanho) : 0;
+    f.custoFixo = calcularCustoFixoPorPizza();
+    f.custoTotal = (f.custoIng || 0) + f.custoMassa + f.custoFixo;
+    f.taxas = f.precoVenda * taxaMediaVenda();
+    f.lucro = f.precoVenda - f.custoTotal - f.taxas;
+    f.margemReal = f.precoVenda > 0 ? (f.lucro / f.precoVenda) * 100 : 0;
+    f.precoIdeal = calcPrecoIdeal(f.custoTotal);
+    f.cmv = f.precoVenda > 0 ? (((f.custoIng || 0) + f.custoMassa) / f.precoVenda) * 100 : 0;
+}
+
+function renderFichas() {
+    DB.fichas.forEach((f) => atualizarCustosDaFicha(f));
+    const cnt = { P: 0, M: 0, G: 0, GG: 0 };
+    DB.fichas.forEach((f) => {
+        if (cnt[f.tamanho] !== undefined) cnt[f.tamanho]++;
+    });
+
+    const cntAll = document.getElementById('cntAll');
+    const cntTabP = document.getElementById('cntTabP');
+    const cntTabM = document.getElementById('cntTabM');
+    const cntTabG = document.getElementById('cntTabG');
+    const cntTabGG = document.getElementById('cntTabGG');
+    if (cntAll) cntAll.textContent = DB.fichas.length;
+    if (cntTabP) cntTabP.textContent = cnt.P;
+    if (cntTabM) cntTabM.textContent = cnt.M;
+    if (cntTabG) cntTabG.textContent = cnt.G;
+    if (cntTabGG) cntTabGG.textContent = cnt.GG;
+
+    const fichas = filtroTam === 'all' ? DB.fichas : DB.fichas.filter((f) => f.tamanho === filtroTam);
+    const grid = document.getElementById('fichasGrid');
+    if (!grid) return;
+
+    if (fichas.length === 0) {
+        grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="icon">📋</div>Nenhuma ficha</div>';
+        return;
+    }
+
+    grid.innerHTML = fichas
+        .map(
+            (f) =>
+                `<div class="ficha-card ${f.tamanho}"><div class="ficha-header"><div><h3>${esc(f.nome)}</h3><small>${esc(f.categoria)}</small></div><span class="badge-size ${f.tamanho}">${f.tamanho}</span></div><div class="ficha-body"><div class="ficha-stats"><div class="ficha-stat"><small>Custo</small><div class="val red">${brl(f.custoTotal)}</div></div><div class="ficha-stat"><small>Venda</small><div class="val blue">${f.precoVenda > 0 ? brl(f.precoVenda) : '<span class="sem-preco">definir</span>'}</div></div><div class="ficha-stat"><small>Lucro real</small><div class="val ${f.lucro >= 0 ? 'green' : 'red'}">${f.precoVenda > 0 ? brl(f.lucro) : '-'}</div></div></div>${!(f.precoVenda > 0) && isPro && f.precoIdeal ? `<div class="ficha-meta-sug">🎯 Para bater sua meta: <b>${brl(f.precoIdeal)}</b></div>` : ''}<div class="ficha-details">Ing: ${brl((f.custoIng || 0))} | Massa: ${brl(f.custoMassa)} | Fixo: ${brl(f.custoFixo)}${f.taxas > 0 ? ' | Taxas: ' + brl(f.taxas) : ''} | CMV: ${pct(f.cmv)}</div><div class="ficha-actions"><button class="btn btn-warning btn-sm" onclick="editarFicha('${f.id}')">✏️</button><button class="btn btn-purple btn-sm" onclick="duplicarFicha('${f.id}')">📋</button><button class="btn btn-danger btn-sm" onclick="excluirFicha('${f.id}')">🗑️</button></div></div></div>`
+        )
+        .join('');
+}
+
+function filtrarTamanho(tam, btn) {
+    filtroTam = tam;
+    document.querySelectorAll('.size-tab').forEach((t) => t.classList.remove('active'));
+    btn.classList.add('active');
+    renderFichas();
+}
+
+function filtrarFichas() {
+    const busca = document.getElementById('buscaFic').value.toLowerCase();
+    document.querySelectorAll('.ficha-card').forEach((c) => {
+        c.style.display = c.textContent.toLowerCase().includes(busca) ? '' : 'none';
+    });
+}
+
+// ===== DASHBOARD =====
+function renderDashboard() {
+    DB.fichas.forEach((f) => atualizarCustosDaFicha(f));
+    const cnt = { P: 0, M: 0, G: 0, GG: 0 };
+    DB.fichas.forEach((f) => {
+        if (cnt[f.tamanho] !== undefined) cnt[f.tamanho]++;
+    });
+
+    const cntP = document.getElementById('cntP');
+    const cntM = document.getElementById('cntM');
+    const cntG = document.getElementById('cntG');
+    const cntGG = document.getElementById('cntGG');
+    const dashIns = document.getElementById('dashIns');
+    const dashFic = document.getElementById('dashFic');
+    const dashCF = document.getElementById('dashCF');
+    const dashMassaM = document.getElementById('dashMassaM');
+    const dashMassaG = document.getElementById('dashMassaG');
+
+    if (cntP) cntP.textContent = cnt.P;
+    if (cntM) cntM.textContent = cnt.M;
+    if (cntG) cntG.textContent = cnt.G;
+    if (cntGG) cntGG.textContent = cnt.GG;
+    if (dashIns) dashIns.textContent = DB.insumos.length;
+    if (dashFic) dashFic.textContent = DB.fichas.length;
+    if (dashCF) dashCF.textContent = brl(calcularCustoFixoPorPizza());
+    if (dashMassaM) dashMassaM.textContent = brl(getCustoMassa('M'));
+    if (dashMassaG) dashMassaG.textContent = brl(getCustoMassa('G'));
+
+    const comPreco = DB.fichas.filter((f) => f.precoVenda > 0);
+    const lucroMedio = comPreco.length ? comPreco.reduce((acc, f) => acc + (f.lucro || 0), 0) / comPreco.length : 0;
+    const dashFatElem = document.getElementById('dashFat');
+    if (dashFatElem) dashFatElem.textContent = brl(lucroMedio);
+
+    let maiorMargemTxt = '-';
+    if (DB.fichas.length > 0) {
+        const topMargem = [...DB.fichas].sort((a, b) => {
+            const margemA = a.precoVenda > 0 ? (a.lucro / a.precoVenda) * 100 : 0;
+            const margemB = b.precoVenda > 0 ? (b.lucro / b.precoVenda) * 100 : 0;
+            return margemB - margemA;
+        });
+        if (topMargem[0] && topMargem[0].precoVenda > 0) {
+            maiorMargemTxt = topMargem[0].nome + ' (' + pct(((topMargem[0].lucro / topMargem[0].precoVenda) * 100)) + ')';
+        }
+    }
+    const dashMargemElem = document.getElementById('dashMaiorMargem');
+    if (dashMargemElem) dashMargemElem.textContent = maiorMargemTxt;
+
+    const topLista = document.getElementById('topLista');
+    if (!topLista) return;
+
+    if (DB.fichas.length > 0) {
+        const top = DB.fichas.filter((f) => f.precoVenda > 0).sort((a, b) => b.lucro - a.lucro).slice(0, 5);
+
+        const htmlTable = `<table class="top5-desktop"><thead><tr><th>🍕 Pizza</th><th>$$ Venda</th><th>📈 Lucro</th></tr></thead><tbody>${top
+            .map(
+                (f) =>
+                    `<tr><td><strong>${esc(f.nome)}</strong><br><small style="color:#777">Custo: ${brl(f.custoTotal)}</small></td><td>${brl(f.precoVenda)}</td><td style="color:var(--success);font-weight:bold">${brl(f.lucro)}</td></tr>`
+            )
+            .join('')}</tbody></table>`;
+        const htmlCards = `<div class="top5-mobile"><div class="top5-list">${top
+            .map(
+                (f) =>
+                    `<div class="top5-mobile-card"><div class="t-title">${esc(f.nome)}</div><div class="t-row"><span>Custo: ${brl(f.custoTotal)}</span></div><div class="t-row"><span>$$ Venda: ${brl(f.precoVenda)}</span></div><div class="t-profit">💰 Lucro: ${brl(f.lucro)}</div></div>`
+            )
+            .join('')}</div></div>`;
+
+        topLista.innerHTML = htmlTable + htmlCards;
+    } else {
+        topLista.innerHTML = '<div class="empty">Cadastre fichas</div>';
+    }
+
+    renderAbaixoDaMeta();
+    renderRankingProdutosProntos();
+}
+
+function renderAbaixoDaMeta() {
+    const box = document.getElementById('metaLista');
+    const cont = document.getElementById('metaContador');
+    if (!box) return;
+
+    if (!isPro) {
+        if (cont) cont.textContent = '🔒 PRO';
+        box.innerHTML = '<div class="aviso-upgrade-pro" id="metaTeaser">🔒 No PRO você vê quais pizzas estão abaixo da sua meta de lucro e o preço certo de cada uma, já com custo fixo, massa e taxas.</div>';
+        document.getElementById('metaTeaser').addEventListener('click', () => mostrarModalUpgrade('precificar'));
+        return;
+    }
+
+    const meta = metaLucroFracao() * 100;
+    if (DB.fichas.length === 0) {
+        if (cont) cont.textContent = '';
+        box.innerHTML = '<div class="empty">Cadastre fichas para ver quais pizzas estão abaixo da meta.</div>';
+        return;
+    }
+
+    const semCustos = calcularCustoFixoPorPizza() === 0;
+    const semTaxas = taxaMediaVenda() === 0;
+    const dica = semCustos || semTaxas
+        ? '<div class="alert alert-info" style="margin-bottom:12px">💡 Para o lucro ser real, preencha ' + (semCustos ? 'os <strong>Custos Fixos</strong>' : '') + (semCustos && semTaxas ? ' e ' : '') + (semTaxas ? 'as <strong>taxas</strong> (imposto, maquininha, app)' : '') + ' na aba Custos Fixos.</div>'
+        : '';
+
+    const comPreco = DB.fichas.filter((f) => f.precoVenda > 0);
+    const semPreco = DB.fichas.filter((f) => !(f.precoVenda > 0));
+    const blocoSemPreco = semPreco.length
+        ? '<div class="sem-preco-box"><strong>🏷️ ' + semPreco.length + (semPreco.length === 1 ? ' pizza ainda sem' : ' pizzas ainda sem') + ' preço de venda.</strong> Preço para bater a meta:'
+          + '<div class="sem-preco-lista">' + semPreco.slice(0, 8).map((f) => '<span>' + esc(f.nome) + ' <b class="badge-size ' + f.tamanho + '">' + f.tamanho + '</b> ' + (f.precoIdeal ? brl(f.precoIdeal) : '-') + '</span>').join('') + '</div>'
+          + (semPreco.length > 8 ? '<small>e mais ' + (semPreco.length - 8) + '. </small>' : '') + '<small>Coloque o preço na aba <b>Fichas</b> (✏️ em cada sabor).</small></div>'
+        : '';
+    const abaixo = comPreco.filter((f) => f.margemReal < meta - 0.05).sort((a, b) => a.margemReal - b.margemReal);
+    if (cont) cont.textContent = abaixo.length ? abaixo.length + ' abaixo' : (comPreco.length ? '✅' : '');
+
+    if (abaixo.length === 0) {
+        box.innerHTML = dica + (comPreco.length ? '<div class="alert alert-success" style="margin:0 0 12px">✅ Todas as ' + comPreco.length + ' pizzas com preço estão na sua meta de ' + pct(meta, 0) + ' de lucro real.</div>' : '') + blocoSemPreco;
+        return;
+    }
+
+    const linhas = abaixo.map((f) => {
+        const ideal = f.precoIdeal;
+        const dif = ideal ? ideal - f.precoVenda : 0;
+        return `<div class="meta-item">
+            <div class="meta-nome"><strong>${esc(f.nome)}</strong> <span class="badge-size ${f.tamanho}">${f.tamanho}</span><br>
+                <small>Cobra ${brl(f.precoVenda)} · lucro real <b style="color:${f.lucro >= 0 ? '#e65100' : 'var(--danger)'}">${brl(f.lucro)} (${pct(f.margemReal)})</b></small></div>
+            <div class="meta-ideal"><small>Preço para a meta</small><strong>${ideal ? brl(ideal) : '-'}</strong>${ideal ? `<small class="meta-dif">+${brl(dif)}</small>` : ''}</div>
+        </div>`;
+    }).join('');
+
+    box.innerHTML = dica + '<p style="margin:0 0 12px;color:#555">Sua meta: <strong>' + pct(meta, 0) + ' de lucro real</strong> em cada pizza. Estas estão abaixo:</p>' + linhas + blocoSemPreco;
+}
+
+function renderRankingProdutosProntos() {
+    const container = document.getElementById('topProdutosLista');
+    if (!container) return;
+
+    if (DB.produtosProntos.length === 0) {
+        container.innerHTML = '<div class="empty"><div class="icon">🥤</div>Cadastre produtos prontos para ver o ranking</div>';
+        return;
+    }
+
+    const ranking = DB.produtosProntos.map(p => {
+        const lucro = (p.precoVenda || 0) - (p.precoCusto || 0);
+        const margem = p.precoVenda > 0 ? (lucro / p.precoVenda) * 100 : 0;
+        const catIcons = { 'Bebida': '🥤', 'Cerveja': '🍺', 'Doce': '🍫', 'Adicional': '➕' };
+        return { ...p, lucro, margem, icon: catIcons[p.categoria] || '📦' };
+    }).sort((a, b) => b.lucro - a.lucro);
+
+    const htmlTable = `<table class="top5-desktop"><thead><tr><th>🥤 Produto</th><th>Categoria</th><th>💰 Lucro</th><th>📊 Margem</th></tr></thead><tbody>${ranking
+        .map(p =>
+            `<tr><td><strong>${esc(p.nome)}</strong><br><small style="color:#777">Custo: ${brl(p.precoCusto)} | Venda: ${brl(p.precoVenda)}</small></td><td><span class="badge badge-info">${p.icon} ${p.categoria}</span></td><td style="color:${p.lucro >= 0 ? 'var(--success)' : 'var(--danger)'};font-weight:bold">${brl(p.lucro)}</td><td style="font-weight:bold">${pct(p.margem)}</td></tr>`
+        ).join('')}</tbody></table>`;
+
+    const htmlCards = `<div class="top5-mobile"><div class="top5-list">${ranking
+        .map(p =>
+            `<div class="top5-mobile-card" style="border-left-color:#00897b"><div class="t-title">${p.icon} ${esc(p.nome)}</div><div class="t-row"><span style="color:#777">${p.categoria}</span></div><div class="t-row"><span>Custo: ${brl(p.precoCusto)}</span><span>Venda: ${brl(p.precoVenda)}</span></div><div class="t-profit" style="color:${p.lucro >= 0 ? 'var(--success)' : 'var(--danger)'}">💰 Lucro: ${brl(p.lucro)} | Margem: ${pct(p.margem)}</div></div>`
+        ).join('')}</div></div>`;
+
+    container.innerHTML = htmlTable + htmlCards;
+}
+
+// ===== PRECIFICAR =====
+function loadFichasSelect() {
+    const select = document.getElementById('calcFicha');
+    if (!select) return;
+
+    const anterior = select.value;
+    select.innerHTML = '<option value="">-- Selecione --</option>' + DB.fichas.map((f) => `<option value="${f.id}">${esc(f.nome)} (${f.tamanho})</option>`).join('');
+    select.value = DB.fichas.some((f) => f.id === anterior) ? anterior : '';
+    // Recalcula na hora com os preços atuais (ou esconde o resultado se a ficha não existe mais)
+    calcComFicha();
+}
+
+function calcPorCMV() {
+    const custo = parseFloat(document.getElementById('calcCusto').value) || 0;
+    const cmv = parseFloat(document.getElementById('calcCMV').value) || 30;
+    document.getElementById('calcCMVVal').textContent = cmv + '%';
+    if (custo > 0) {
+        const preco = custo / (cmv / 100);
+        document.getElementById('calcPreco').textContent = brl(preco);
+        document.getElementById('calcLucro').textContent = 'Lucro: ' + brl((preco - custo));
+    }
+}
+
+function calcComFicha() {
+    const id = document.getElementById('calcFicha').value;
+    const res = document.getElementById('calcFichaRes');
+    if (!id) {
+        res.style.display = 'none';
+        return;
+    }
+
+    const f = DB.fichas.find((x) => x.id == id);
+    if (!f) return;
+
+    atualizarCustosDaFicha(f);
+    const custoMassa = f.custoMassa;
+    const custoFixo = f.custoFixo;
+    const custoTotal = f.custoTotal;
+    res.style.display = 'block';
+    document.getElementById('cfIng').textContent = brl((f.custoIng || 0));
+    document.getElementById('cfMassaVal').textContent = brl(custoMassa);
+    document.getElementById('cfFixo').textContent = brl(custoFixo);
+    document.getElementById('cfTot').textContent = brl(custoTotal);
+    // Preço pelo CMV: divide só o custo da mercadoria (ingredientes + massa).
+    // Embaixo mostra o lucro real nesse preço, já descontando o custo fixo.
+    const custoMercadoria = (f.custoIng || 0) + custoMassa;
+    const taxa = taxaMediaVenda();
+    const cfTaxasEl = document.getElementById('cfTaxasPct');
+    if (cfTaxasEl) cfTaxasEl.textContent = pct(taxa * 100) + ' do preço';
+    const metaBox = document.getElementById('cfMeta');
+    if (metaBox) {
+        const ideal = calcPrecoIdeal(custoTotal);
+        if (ideal) {
+            const dif = ideal - f.precoVenda;
+            metaBox.innerHTML = '🎯 <strong>Preço para sua meta de ' + pct(metaLucroFracao() * 100, 0) + ' de lucro real: ' + brl(ideal) + '</strong><br><small>Hoje você cobra ' + brl(f.precoVenda) +
+                (Math.abs(dif) < 0.5 ? ' e já está na meta. ✅' : dif > 0 ? ': faltam ' + brl(dif) + ' por pizza.' : ': ' + brl(-dif) + ' acima da meta. ✅') + '</small>';
+            metaBox.className = 'alert ' + (dif > 0.5 ? 'alert-warning' : 'alert-success');
+        } else {
+            metaBox.innerHTML = '⚠️ Taxas + meta de lucro passam de 95% do preço. Revise em Custos Fixos.';
+            metaBox.className = 'alert alert-warning';
+        }
+        metaBox.style.display = 'block';
+    }
+    [['cfP35', 0.35], ['cfP30', 0.3], ['cfP25', 0.25]].forEach(([elId, alvo]) => {
+        const preco = custoMercadoria / alvo;
+        const lucro = preco - custoTotal - preco * taxa;
+        document.getElementById(elId).innerHTML = brl(preco) +
+            '<small style="display:block;font-size:0.5em;font-weight:600;margin-top:4px;color:' + (lucro >= 0 ? 'inherit' : '#c62828') + '">Lucro real: ' + brl(lucro) + '</small>';
+    });
+}
+
+// ===== MEIO A MEIO =====
+function loadFichasSelectMeioAMeio() {
+    const selA = document.getElementById('maMSaborA');
+    const selB = document.getElementById('maMSaborB');
+    if (!selA || !selB) return;
+
+    const options = '<option value="">-- Selecione --</option>' +
+        DB.fichas.map(f => `<option value="${f.id}">${esc(f.nome)} (${f.tamanho}) - ${brl(f.precoVenda)}</option>`).join('');
+    
+    const valA = selA.value;
+    const valB = selB.value;
+    selA.innerHTML = options;
+    selB.innerHTML = options;
+    selA.value = DB.fichas.some((f) => f.id === valA) ? valA : '';
+    selB.value = DB.fichas.some((f) => f.id === valB) ? valB : '';
+}
+
+function calcMeioAMeio() {
+    const idA = document.getElementById('maMSaborA').value;
+    const idB = document.getElementById('maMSaborB').value;
+    const resDiv = document.getElementById('maMResultado');
+
+    if (!idA || !idB) {
+        resDiv.style.display = 'none';
+        return;
+    }
+
+    if (idA === idB) {
+        resDiv.style.display = 'block';
+        resDiv.innerHTML = '<div class="alert alert-warning" style="margin:0">⚠️ Selecione dois sabores <strong>diferentes</strong> para simular a Meio a Meio!</div>';
+        return;
+    }
+
+    const fichaA = DB.fichas.find(f => f.id === idA);
+    const fichaB = DB.fichas.find(f => f.id === idB);
+    if (!fichaA || !fichaB) { resDiv.style.display = 'none'; return; }
+
+    if (fichaA.tamanho !== fichaB.tamanho) {
+        resDiv.style.display = 'block';
+        resDiv.innerHTML = '<div class="alert alert-warning" style="margin:0">⚠️ Os dois sabores precisam ser do <strong>mesmo tamanho</strong>. Você escolheu ' + esc(fichaA.nome) + ' (' + fichaA.tamanho + ') e ' + esc(fichaB.nome) + ' (' + fichaB.tamanho + ').</div>';
+        return;
+    }
+
+    // Atualizar custos antes de calcular
+    atualizarCustosDaFicha(fichaA);
+    atualizarCustosDaFicha(fichaB);
+
+    // ===== REGRAS DE NEGÓCIO MEIO A MEIO =====
+    // Preço de Venda: SEMPRE o valor do sabor mais caro
+    const precoVenda = Math.max(fichaA.precoVenda, fichaB.precoVenda);
+
+    // Custo de Produção (Insumos): soma da metade do custo de cada sabor
+    const custoIngA = (fichaA.custoIng || 0) / 2;
+    const custoIngB = (fichaB.custoIng || 0) / 2;
+    const custoIngMeioAMeio = custoIngA + custoIngB;
+
+    // Custo da massa: usa a massa do tamanho mais caro (ou média se tamanhos diferentes)
+    // A massa é uma pizza inteira, não meia
+    const custoMassaA = fichaA.custoMassa || 0;
+    const custoMassaB = fichaB.custoMassa || 0;
+    const custoMassa = Math.max(custoMassaA, custoMassaB);
+
+    // Custo fixo: permanece o mesmo (é por pizza)
+    const custoFixo = calcularCustoFixoPorPizza();
+
+    // Custo Total de Produção
+    const custoTotalProducao = custoIngMeioAMeio + custoMassa + custoFixo;
+
+    // Lucro Real (já descontando taxas sobre a venda)
+    const taxasVenda = precoVenda * taxaMediaVenda();
+    const lucroReal = precoVenda - custoTotalProducao - taxasVenda;
+
+    // CMV e Margem
+    const cmv = precoVenda > 0 ? ((custoIngMeioAMeio + custoMassa) / precoVenda) * 100 : 0;
+    const margem = precoVenda > 0 ? (lucroReal / precoVenda) * 100 : 0;
+
+    // Identificar qual é o mais caro
+    const maisCaroNome = fichaA.precoVenda >= fichaB.precoVenda ? fichaA.nome : fichaB.nome;
+
+    resDiv.style.display = 'block';
+    resDiv.innerHTML = `
+        <div class="alert alert-info" style="margin-bottom:15px">
+            🍕 <strong>Meio a Meio:</strong> ${esc(fichaA.nome)} + ${esc(fichaB.nome)}<br>
+            <small>Preço cobrado pelo sabor mais caro: <strong>${esc(maisCaroNome)}</strong></small>
+        </div>
+        <table style="width:100%;margin:15px 0;font-size:0.9em">
+            <tr style="background:#f8f9fa"><td colspan="3" style="padding:8px;font-weight:bold">📊 Decomposição do Custo</td></tr>
+            <tr>
+                <td style="padding:6px">½ ${esc(fichaA.nome)} (ingredientes):</td>
+                <td style="text-align:right;padding:6px;color:#666">${brl((fichaA.custoIng || 0))} ÷ 2</td>
+                <td style="text-align:right;padding:6px;font-weight:bold">${brl(custoIngA)}</td>
+            </tr>
+            <tr>
+                <td style="padding:6px">½ ${esc(fichaB.nome)} (ingredientes):</td>
+                <td style="text-align:right;padding:6px;color:#666">${brl((fichaB.custoIng || 0))} ÷ 2</td>
+                <td style="text-align:right;padding:6px;font-weight:bold">${brl(custoIngB)}</td>
+            </tr>
+            <tr style="border-top:1px dashed #ccc">
+                <td style="padding:6px">Custo Ingredientes (Meio a Meio):</td>
+                <td></td>
+                <td style="text-align:right;padding:6px;font-weight:bold;color:var(--danger)">${brl(custoIngMeioAMeio)}</td>
+            </tr>
+            <tr><td style="padding:6px">Massa:</td><td></td><td style="text-align:right;padding:6px">${brl(custoMassa)}</td></tr>
+            <tr><td style="padding:6px">Custo Fixo:</td><td></td><td style="text-align:right;padding:6px">${brl(custoFixo)}</td></tr>
+            ${taxasVenda > 0 ? `<tr><td style="padding:6px">Taxas sobre a venda (${pct(taxaMediaVenda() * 100)}):</td><td></td><td style="text-align:right;padding:6px">${brl(taxasVenda)}</td></tr>` : ''}
+            <tr style="font-weight:bold;border-top:2px solid #333;background:#fff3e0">
+                <td style="padding:8px">CUSTO TOTAL PRODUÇÃO:</td>
+                <td></td>
+                <td style="text-align:right;padding:8px;color:var(--danger);font-size:1.1em">${brl(custoTotalProducao)}</td>
+            </tr>
+        </table>
+        <div class="resumo-box" style="margin-top:15px">
+            <div class="resumo-grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr))">
+                <div class="resumo-item"><small>💰 Preço Venda</small><div class="val blue" style="font-size:1.3em">${brl(precoVenda)}</div></div>
+                <div class="resumo-item"><small>📦 Custo Total</small><div class="val red">${brl(custoTotalProducao)}</div></div>
+                <div class="resumo-item"><small>🎯 Lucro Real</small><div class="val ${lucroReal >= 0 ? 'green' : 'red'}" style="font-size:1.3em">${brl(lucroReal)}</div></div>
+                <div class="resumo-item"><small>📊 CMV</small><div class="val ${cmv <= 30 ? 'green' : cmv <= 35 ? 'yellow' : 'red'}">${pct(cmv)}</div></div>
+                <div class="resumo-item"><small>📈 Margem</small><div class="val ${margem >= 50 ? 'green' : margem >= 30 ? 'yellow' : 'red'}">${pct(margem)}</div></div>
+            </div>
+        </div>
+        <div class="alert ${lucroReal >= 0 ? 'alert-success' : 'alert-warning'}" style="margin-top:15px">
+            ${lucroReal >= 0 
+                ? '✅ <strong>Meio a Meio viável!</strong> Lucro de ' + brl(lucroReal) + ' com margem de ' + pct(margem) + '.'
+                : '⚠️ <strong>Atenção!</strong> Esta combinação gera prejuízo de ' + brl(Math.abs(lucroReal)) + '. Revise os preços.'
+            }
+        </div>`;
+}
+
+// ===== PRODUTOS PRONTOS (Bebidas e Adicionais) =====
+let filtroProdCat = 'all';
+
+function abrirModalProduto(id = null) {
+    document.getElementById('modalProd').classList.add('show');
+    document.getElementById('prodId').value = '';
+    document.getElementById('prodNome').value = '';
+    document.getElementById('prodCat').value = 'Bebida';
+    document.getElementById('prodCusto').value = '';
+    document.getElementById('prodVenda').value = '';
+    document.getElementById('modalProdTitle').textContent = '🥤 Novo Produto';
+    editandoProdutoId = null;
+
+    if (id) {
+        const prod = DB.produtosProntos.find(p => p.id === id);
+        if (prod) {
+            editandoProdutoId = id;
+            document.getElementById('prodId').value = id;
+            document.getElementById('prodNome').value = prod.nome;
+            document.getElementById('prodCat').value = prod.categoria;
+            document.getElementById('prodCusto').value = prod.precoCusto;
+            document.getElementById('prodVenda').value = prod.precoVenda;
+            document.getElementById('modalProdTitle').textContent = '✏️ Editar Produto';
+        }
+    }
+    previewProduto();
+}
+
+function previewProduto() {
+    const custo = parseFloat(document.getElementById('prodCusto').value) || 0;
+    const venda = parseFloat(document.getElementById('prodVenda').value) || 0;
+    const prev = document.getElementById('prodPreview');
+    if (custo > 0 && venda > 0) {
+        const lucro = venda - custo;
+        const margem = (lucro / venda) * 100;
+        prev.innerHTML = '💡 Lucro: <strong>' + brl(lucro) + '</strong> | Margem: <strong>' + pct(margem) + '</strong>';
+        prev.style.color = lucro >= 0 ? 'var(--success)' : 'var(--danger)';
+    } else {
+        prev.innerHTML = '💡 Preencha custo e venda para ver';
+        prev.style.color = '#666';
+    }
+}
+
+function salvarProduto() {
+    const nome = document.getElementById('prodNome').value.trim();
+    const cat = document.getElementById('prodCat').value;
+    const custo = parseFloat(document.getElementById('prodCusto').value) || 0;
+    const venda = parseFloat(document.getElementById('prodVenda').value) || 0;
+
+    if (!nome) { alert('⚠️ Preencha o nome do produto!'); return; }
+    if (custo <= 0) { alert('⚠️ Informe o preço de custo!'); return; }
+    if (venda <= 0) { alert('⚠️ Informe o preço de venda!'); return; }
+
+    const prodData = {
+        id: editandoProdutoId || gerarId(),
+        nome,
+        categoria: cat,
+        precoCusto: custo,
+        precoVenda: venda,
+        lucro: venda - custo
+    };
+
+    if (editandoProdutoId) {
+        const idx = DB.produtosProntos.findIndex(p => p.id === editandoProdutoId);
+        if (idx !== -1) DB.produtosProntos[idx] = prodData;
+        status('💾 Produto atualizado!');
+    } else {
+        DB.produtosProntos.push(prodData);
+        status('💾 Produto salvo!');
+    }
+
+    editandoProdutoId = null;
+    persistirDados(false);
+    fecharModal('modalProd');
+    renderProdutosProntos();
+    renderDashboard();
+}
+
+function excluirProduto(id) {
+    if (!confirm('Excluir este produto?')) return;
+    DB.produtosProntos = DB.produtosProntos.filter(p => p.id !== id);
+    persistirDados(false);
+    renderProdutosProntos();
+    renderDashboard();
+    status('🗑️ Produto excluído!');
+}
+
+function renderProdutosProntos() {
+    const tbody = document.getElementById('tblProdutos');
+    if (!tbody) return;
+
+    const prods = filtroProdCat === 'all'
+        ? DB.produtosProntos
+        : DB.produtosProntos.filter(p => p.categoria === filtroProdCat);
+
+    // Atualizar contadores
+    const cntProdAll = document.getElementById('cntProdAll');
+    const cntProdBeb = document.getElementById('cntProdBeb');
+    const cntProdCerv = document.getElementById('cntProdCerv');
+    const cntProdDoce = document.getElementById('cntProdDoce');
+    const cntProdAdic = document.getElementById('cntProdAdic');
+    if (cntProdAll) cntProdAll.textContent = DB.produtosProntos.length;
+    if (cntProdBeb) cntProdBeb.textContent = DB.produtosProntos.filter(p => p.categoria === 'Bebida').length;
+    if (cntProdCerv) cntProdCerv.textContent = DB.produtosProntos.filter(p => p.categoria === 'Cerveja').length;
+    if (cntProdDoce) cntProdDoce.textContent = DB.produtosProntos.filter(p => p.categoria === 'Doce').length;
+    if (cntProdAdic) cntProdAdic.textContent = DB.produtosProntos.filter(p => p.categoria === 'Adicional').length;
+
+    if (prods.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty"><div class="icon">🥤</div>Nenhum produto cadastrado</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = prods.map(p => {
+        const lucro = p.precoVenda - p.precoCusto;
+        const margem = p.precoVenda > 0 ? (lucro / p.precoVenda) * 100 : 0;
+        const catIcons = { 'Bebida': '🥤', 'Cerveja': '🍺', 'Doce': '🍫', 'Adicional': '➕' };
+        return `<tr>
+            <td><strong>${esc(p.nome)}</strong></td>
+            <td><span class="badge badge-info">${catIcons[p.categoria] || '📦'} ${p.categoria}</span></td>
+            <td>${brl(p.precoCusto)}</td>
+            <td>${brl(p.precoVenda)}</td>
+            <td><strong style="color:${lucro >= 0 ? 'var(--success)' : 'var(--danger)'}">${brl(lucro)}</strong><br><small>${pct(margem)}</small></td>
+            <td class="actions">
+                <button class="btn btn-info btn-sm" onclick="abrirModalProduto('${p.id}')">✏️</button>
+                <button class="btn btn-danger btn-sm" onclick="excluirProduto('${p.id}')">🗑️</button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function filtrarProdutos(cat, btn) {
+    filtroProdCat = cat;
+    document.querySelectorAll('.prod-cat-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    renderProdutosProntos();
+}
+
+function filtrarProdutosBusca() {
+    const busca = document.getElementById('buscaProd').value.toLowerCase();
+    document.querySelectorAll('#tblProdutos tr').forEach(tr => {
+        tr.style.display = tr.textContent.toLowerCase().includes(busca) ? '' : 'none';
+    });
+}
+
+// ===== SIMULADOR DE COMBOS VIP =====
+function getComboAdicionaisOptions() {
+    const adicionais = DB.produtosProntos.filter(p => p.categoria === 'Adicional' || p.categoria === 'Doce');
+    return '<option value="">-- Selecione (opcional) --</option>' +
+        adicionais.map(p => `<option value="${p.id}">${esc(p.nome)} - Venda: ${brl(p.precoVenda)}</option>`).join('');
+}
+
+function addComboAdicional(selectedId) {
+    const container = document.getElementById('comboAdicionaisContainer');
+    if (!container) return;
+
+    const div = document.createElement('div');
+    div.className = 'combo-adicional-item';
+    div.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px';
+    div.innerHTML = `<select class="form-control" onchange="calcCombo()" style="flex:1">${getComboAdicionaisOptions()}</select><button class="btn btn-danger btn-sm" onclick="this.parentElement.remove();calcCombo()" style="flex-shrink:0;min-width:40px">✕</button>`;
+    container.appendChild(div);
+
+    if (selectedId) {
+        div.querySelector('select').value = selectedId;
+    }
+
+    calcCombo();
+}
+
+function loadComboSelects() {
+    const selPizza = document.getElementById('comboPizza');
+    const selBebida = document.getElementById('comboBebida');
+    if (!selPizza || !selBebida) return;
+
+    // Pizza select (das fichas técnicas)
+    const valPizza = selPizza.value;
+    selPizza.innerHTML = '<option value="">-- Selecione a Pizza --</option>' +
+        DB.fichas.map(f => {
+            atualizarCustosDaFicha(f);
+            return `<option value="${f.id}">${esc(f.nome)} (${f.tamanho}) - Venda: ${brl(f.precoVenda)}</option>`;
+        }).join('');
+    selPizza.value = DB.fichas.some((f) => f.id === valPizza) ? valPizza : '';
+
+    // Bebida select (dos produtos prontos, categoria Bebida + Cerveja)
+    const bebidas = DB.produtosProntos.filter(p => p.categoria === 'Bebida' || p.categoria === 'Cerveja');
+    const valBebida = selBebida.value;
+    selBebida.innerHTML = '<option value="">-- Selecione a Bebida --</option>' +
+        bebidas.map(p => `<option value="${p.id}">${esc(p.nome)} - Venda: ${brl(p.precoVenda)}</option>`).join('');
+    selBebida.value = bebidas.some((p) => p.id === valBebida) ? valBebida : '';
+
+    // Atualizar options dos selects de adicionais já existentes
+    const container = document.getElementById('comboAdicionaisContainer');
+    if (container) {
+        container.querySelectorAll('.combo-adicional-item select').forEach(sel => {
+            const val = sel.value;
+            sel.innerHTML = getComboAdicionaisOptions();
+            sel.value = val;
+        });
+    }
+}
+
+function calcCombo() {
+    const idPizza = document.getElementById('comboPizza').value;
+    const idBebida = document.getElementById('comboBebida').value;
+    const resDiv = document.getElementById('comboResultado');
+
+    if (!idPizza || !idBebida) {
+        resDiv.style.display = 'none';
+        return;
+    }
+
+    const pizza = DB.fichas.find(f => f.id === idPizza);
+    const bebida = DB.produtosProntos.find(p => p.id === idBebida);
+    if (!pizza || !bebida) return;
+
+    atualizarCustosDaFicha(pizza);
+
+    // Varrer TODOS os selects de adicionais do container
+    const adicionaisSelecionados = [];
+    const container = document.getElementById('comboAdicionaisContainer');
+    if (container) {
+        container.querySelectorAll('.combo-adicional-item select').forEach(sel => {
+            if (sel.value) {
+                const prod = DB.produtosProntos.find(p => p.id === sel.value);
+                if (prod) adicionaisSelecionados.push(prod);
+            }
+        });
+    }
+
+    // ===== CÁLCULOS DO COMBO =====
+    const custoPizza = pizza.custoTotal || 0;
+    const custoBebida = bebida.precoCusto || 0;
+
+    let custoAdicionaisTotal = 0;
+    let vendaAdicionaisTotal = 0;
+    adicionaisSelecionados.forEach(a => {
+        custoAdicionaisTotal += (a.precoCusto || 0);
+        vendaAdicionaisTotal += (a.precoVenda || 0);
+    });
+
+    const custoTotalCombo = custoPizza + custoBebida + custoAdicionaisTotal;
+
+    const vendaPizza = pizza.precoVenda || 0;
+    const vendaBebida = bebida.precoVenda || 0;
+    const somaVendasIndividuais = vendaPizza + vendaBebida + vendaAdicionaisTotal;
+
+    // Preço promocional digitado
+    const precoPromo = parseFloat(document.getElementById('comboPrecoPromo').value) || 0;
+    const precoFinal = precoPromo > 0 ? precoPromo : somaVendasIndividuais;
+    const desconto = somaVendasIndividuais - precoFinal;
+    const descontoPerc = somaVendasIndividuais > 0 ? (desconto / somaVendasIndividuais) * 100 : 0;
+
+    const taxasCombo = precoFinal * taxaMediaVenda();
+    const lucroReal = precoFinal - custoTotalCombo - taxasCombo;
+    const margem = precoFinal > 0 ? (lucroReal / precoFinal) * 100 : 0;
+    const custoMercadoriaCombo = (pizza.custoIng || 0) + (pizza.custoMassa || 0) + custoBebida + custoAdicionaisTotal;
+    const cmv = precoFinal > 0 ? (custoMercadoriaCombo / precoFinal) * 100 : 0;
+
+    // Gerar linhas de adicionais para as tabelas
+    const adicionaisCustoHTML = adicionaisSelecionados.map(a => {
+        const icon = a.categoria === 'Doce' ? '🍫' : '➕';
+        return `<tr>
+            <td style="padding:6px">${icon} ${esc(a.nome)} (custo compra):</td>
+            <td></td>
+            <td style="text-align:right;padding:6px;font-weight:bold">${brl((a.precoCusto || 0))}</td>
+        </tr>`;
+    }).join('');
+
+    const adicionaisVendaHTML = adicionaisSelecionados.map(a => {
+        const icon = a.categoria === 'Doce' ? '🍫' : '➕';
+        return `<tr><td style="padding:6px">${icon} ${esc(a.nome)}:</td><td style="text-align:right;padding:6px">${brl((a.precoVenda || 0))}</td></tr>`;
+    }).join('');
+
+    const nomesAdicionais = adicionaisSelecionados.map(a => a.nome).join(' + ');
+    const comboDescricao = pizza.nome + ' + ' + bebida.nome + (nomesAdicionais ? ' + ' + nomesAdicionais : '');
+
+    resDiv.style.display = 'block';
+    resDiv.innerHTML = `
+        <div class="alert alert-info" style="margin-bottom:15px">
+            🎯 <strong>Combo:</strong> ${esc(comboDescricao)}
+        </div>
+        <table style="width:100%;margin:10px 0;font-size:0.9em">
+            <tr style="background:#f8f9fa"><td colspan="3" style="padding:8px;font-weight:bold">📊 Decomposição de Custos</td></tr>
+            <tr>
+                <td style="padding:6px">🍕 ${esc(pizza.nome)} (custo produção):</td>
+                <td></td>
+                <td style="text-align:right;padding:6px;font-weight:bold">${brl(custoPizza)}</td>
+            </tr>
+            <tr>
+                <td style="padding:6px">🥤 ${esc(bebida.nome)} (custo compra):</td>
+                <td></td>
+                <td style="text-align:right;padding:6px;font-weight:bold">${brl(custoBebida)}</td>
+            </tr>
+            ${adicionaisCustoHTML}
+            <tr style="font-weight:bold;border-top:2px solid #333;background:#fff3e0">
+                <td style="padding:8px">CUSTO TOTAL DO COMBO:</td>
+                <td></td>
+                <td style="text-align:right;padding:8px;color:var(--danger);font-size:1.1em">${brl(custoTotalCombo)}</td>
+            </tr>
+            ${taxasCombo > 0 ? `<tr><td style="padding:6px">Taxas sobre a venda (${pct(taxaMediaVenda() * 100)}):</td><td></td><td style="text-align:right;padding:6px;font-weight:bold">${brl(taxasCombo)}</td></tr>` : ''}
+        </table>
+        <table style="width:100%;margin:10px 0;font-size:0.9em">
+            <tr style="background:#e8f5e9"><td colspan="2" style="padding:8px;font-weight:bold">💰 Preços de Venda Individuais</td></tr>
+            <tr><td style="padding:6px">🍕 ${esc(pizza.nome)}:</td><td style="text-align:right;padding:6px">${brl(vendaPizza)}</td></tr>
+            <tr><td style="padding:6px">🥤 ${esc(bebida.nome)}:</td><td style="text-align:right;padding:6px">${brl(vendaBebida)}</td></tr>
+            ${adicionaisVendaHTML}
+            <tr style="border-top:1px solid #ccc"><td style="padding:6px;font-weight:bold">Soma Individual:</td><td style="text-align:right;padding:6px;font-weight:bold">${brl(somaVendasIndividuais)}</td></tr>
+            ${precoPromo > 0 ? `<tr style="background:#fff8e1"><td style="padding:6px;font-weight:bold;color:#e65100">🏷️ Desconto Promocional:</td><td style="text-align:right;padding:6px;font-weight:bold;color:#e65100">- ${brl(desconto)} (${pct(descontoPerc)})</td></tr>` : ''}
+        </table>
+        <div class="resumo-box" style="margin-top:15px">
+            <div class="resumo-grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr))">
+                <div class="resumo-item"><small>💰 Preço Combo</small><div class="val blue" style="font-size:1.3em">${brl(precoFinal)}</div></div>
+                <div class="resumo-item"><small>📦 Custo Total</small><div class="val red">${brl(custoTotalCombo)}</div></div>
+                <div class="resumo-item"><small>🎯 Lucro Real</small><div class="val ${lucroReal >= 0 ? 'green' : 'red'}" style="font-size:1.3em">${brl(lucroReal)}</div></div>
+                <div class="resumo-item"><small>📈 Margem</small><div class="val ${margem >= 50 ? 'green' : margem >= 30 ? 'yellow' : 'red'}">${pct(margem)}</div></div>
+                <div class="resumo-item"><small>📊 CMV</small><div class="val ${cmv <= 30 ? 'green' : cmv <= 35 ? 'yellow' : 'red'}">${pct(cmv)}</div></div>
+            </div>
+        </div>
+        <div class="alert ${lucroReal >= 0 ? 'alert-success' : 'alert-warning'}" style="margin-top:15px">
+            ${lucroReal >= 0
+                ? '✅ <strong>Combo viável!</strong> Lucro de ' + brl(lucroReal) + ' com margem de ' + pct(margem) + '.'
+                  + (precoPromo > 0 && desconto > 0 ? ' Desconto de ' + pct(descontoPerc) + ' sobre o preço individual.' : '')
+                : '⚠️ <strong>Atenção!</strong> Este combo gera prejuízo de ' + brl(Math.abs(lucroReal)) + '. Aumente o preço promocional.'
+            }
+        </div>`;
+}
+
+// ===== EXPORT/IMPORT =====
+function exportar() {
+    const blob = new Blob([JSON.stringify(DB, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'pizzacontrol_' + new Date().toISOString().slice(0, 10) + '.json';
+    a.click();
+    status('📥 Exportado!');
+}
+
+function importar(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        try {
+            const d = normalizarDados(JSON.parse(ev.target.result));
+            const resumo = d.insumos.length + ' insumos, ' + d.fichas.length + ' fichas e ' + d.produtosProntos.length + ' produtos';
+            if (!confirm('Restaurar este backup (' + resumo + ')?\n\n⚠️ Os dados atuais deste aparelho serão SUBSTITUÍDOS pelos do arquivo.')) {
+                e.target.value = '';
+                return;
+            }
+
+            DB = d;
+            persistirDados(false);
+            sincronizarUI();
+            loadMassaUI();
+            loadCustosUI();
+            loadConfigUI();
+            status('✅ Dados importados!');
+        } catch (err) {
+            console.error(err);
+            alert('❌ Erro ao importar arquivo!');
+        }
+    };
+
+    reader.readAsText(file);
+    e.target.value = '';
+}
+
+function limparTudo() {
+    if (!confirm('⚠️ Apagar TUDO?')) return;
+    if (confirm('Backup antes?')) exportar();
+
+    DB = clonar(DB_PADRAO);
+    persistirDados(false);
+    loadMassaUI();
+    loadCustosUI();
+    loadConfigUI();
+    limparFicha();
+    sincronizarUI();
+    status('🧹 Dados locais apagados!');
+}
+
+// ===== MODAIS =====
+document.querySelectorAll('.modal-bg').forEach((m) => {
+    m.addEventListener('click', (e) => {
+        if (e.target === m) m.classList.remove('show');
+    });
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-bg.show').forEach((m) => m.classList.remove('show'));
+    }
+});
+
+// ===== CONFIG =====
+function salvarConfig() {
+    const nomePizzaria = document.getElementById('configNome').value.trim();
+    const meta = parseFloat(document.getElementById('configMeta').value) || 15000;
+
+    DB.config = { nomePizzaria, meta };
+    persistirDados(true, '✅ Configurações salvas!');
+    loadConfigUI();
+    renderDashboard();
+}
+
+// ===== PRECIFICAR (MARKUP) =====
+function calcPorMarkup() {
+    const custo = parseFloat(document.getElementById('calcCusto').value) || 0;
+    const markup = parseFloat(document.getElementById('calcMarkup').value) || 3;
+    const impostoP = parseFloat(document.getElementById('calcImposto').value) || 0;
+
+    if (custo > 0) {
+        const precoSugerido = custo * markup;
+        const totalImposto = precoSugerido * (impostoP / 100);
+        const lucroBruto = precoSugerido - custo;
+        const lucroLiquido = lucroBruto - totalImposto;
+
+        document.getElementById('calcPreco').textContent = brl(precoSugerido);
+        document.getElementById('calcLucro').textContent = 'Lucro Bruto: ' + brl(lucroBruto);
+        const llElem = document.getElementById('calcLucroReal');
+        if (llElem) {
+            llElem.textContent =
+                'Lucro Líquido (Pós Imposto): ' +
+                brl(lucroLiquido) +
+                ' (' +
+                pct(precoSugerido > 0 ? (lucroLiquido / precoSugerido) * 100 : 0) +
+                ')';
+        }
+    } else {
+        document.getElementById('calcPreco').textContent = 'R$ 0,00';
+        document.getElementById('calcLucro').textContent = 'Lucro Bruto: R$ 0,00';
+        const elem = document.getElementById('calcLucroReal');
+        if (elem) elem.textContent = 'Lucro Líquido (Pós Imposto): R$ 0,00 (-)';
+    }
+}
+
+// ===== TRAVA DE PLANOS (BÁSICO vs PRO) =====
+// Abas exclusivas do plano PRO. O plano Básico mantém: dashboard, insumos, fichas, nova-ficha, config.
+const ABAS_EXCLUSIVAS_PRO = ['massa', 'custos', 'produtos', 'precificar'];
+
+const NOMES_RECURSOS_PRO = {
+    'bonus': 'Suporte VIP e Grupo de Pizzaiolos',
+    massa: '🥖 Cálculo de Massa por Tamanho',
+    custos: '💼 Rateio de Custo Fixo (o que faz você parar de pagar pra trabalhar)',
+    produtos: '🥤 Cadastro de Bebidas',
+    precificar: '💰 Gerador de Preço, Combos e Meio a Meio',
+    backup: '💾 Backup (Exportar/Importar Dados)'
+};
+
+function aplicarTravaPlanos() {
+    injetarEstilosTravaPlanos();
+
+    if (isPro) return; // Plano PRO tem acesso total, nada a travar.
+
+    // --- 1. Travar as abas inteiras exclusivas do PRO no menu lateral ---
+    document.querySelectorAll('.nav-tab').forEach((tab) => {
+        const pagina = tab.dataset.page;
+        if (!ABAS_EXCLUSIVAS_PRO.includes(pagina)) return;
+
+        tab.classList.add('nav-tab-locked');
+        if (!tab.querySelector('.lock-pro-badge')) {
+            const badge = document.createElement('span');
+            badge.className = 'lock-pro-badge';
+            badge.textContent = '🔒';
+            tab.appendChild(badge);
+        }
+
+        // Fase de captura: intercepta o clique ANTES do listener de navegação normal
+        // (registrado em setupNav), então a página PRO nunca chega a ser exibida.
+        tab.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            mostrarModalUpgrade(pagina);
+        }, true);
+    });
+
+    // --- 2. Travar Exportar / Importar (Backup) ---
+    const btnExportar = document.querySelector('button[onclick="exportar()"]');
+    if (btnExportar) {
+        btnExportar.textContent = '🔒 Recurso PRO';
+        btnExportar.className = 'btn btn-secondary';
+        btnExportar.removeAttribute('onclick');
+        btnExportar.addEventListener('click', function (e) {
+            e.preventDefault();
+            mostrarModalUpgrade('backup');
+        });
+    }
+
+    const lblImportar = document.querySelector('label.btn.btn-warning');
+    if (lblImportar) {
+        const inputFile = lblImportar.querySelector('input[type="file"]');
+        if (inputFile) inputFile.remove();
+        lblImportar.textContent = '🔒 Recurso PRO';
+        lblImportar.className = 'btn btn-secondary';
+        lblImportar.style.cursor = 'pointer';
+        lblImportar.addEventListener('click', function (e) {
+            e.preventDefault();
+            mostrarModalUpgrade('backup');
+        });
+    }
+
+    // --- 3. No Básico o lucro da ficha não inclui custo fixo: o rótulo diz isso ---
+    // (o resumo por tamanho já mostra "Lucro (sem custo fixo)" e esconde taxas/meta no Básico)
+    if (document.getElementById('ficIngLista')) calcFicha();
+
+    // --- 4. Aviso dentro de "Criar Ficha": Custo Fixo e Massa não incluídos no Básico ---
+    injetarAvisoFichaBasico();
+
+    console.log('🔒 Travas do Plano Básico aplicadas às abas:', ABAS_EXCLUSIVAS_PRO.join(', '));
+}
+
+function escaparHtmlUpgrade(t) {
+    return String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function fecharModalUpgrade() {
+    const overlay = document.getElementById('modalUpgradePro');
+    if (overlay) overlay.remove();
+    document.removeEventListener('keydown', fecharModalUpgradeEsc);
+}
+
+function fecharModalUpgradeEsc(e) {
+    if (e.key === 'Escape') fecharModalUpgrade();
+}
+
+function mostrarModalUpgrade(origem) {
+    fecharModalUpgrade();
+    const nome = NOMES_RECURSOS_PRO[origem] || 'Este recurso';
+    const email = (firebaseUser && firebaseUser.email) ? firebaseUser.email : '';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'modalUpgradePro';
+    overlay.className = 'mup-overlay';
+    overlay.innerHTML = `
+        <div class="mup-card" role="dialog" aria-modal="true" aria-labelledby="mupTitulo">
+            <button type="button" class="mup-fechar" aria-label="Fechar">✕</button>
+            <div class="mup-topo">
+                <div class="mup-cadeado">🔒</div>
+                <div class="mup-selo">RECURSO PRO</div>
+                <h2 id="mupTitulo" class="mup-titulo">${escaparHtmlUpgrade(nome)}</h2>
+            </div>
+            <div class="mup-corpo">
+                <p class="mup-texto">Pare de vender no prejuízo sem saber. Com o PRO você descobre o <strong>lucro real</strong> de cada pizza.</p>
+                <ul class="mup-lista">
+                    <li>✅ Rateio de Custo Fixo (aluguel, luz, funcionários)</li>
+                    <li>✅ Custo real da Massa por tamanho</li>
+                    <li>✅ Gerador de Preço, Combos e Meio a Meio</li>
+                    <li>✅ Bebidas, adicionais e Backup</li>
+                    <li>🎁 Suporte VIP no WhatsApp e Grupo de Pizzaiolos</li>
+                </ul>
+                <div class="mup-preco">
+                    <span class="mup-valor">R$ 26,99</span>
+                    <span class="mup-legenda">pagamento único · acesso vitalício</span>
+                </div>
+                ${email ? `
+                <div class="mup-email">
+                    <div class="mup-email-titulo">⚠️ Use este e-mail no pagamento para liberar na hora:</div>
+                    <div class="mup-email-linha">
+                        <span class="mup-email-valor">${escaparHtmlUpgrade(email)}</span>
+                        <button type="button" class="mup-copiar">Copiar</button>
+                    </div>
+                </div>` : ''}
+                <a class="mup-cta" href="${LINK_UPGRADE_PRO}" target="_blank" rel="noopener">QUERO LIBERAR O PRO</a>
+                <button type="button" class="mup-depois">Agora não</button>
+                <p class="mup-rodape">Depois de pagar, saia e entre de novo no sistema para ver tudo liberado.</p>
+            </div>
+        </div>`;
+
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) fecharModalUpgrade(); });
+    overlay.querySelector('.mup-fechar').addEventListener('click', fecharModalUpgrade);
+    overlay.querySelector('.mup-depois').addEventListener('click', fecharModalUpgrade);
+    const btnCopiar = overlay.querySelector('.mup-copiar');
+    if (btnCopiar) {
+        btnCopiar.addEventListener('click', () => {
+            const ok = () => { btnCopiar.textContent = 'Copiado ✓'; setTimeout(() => { btnCopiar.textContent = 'Copiar'; }, 2000); };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(email).then(ok).catch(() => prompt('Copie seu e-mail:', email));
+            } else {
+                prompt('Copie seu e-mail:', email);
+            }
+        });
+    }
+    document.addEventListener('keydown', fecharModalUpgradeEsc);
+    document.body.appendChild(overlay);
+}
+
+function injetarAvisoFichaBasico() {
+    if (document.getElementById('avisoFichaBasico')) return;
+    const resumoBox = document.querySelector('#page-nova-ficha .resumo-box');
+    if (!resumoBox) return;
+
+    const aviso = document.createElement('div');
+    aviso.id = 'avisoFichaBasico';
+    aviso.className = 'aviso-upgrade-pro';
+    aviso.innerHTML = '🔒 Este cálculo <strong>não inclui</strong> seu Custo Fixo real (aluguel, luz, funcionários) nem o custo real da sua Massa. Ative o PRO para ver seu Lucro Real.';
+    aviso.addEventListener('click', function () {
+        mostrarModalUpgrade('custos');
+    });
+    resumoBox.appendChild(aviso);
+}
+
+function injetarEstilosTravaPlanos() {
+    if (document.getElementById('travaPlanosStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'travaPlanosStyles';
+    style.textContent = `
+        .nav-tab-locked { opacity: 0.6; position: relative; }
+        .nav-tab-locked:hover { opacity: 0.9; }
+        .lock-pro-badge { margin-left: 6px; font-size: 0.85em; }
+        .aviso-upgrade-pro {
+            text-align:center; padding:12px 16px; margin-top:14px;
+            background:linear-gradient(135deg,#fff3e0,#ffe0b2); border-radius:8px;
+            border:1px solid #ffcc80; cursor:pointer; font-size:0.9em;
+            color:#e65100; font-weight:600;
+        }
+        .aviso-upgrade-pro:hover { filter: brightness(0.97); }
+        .meta-item { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid #eee; }
+        .meta-item:last-child { border-bottom:0; }
+        .meta-nome small { color:#666; }
+        .meta-ideal { text-align:right; white-space:nowrap; }
+        .meta-ideal small { display:block; color:#777; font-size:0.75rem; }
+        .meta-ideal strong { display:block; color:#2e7d32; font-size:1.15rem; }
+        .meta-ideal .meta-dif { color:#e65100; font-weight:700; font-size:0.8rem; }
+        .mup-overlay {
+            position:fixed; inset:0; z-index:99999; background:rgba(15,15,25,0.72);
+            display:flex; align-items:center; justify-content:center; padding:16px;
+            animation:mupFade .2s ease;
+        }
+        .mup-card {
+            position:relative; width:100%; max-width:420px; max-height:92vh; overflow-y:auto;
+            background:#fff; border-radius:18px; box-shadow:0 20px 60px rgba(0,0,0,.4);
+            font-family:inherit; animation:mupSobe .25s ease;
+        }
+        .mup-fechar {
+            position:absolute; top:10px; right:12px; background:rgba(255,255,255,.2); color:#fff;
+            border:none; width:32px; height:32px; border-radius:50%; font-size:16px; cursor:pointer;
+        }
+        .mup-fechar:hover { background:rgba(255,255,255,.35); }
+        .mup-topo {
+            background:linear-gradient(135deg,#c62828,#8e0000); color:#fff; text-align:center;
+            padding:26px 20px 20px; border-radius:18px 18px 0 0;
+        }
+        .mup-cadeado { font-size:40px; line-height:1; }
+        .mup-selo {
+            display:inline-block; margin-top:10px; background:#f6c90e; color:#1a202c;
+            font-weight:800; font-size:11px; letter-spacing:1px; padding:4px 10px; border-radius:20px;
+        }
+        .mup-titulo { margin:10px 0 0; font-size:1.15rem; line-height:1.35; color:#fff; }
+        .mup-corpo { padding:20px 22px 22px; }
+        .mup-texto { margin:0 0 14px; color:#4a5568; font-size:.95rem; text-align:center; }
+        .mup-lista { list-style:none; padding:0; margin:0 0 16px; display:flex; flex-direction:column; gap:8px; }
+        .mup-lista li { color:#2d3748; font-size:.9rem; }
+        .mup-preco { text-align:center; margin-bottom:16px; }
+        .mup-valor { display:block; font-size:2.2rem; font-weight:900; color:#c62828; line-height:1.1; }
+        .mup-legenda { font-size:.8rem; color:#718096; }
+        .mup-email { background:#fff8e1; border:1px solid #ffe082; border-radius:10px; padding:10px 12px; margin-bottom:16px; }
+        .mup-email-titulo { font-size:.8rem; color:#8d6e00; font-weight:600; margin-bottom:6px; }
+        .mup-email-linha { display:flex; align-items:center; gap:8px; }
+        .mup-email-valor { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; color:#1a202c; font-size:.9rem; }
+        .mup-copiar { background:#1a202c; color:#fff; border:none; border-radius:6px; padding:6px 10px; font-size:.78rem; cursor:pointer; white-space:nowrap; }
+        .mup-cta {
+            display:block; text-align:center; text-decoration:none; background:linear-gradient(135deg,#e53935,#c62828);
+            color:#fff; font-weight:800; font-size:1rem; padding:15px; border-radius:10px;
+            box-shadow:0 6px 18px rgba(198,40,40,.35); transition:transform .15s;
+        }
+        .mup-cta:hover { transform:translateY(-2px); color:#fff; }
+        .mup-cta:focus-visible { outline:3px solid #f6c90e; outline-offset:2px; }
+        .mup-depois { display:block; width:100%; margin-top:8px; background:none; border:none; color:#718096; font-size:.9rem; padding:8px; cursor:pointer; }
+        .mup-depois:hover { color:#2d3748; }
+        .mup-rodape { margin:6px 0 0; text-align:center; font-size:.75rem; color:#a0aec0; }
+        @keyframes mupFade { from { opacity:0; } to { opacity:1; } }
+        @keyframes mupSobe { from { transform:translateY(20px); opacity:0; } to { transform:none; opacity:1; } }
+    `;
+    document.head.appendChild(style);
+}
+
+
+// =====================================================================
+// BÔNUS DO PLANO PRO (grupo de pizzaiolos + suporte VIP)
+// O link do grupo NÃO fica no código (o repositório é público): ele fica no
+// Firestore em config/bonusPro, e as regras só deixam contas PRO lerem.
+// =====================================================================
+const LINK_SUPORTE_VIP = 'https://wa.me/5598970260090?text=' + encodeURIComponent('Oi Marllon! Sou cliente PRO do PizzaControl e preciso de uma ajuda.');
+const CHAVE_BONUS_OCULTO = () => 'pcBonusOculto_' + (firebaseUser ? firebaseUser.uid : '');
+
+async function carregarBonusPro() {
+    const cardDash = document.getElementById('cardBonus');
+    const blocoConfig = document.getElementById('contaBonus');
+    if (!isPro) {
+        if (cardDash) cardDash.hidden = true;
+        if (blocoConfig) blocoConfig.innerHTML = `<h4 class="conta-bonus-titulo">🎁 Bônus do Plano PRO</h4><p class="bonus-trava">🔒 O Suporte VIP e o Grupo de Pizzaiolos são bônus do Plano PRO.</p>
+            <button type="button" class="btn btn-warning btn-sm" onclick="mostrarModalUpgrade('bonus')">⭐ Conhecer o PRO</button>`;
+        return;
+    }
+    let linkGrupo = '';
+    try {
+        const doc = await dbFirestore.collection('config').doc('bonusPro').get();
+        const url = doc.exists ? String(doc.data().grupoWhatsapp || '') : '';
+        if (url.startsWith('https://chat.whatsapp.com/')) linkGrupo = url;
+    } catch (err) {
+        console.warn('⚠️ Não foi possível carregar o link do grupo:', err && err.message);
+    }
+    const botoes = `
+        ${linkGrupo
+            ? `<a class="btn btn-success bonus-btn" href="${linkGrupo}" target="_blank" rel="noopener">👨‍🍳 Entrar no grupo Pizzaiolos de Elite</a>`
+            : `<p class="bonus-aviso">Para entrar no grupo, peça o link no suporte abaixo.</p>`}
+        <a class="btn btn-info bonus-btn" href="${LINK_SUPORTE_VIP}" target="_blank" rel="noopener">💬 Falar com o Suporte VIP</a>`;
+    if (blocoConfig) blocoConfig.innerHTML = '<h4 class="conta-bonus-titulo">🎁 Bônus do Plano PRO</h4><div class="bonus-botoes">' + botoes + '</div>';
+    if (cardDash) {
+        document.getElementById('cardBonusBotoes').innerHTML = botoes;
+        let oculto = false;
+        try { oculto = localStorage.getItem(CHAVE_BONUS_OCULTO()) === '1'; } catch (e) { /* sem storage */ }
+        cardDash.hidden = oculto;
+    }
+}
+
+function esconderCardBonus() {
+    try { localStorage.setItem(CHAVE_BONUS_OCULTO(), '1'); } catch (e) { /* sem storage */ }
+    const card = document.getElementById('cardBonus');
+    if (card) card.hidden = true;
+    status('Os links continuam na aba Config, em "Minha Conta".');
+}
+
+
+// =====================================================================
+// CARDÁPIO PRONTO (order bump)
+// A compra libera extras/{email}.cardapioPronto (gravado pelo Make). Os sabores
+// ficam no Firestore em config/cardapioPronto e só quem comprou consegue ler.
+// A importação SÓ ADICIONA: ingredientes com o mesmo nome são reaproveitados
+// (mantém o preço do cliente) e sabores que já existem são pulados.
+// =====================================================================
+let temCardapioPronto = false;
+let cacheCardapioPronto = null;
+
+async function carregarExtras() {
+    temCardapioPronto = false;
+    if (!firebaseUser || !firebaseUser.email) return renderCardCardapio();
+    try {
+        const doc = await dbFirestore.collection('extras').doc(firebaseUser.email.toLowerCase()).get();
+        temCardapioPronto = !!(doc.exists && doc.data().cardapioPronto === true);
+    } catch (err) {
+        console.warn('⚠️ Não foi possível verificar os extras:', err && err.message);
+    }
+    renderCardCardapio();
+}
+
+function insumosParaConferir() {
+    return DB.insumos.filter((i) => i.revisarPreco);
+}
+
+function renderCardCardapio() {
+    const card = document.getElementById('cardCardapio');
+    if (!card) return;
+    if (!temCardapioPronto) { card.hidden = true; return; }
+    const importado = DB.config && DB.config.cardapioImportadoEm;
+    const conferir = insumosParaConferir().length;
+    let oculto = false;
+    try { oculto = localStorage.getItem('pcCardapioOculto_' + firebaseUser.uid) === '1'; } catch (e) { /* sem storage */ }
+    card.hidden = oculto && importado && conferir === 0;
+    const corpo = document.getElementById('cardCardapioCorpo');
+    if (!importado) {
+        corpo.innerHTML = `<p class="bonus-texto">Você tem 20 sabores clássicos prontos para importar, com as quantidades de cada tamanho. Escolha os que estão no seu cardápio e em segundos eles aparecem nas suas fichas.</p>
+            <button type="button" class="btn btn-success" onclick="abrirImportarCardapio()">📥 Importar cardápio pronto</button>`;
+    } else {
+        corpo.innerHTML = `<p class="bonus-texto">✅ Cardápio importado. ${conferir > 0
+            ? `Falta conferir o preço de <b>${conferir}</b> ${conferir === 1 ? 'ingrediente' : 'ingredientes'}: eles vieram com um preço de referência. Troque pelo que você paga para o lucro ficar certo.`
+            : 'Todos os ingredientes já estão com o seu preço. Agora coloque o preço de venda de cada sabor na aba Fichas.'}</p>
+            <div class="bonus-botoes">
+                ${conferir > 0 ? `<button type="button" class="btn btn-warning" onclick="irParaConferir()">⚠️ Conferir preços dos ingredientes</button>` : ''}
+                <button type="button" class="btn btn-info" onclick="abrirImportarCardapio()">📥 Importar mais sabores</button>
+            </div>
+            ${conferir === 0 ? `<button type="button" class="bonus-esconder" onclick="esconderCardCardapio()">Esconder este quadro</button>` : ''}`;
+    }
+}
+
+function esconderCardCardapio() {
+    try { localStorage.setItem('pcCardapioOculto_' + firebaseUser.uid, '1'); } catch (e) { /* sem storage */ }
+    document.getElementById('cardCardapio').hidden = true;
+}
+
+function irParaConferir() {
+    document.querySelector('.nav-tab[data-page="insumos"]')?.click();
+    const busca = document.getElementById('buscaIns');
+    if (busca) { busca.value = ''; filtrarInsumos(); }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    status('⚠️ Ingredientes marcados com "confira o preço": toque em ✏️ e coloque o preço que você paga.');
+}
+
+async function buscarCardapioPronto() {
+    if (cacheCardapioPronto) return cacheCardapioPronto;
+    const doc = await dbFirestore.collection('config').doc('cardapioPronto').get();
+    if (!doc.exists) throw new Error('Cardápio não encontrado');
+    cacheCardapioPronto = JSON.parse(doc.data().dados);
+    return cacheCardapioPronto;
+}
+
+async function abrirImportarCardapio() {
+    let dados;
+    try {
+        status('⏳ Carregando o cardápio pronto...');
+        dados = await buscarCardapioPronto();
+    } catch (err) {
+        console.error(err);
+        alert('Não foi possível carregar o cardápio pronto agora. Confira sua internet e tente de novo. Se continuar, fale com o suporte.');
+        return;
+    }
+    const existentes = new Set(DB.fichas.map((f) => normalizarNome(f.nome)));
+    let tams = [];
+    try { tams = JSON.parse(localStorage.getItem('pcTamanhosPadrao') || '[]'); } catch (e) { tams = []; }
+    if (!Array.isArray(tams) || !tams.length) tams = TAMANHOS.filter((t) => DB.fichas.some((f) => f.tamanho === t));
+    if (!tams.length) tams = [...TAMANHOS];
+
+    const porCat = {};
+    dados.fichas.forEach((f, i) => { (porCat[f.categoria] = porCat[f.categoria] || []).push({ f, i }); });
+    const secoes = Object.keys(porCat).map((cat) => `<div class="imp-cat"><div class="imp-cat-tit">${esc(cat)}</div>` + porCat[cat].map(({ f, i }) => {
+        const ja = existentes.has(normalizarNome(f.nome));
+        return `<label class="imp-sabor${ja ? ' ja' : ''}"><input type="checkbox" value="${i}" ${ja ? 'disabled' : 'checked'}> ${esc(f.nome)}${ja ? ' <small>(já existe)</small>' : ''}</label>`;
+    }).join('') + '</div>').join('');
+
+    const ov = document.createElement('div');
+    ov.className = 'mup-overlay'; ov.id = 'modalImportar';
+    ov.innerHTML = `<div class="mup-card imp-card" role="dialog" aria-modal="true" aria-labelledby="impTit">
+        <button type="button" class="mup-fechar" aria-label="Fechar">✕</button>
+        <div class="imp-topo"><h2 id="impTit">📥 Importar cardápio pronto</h2><p>Desmarque o que você não vende. Nada do que você já cadastrou é apagado.</p></div>
+        <div class="imp-corpo">
+            <div class="imp-cat-tit">Tamanhos que você vende</div>
+            <div class="imp-tams">${TAMANHOS.map((t) => `<label class="tam-chip"><input type="checkbox" value="${t}" ${tams.includes(t) ? 'checked' : ''}> ${NOMES_TAMANHO[t]}</label>`).join('')}</div>
+            <div class="imp-acoes-sel"><button type="button" data-sel="1">Marcar todos</button> · <button type="button" data-sel="0">Desmarcar todos</button></div>
+            ${secoes}
+        </div>
+        <div class="imp-rodape"><button type="button" class="btn btn-success btn-block" id="impConfirmar">Importar</button></div>
+    </div>`;
+    document.body.appendChild(ov);
+    const fechar = () => ov.remove();
+    ov.querySelector('.mup-fechar').onclick = fechar;
+    ov.addEventListener('click', (e) => { if (e.target === ov) fechar(); });
+    const btn = ov.querySelector('#impConfirmar');
+    const atualizar = () => {
+        const n = ov.querySelectorAll('.imp-sabor input:checked').length;
+        const nt = ov.querySelectorAll('.imp-tams input:checked').length;
+        btn.disabled = !n || !nt;
+        btn.textContent = !nt ? 'Escolha pelo menos um tamanho' : n ? `Importar ${n} ${n === 1 ? 'sabor' : 'sabores'}` : 'Escolha pelo menos um sabor';
+    };
+    ov.querySelectorAll('input').forEach((i) => i.addEventListener('change', atualizar));
+    ov.querySelectorAll('[data-sel]').forEach((b) => b.onclick = () => {
+        ov.querySelectorAll('.imp-sabor input:not(:disabled)').forEach((i) => { i.checked = b.dataset.sel === '1'; });
+        atualizar();
+    });
+    atualizar();
+    btn.onclick = () => {
+        const sabores = [...ov.querySelectorAll('.imp-sabor input:checked')].map((i) => dados.fichas[+i.value]);
+        const tamanhos = TAMANHOS.filter((t) => ov.querySelector('.imp-tams input[value="' + t + '"]').checked);
+        const res = importarCardapioPronto(dados, sabores, tamanhos);
+        fechar();
+        mostrarResultadoImportacao(res);
+    };
+}
+
+function importarCardapioPronto(dados, sabores, tamanhos) {
+    const chaveParaId = {};
+    const usadas = new Set();
+    sabores.forEach((f) => tamanhos.forEach((t) => Object.keys(f.qtd[t] || {}).forEach((c) => usadas.add(c))));
+    const massaVazia = !(DB.massa && DB.massa.ingredientes && DB.massa.ingredientes.length);
+    if (massaVazia && dados.massa) dados.massa.ingredientes.forEach((m) => usadas.add(m.chave));
+
+    const baseNome = (n) => normalizarNome(String(n).split('(')[0]);
+    let novosIns = 0, reaproveitados = 0;
+    dados.insumos.forEach((ins) => {
+        if (!usadas.has(ins.chave)) return;
+        const achado = DB.insumos.find((i) => normalizarNome(i.nome) === normalizarNome(ins.nome) || baseNome(i.nome) === baseNome(ins.nome));
+        if (achado) { chaveParaId[ins.chave] = achado.id; reaproveitados++; return; }
+        const novo = {
+            id: gerarId(), nome: ins.nome, categoria: ins.categoria, unidade: ins.unidade,
+            qtdEmb: ins.qtdEmb, precoEmb: ins.precoEmb, custoUn: calcCustoUnBase(ins.precoEmb, ins.qtdEmb, ins.unidade),
+            revisarPreco: true
+        };
+        DB.insumos.push(novo); chaveParaId[ins.chave] = novo.id; novosIns++;
+    });
+
+    let massaPreenchida = false;
+    if (massaVazia && dados.massa) {
+        DB.massa.ingredientes = dados.massa.ingredientes.filter((m) => chaveParaId[m.chave]).map((m) => ({ insumoId: chaveParaId[m.chave], quantidade: m.quantidade }));
+        DB.massa.pesoTotal = dados.massa.pesoTotal;
+        massaPreenchida = DB.massa.ingredientes.length > 0;
+    }
+
+    const existentes = new Set(DB.fichas.map((f) => normalizarNome(f.nome)));
+    let novosSabores = 0, pulados = 0;
+    sabores.forEach((sab) => {
+        if (existentes.has(normalizarNome(sab.nome))) { pulados++; return; }
+        const grupoId = gerarId();
+        tamanhos.forEach((t) => {
+            const ingredientes = Object.entries(sab.qtd[t] || {}).filter(([c]) => chaveParaId[c]).map(([c, q]) => {
+                const ins = DB.insumos.find((i) => i.id === chaveParaId[c]);
+                return { insumoId: ins.id, nome: ins.nome, quantidade: q, unidade: unidadeBase(ins.unidade), custo: (ins.custoUn || 0) * q };
+            });
+            DB.fichas.push({ id: gerarId(), grupoId, nome: sab.nome, categoria: sab.categoria, tamanho: t, precoVenda: 0, incMassa: true, ingredientes });
+        });
+        existentes.add(normalizarNome(sab.nome));
+        novosSabores++;
+    });
+
+    DB.config = DB.config || {};
+    DB.config.cardapioImportadoEm = Date.now();
+    lembrarTamanhos(tamanhos);
+    persistirDados(true, '✅ Cardápio importado!');
+    sincronizarUI();
+    loadMassaUI();
+    renderCardCardapio();
+    return { novosSabores, pulados, novosIns, reaproveitados, massaPreenchida, tamanhos };
+}
+
+function mostrarResultadoImportacao(r) {
+    const ov = document.createElement('div');
+    ov.className = 'mup-overlay'; ov.id = 'modalImportado';
+    ov.innerHTML = `<div class="mup-card imp-card" role="dialog" aria-modal="true">
+        <div class="imp-topo"><h2>✅ ${r.novosSabores} ${r.novosSabores === 1 ? 'sabor importado' : 'sabores importados'}</h2>
+        <p>${r.novosSabores * r.tamanhos.length} fichas criadas (${r.tamanhos.join(', ')}).${r.pulados ? ' ' + r.pulados + ' já existiam e foram mantidos como estavam.' : ''}</p></div>
+        <div class="imp-corpo">
+            <p><b>Faltam 2 passos para o lucro ficar certo:</b></p>
+            <ol class="imp-passos">
+                <li>${r.novosIns ? `<b>Confira o preço de ${r.novosIns} ${r.novosIns === 1 ? 'ingrediente' : 'ingredientes'}</b> na aba Insumos (marcados com ⚠️). Eles vieram com um preço de referência.` : 'Os ingredientes já estavam cadastrados, com o seu preço.'}${r.reaproveitados ? ` ${r.reaproveitados} já existiam e mantiveram o seu preço.` : ''}</li>
+                <li><b>Coloque o preço de venda</b> de cada sabor na aba Fichas (✏️). ${isPro ? 'O painel já mostra quanto cobrar para bater sua meta.' : ''}</li>
+            </ol>
+            ${r.massaPreenchida ? '<p class="imp-obs">🥖 Sua massa estava vazia: colocamos uma receita básica (1 kg de farinha, fermento, sal, açúcar e óleo). Ajuste na aba Massa se a sua for diferente.</p>' : ''}
+            <p class="imp-obs">As quantidades são uma base para pizza de 35 cm na Grande. Ajuste qualquer sabor ao jeito da sua casa.</p>
+        </div>
+        <div class="imp-rodape"><button type="button" class="btn btn-warning btn-block" id="impIrConferir">${r.novosIns ? '⚠️ Conferir preços agora' : 'Ir para as fichas'}</button></div>
+    </div>`;
+    document.body.appendChild(ov);
+    ov.querySelector('#impIrConferir').onclick = () => {
+        ov.remove();
+        if (r.novosIns) irParaConferir(); else document.querySelector('.nav-tab[data-page="fichas"]')?.click();
+    };
+}
