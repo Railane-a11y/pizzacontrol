@@ -25,6 +25,9 @@
   .passo p { margin:3px 0 0; }
   .passo strong { color:#1a202c; }
   .dica { background:#fff8e1; border:1px solid #ffe082; border-radius:10px; padding:12px 14px; font-size:.9rem; margin:6px 0 18px; }
+.vip { display:none; background:#fff3f3; border:2px solid #e53935; border-radius:12px; padding:16px; margin:0 0 18px; }
+  .vip h2 { font-size:1.05rem; margin:0 0 6px; color:#c62828; }
+  .vip p { font-size:.92rem; margin:0 0 12px; }
   .btn { display:block; text-align:center; text-decoration:none; font-weight:800; padding:15px; border-radius:10px; margin-bottom:10px; }
   .btn-principal { background:linear-gradient(135deg,#e53935,#c62828); color:#fff; box-shadow:0 6px 18px rgba(198,40,40,.3); }
   .btn-zap { background:#25d366; color:#fff; }
@@ -39,6 +42,11 @@
     <h1>Pagamento aprovado! 🎉</h1>
   </div>
   <div class="corpo">
+    <div class="vip" id="vip">
+      <h2>🤝 Implantação VIP confirmada!</h2>
+      <p>Escolha o melhor dia e horário para a nossa chamada de vídeo de até 1 hora. Vamos montar juntos seus ingredientes, as fichas dos sabores e os custos.</p>
+      <a class="btn btn-principal" id="btnAgenda" href="#" target="_blank" rel="noopener">AGENDAR MINHA IMPLANTAÇÃO</a>
+    </div>
     <div class="abas">
       <button class="aba ativa" data-painel="nova">Primeira compra</button>
       <button class="aba" data-painel="upgrade">Comprei o Upgrade PRO</button>
@@ -60,11 +68,18 @@
 
     <a class="btn btn-principal" href="https://app.pizzacontrol.com.br/app.html">ENTRAR NO PIZZACONTROL</a>
     <a class="btn btn-zap" href="https://wa.me/5598970260090?text=Ol%C3%A1%2C%20comprei%20o%20PizzaControl%20e%20preciso%20de%20ajuda%20com%20o%20acesso" target="_blank" rel="noopener">💬 Precisa de ajuda? Chame no WhatsApp</a>
-    <div class="dica">🎁 <strong>Comprou o PRO?</strong> Assim que entrar no app, o quadro <strong>"Seus bônus do Plano PRO"</strong> aparece no topo do painel, com o botão para entrar no <strong>Grupo Pizzaiolos de Elite</strong> e o do <strong>Suporte VIP</strong>.</div>
-    <p class="rodape"><a href="termos.html">Termos de Uso</a> · <a href="privacidade.html">Privacidade</a></p>
+    <p class="rodape">Clientes PRO: chame no WhatsApp para entrar no Grupo de Pizzaiolos.<br><a href="termos.html">Termos de Uso</a> · <a href="privacidade.html">Privacidade</a></p>
   </div>
 </div>
 <script>
+  // LINK DA AGENDA: cole entre as aspas o link da sua página de agendamento do Google Agenda.
+  // Enquanto estiver vazio, o botão abre o WhatsApp para combinar o horário.
+  var LINK_AGENDA = 'https://calendar.app.google/pRkvKyU1cuv9p5Ae9';
+  if (new URLSearchParams(location.search).get('vip') === '1') {
+    document.getElementById('vip').style.display = 'block';
+    document.getElementById('btnAgenda').href = LINK_AGENDA ||
+      'https://wa.me/5598970260090?text=' + encodeURIComponent('Olá! Comprei a Implantação VIP do PizzaControl e quero agendar minha chamada.');
+  }
   document.querySelectorAll('.aba').forEach(function (aba) {
     aba.addEventListener('click', function () {
       document.querySelectorAll('.aba').forEach(function (a) { a.classList.remove('ativa'); });
