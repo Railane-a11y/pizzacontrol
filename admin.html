@@ -1,421 +1,169 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PizzaControl — Painel Administrativo</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: #0f0f1a;
-            color: #fff;
-            min-height: 100vh;
-            display: none; /* Escondido até admin ser verificado */
-        }
-
-        /* HEADER */
-        .admin-header {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-            padding: 20px 30px;
-            display: flex; align-items: center; justify-content: space-between;
-            flex-wrap: wrap; gap: 12px;
-        }
-        .admin-header-left {
-            display: flex; align-items: center; gap: 14px;
-        }
-        .admin-header-left .admin-icon {
-            font-size: 2rem;
-        }
-        .admin-header-left h1 {
-            font-size: 1.4rem; font-weight: 800;
-            background: linear-gradient(135deg, #fff, #e94560);
-            -webkit-background-clip: text; background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .admin-header-left p {
-            font-size: 0.8rem; color: rgba(255,255,255,0.4); margin-top: 2px;
-        }
-        .admin-header-right {
-            display: flex; align-items: center; gap: 12px;
-        }
-        .admin-email {
-            font-size: 0.8rem; color: rgba(255,255,255,0.5);
-        }
-        .btn-voltar, .btn-sair {
-            padding: 8px 18px; border-radius: 10px; border: none;
-            font-size: 0.8rem; font-weight: 600; cursor: pointer;
-            font-family: 'Inter', sans-serif; transition: all 0.3s;
-        }
-        .btn-voltar {
-            background: rgba(255,255,255,0.08); color: #fff;
-            border: 1px solid rgba(255,255,255,0.15);
-        }
-        .btn-voltar:hover { background: rgba(255,255,255,0.15); }
-        .btn-sair {
-            background: rgba(233,69,96,0.15); color: #e94560;
-            border: 1px solid rgba(233,69,96,0.3);
-        }
-        .btn-sair:hover { background: rgba(233,69,96,0.25); }
-
-        /* STATS CARDS */
-        .admin-stats {
-            display: flex; gap: 16px; padding: 24px 30px;
-            flex-wrap: wrap;
-        }
-        .stat-card {
-            flex: 1; min-width: 160px;
-            background: linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 16px; padding: 20px;
-            text-align: center;
-        }
-        .stat-card .stat-icon { font-size: 1.6rem; margin-bottom: 8px; }
-        .stat-card .stat-value {
-            font-size: 2rem; font-weight: 800; margin-bottom: 4px;
-        }
-        .stat-card .stat-label {
-            font-size: 0.75rem; color: rgba(255,255,255,0.4);
-            text-transform: uppercase; letter-spacing: 1px;
-        }
-        .stat-ativos .stat-value { color: #4caf50; }
-        .stat-vencidos .stat-value { color: #e94560; }
-        .stat-total .stat-value { color: #ff9800; }
-        .stat-receita .stat-value { color: #42a5f5; }
-
-        /* SEARCH + TABLE CONTAINER */
-        .admin-content {
-            padding: 0 30px 30px;
-        }
-        .admin-toolbar {
-            display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 16px; flex-wrap: wrap; gap: 12px;
-        }
-        .admin-toolbar h2 {
-            font-size: 1.1rem; font-weight: 700; color: rgba(255,255,255,0.8);
-        }
-        .search-box {
-            display: flex; align-items: center;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px; padding: 0 14px; gap: 8px;
-        }
-        .search-box span { color: rgba(255,255,255,0.3); }
-        .search-box input {
-            background: transparent; border: none; outline: none;
-            color: #fff; font-family: 'Inter', sans-serif;
-            font-size: 0.85rem; padding: 10px 0; width: 200px;
-        }
-        .search-box input::placeholder { color: rgba(255,255,255,0.25); }
-
-        /* TABLE */
-        .table-wrapper {
-            background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 16px; overflow: hidden;
-        }
-        table {
-            width: 100%; border-collapse: collapse;
-        }
-        thead th {
-            text-align: left; padding: 14px 16px;
-            font-size: 0.7rem; font-weight: 700;
-            text-transform: uppercase; letter-spacing: 1px;
-            color: rgba(255,255,255,0.35);
-            background: rgba(255,255,255,0.02);
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-        }
-        tbody tr {
-            border-bottom: 1px solid rgba(255,255,255,0.04);
-            transition: background 0.2s;
-        }
-        tbody tr:hover { background: rgba(255,255,255,0.03); }
-        tbody tr:last-child { border-bottom: none; }
-        tbody td {
-            padding: 14px 16px; font-size: 0.85rem;
-            color: rgba(255,255,255,0.75);
-        }
-
-        /* BADGES */
-        .badge {
-            display: inline-block; padding: 4px 12px;
-            border-radius: 8px; font-size: 0.7rem;
-            font-weight: 700; text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .badge-ativo {
-            background: rgba(76,175,80,0.15); color: #66bb6a;
-            border: 1px solid rgba(76,175,80,0.3);
-        }
-        .badge-vencido {
-            background: rgba(233,69,96,0.15); color: #e94560;
-            border: 1px solid rgba(233,69,96,0.3);
-        }
-        .badge-plano {
-            background: rgba(66,165,245,0.1); color: #64b5f6;
-            border: 1px solid rgba(66,165,245,0.2);
-        }
-
-        /* LOADING */
-        .admin-loading {
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            padding: 60px 20px; color: rgba(255,255,255,0.5);
-        }
-        .admin-spinner {
-            width: 36px; height: 36px;
-            border: 4px solid rgba(255,255,255,0.1);
-            border-top-color: #e94560; border-radius: 50%;
-            animation: adminSpin 0.8s linear infinite;
-            margin-bottom: 16px;
-        }
-        @keyframes adminSpin { to { transform: rotate(360deg); } }
-
-        /* EMPTY STATE */
-        .empty-state {
-            text-align: center; padding: 60px 20px;
-            color: rgba(255,255,255,0.3);
-        }
-        .empty-state span { font-size: 3rem; display: block; margin-bottom: 12px; }
-
-        /* RESPONSIVE */
-        @media (max-width: 768px) {
-            .admin-header { padding: 16px 20px; }
-            .admin-stats { padding: 16px 20px; }
-            .admin-content { padding: 0 20px 20px; }
-            .stat-card { min-width: 140px; padding: 14px; }
-            .stat-card .stat-value { font-size: 1.5rem; }
-            .table-wrapper { overflow-x: auto; }
-            table { min-width: 700px; }
-        }
-        @media (max-width: 480px) {
-            .admin-header-left h1 { font-size: 1.1rem; }
-            .search-box input { width: 140px; }
-        }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>PizzaControl · Admin</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{--bg:#0f1117;--card:#181b24;--line:#2a2f3d;--txt:#e8eaf0;--sub:#9aa1b2;--red:#e53e3e;--yel:#f6c90e;--grn:#22c55e;--blu:#60a5fa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:15px}
+header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+.logo{font-weight:800;font-size:18px}.logo b{color:var(--yel)}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+.login{max-width:380px;margin:60px auto}
+.login h1{font-size:20px;margin-bottom:6px}.login p{color:var(--sub);margin-bottom:18px;font-size:14px}
+input,select{width:100%;background:#11141b;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:12px;font-size:15px;margin-bottom:12px}
+button{background:var(--red);color:#fff;border:0;border-radius:10px;padding:12px 16px;font-weight:700;font-size:15px;cursor:pointer}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--txt)}
+.err{color:#fca5a5;font-size:14px;margin-top:8px;white-space:pre-wrap}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.stat .n{font-size:30px;font-weight:800}.stat .l{color:var(--sub);font-size:13px;margin-top:2px}
+.tools{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.tools input,.tools select{margin:0;flex:1;min-width:180px}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:10px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--sub);font-size:12px;text-transform:uppercase;letter-spacing:.06em;cursor:pointer}
+.tag{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.pro{background:rgba(246,201,14,.15);color:var(--yel)}.basico{background:rgba(96,165,250,.15);color:var(--blu)}
+.reembolsado,.outro{background:rgba(229,62,62,.15);color:#fca5a5}
+.sim{color:var(--grn);font-weight:700}
+.muted{color:var(--sub)}
+.uid{font-family:ui-monospace,monospace;background:#11141b;border:1px solid var(--line);padding:10px;border-radius:8px;word-break:break-all;margin:10px 0;user-select:all}
+.hide{display:none}
+</style>
 </head>
 <body>
-    <!-- HEADER -->
-    <header class="admin-header">
-        <div class="admin-header-left">
-            <span class="admin-icon">👑</span>
-            <div>
-                <h1>Painel Administrativo</h1>
-                <p>Visão local offline deste dispositivo</p>
-            </div>
-        </div>
-        <div class="admin-header-right">
-            <span class="admin-email" id="adminEmail"></span>
-            <button class="btn-voltar" onclick="window.location.href='app.html'">← Voltar</button>
-            <button class="btn-sair" id="btnSair">Sair</button>
-        </div>
-    </header>
+<header><div class="logo">Pizza<b>Control</b> · Admin</div><button id="sair" class="ghost hide">Sair</button></header>
+<main>
+  <section id="telaLogin" class="card login">
+    <h1>Painel do administrador</h1>
+    <p>Entre com a sua conta de administrador.</p>
+    <input id="email" type="email" placeholder="E-mail" autocomplete="username">
+    <input id="senha" type="password" placeholder="Senha" autocomplete="current-password">
+    <button id="entrar" style="width:100%">Entrar</button>
+    <div id="erroLogin" class="err"></div>
+  </section>
 
-    <!-- STATS -->
-    <div class="admin-stats">
-        <div class="stat-card stat-total">
-            <div class="stat-icon">👥</div>
-            <div class="stat-value" id="statTotal">—</div>
-            <div class="stat-label">Total Clientes</div>
-        </div>
-        <div class="stat-card stat-ativos">
-            <div class="stat-icon">✅</div>
-            <div class="stat-value" id="statAtivos">—</div>
-            <div class="stat-label">Ativos</div>
-        </div>
-        <div class="stat-card stat-vencidos">
-            <div class="stat-icon">⚠️</div>
-            <div class="stat-value" id="statVencidos">—</div>
-            <div class="stat-label">Vencidos</div>
-        </div>
-        <div class="stat-card stat-receita">
-            <div class="stat-icon">💰</div>
-            <div class="stat-value" id="statReceita">—</div>
-            <div class="stat-label">Receita Mensal Est.</div>
-        </div>
+  <section id="semPermissao" class="card login hide">
+    <h1>Sem permissão de administrador</h1>
+    <p>Você entrou, mas as regras do Firebase ainda não liberam o painel para esta conta. Copie o código abaixo e coloque no lugar de COLE_SEU_UID_AQUI nas regras do Firestore.</p>
+    <div id="meuUid" class="uid"></div>
+    <div id="erroPerm" class="err"></div>
+  </section>
+
+  <section id="painel" class="hide">
+    <div class="stats">
+      <div class="card stat"><div class="n" id="sTotal">0</div><div class="l">Clientes cadastrados</div></div>
+      <div class="card stat"><div class="n" id="sPro">0</div><div class="l">Plano PRO</div></div>
+      <div class="card stat"><div class="n" id="sBasico">0</div><div class="l">Plano Básico</div></div>
+      <div class="card stat"><div class="n" id="sReemb">0</div><div class="l">Reembolsados</div></div>
+      <div class="card stat"><div class="n" id="sCard">0</div><div class="l">Com Cardápio Pronto</div></div>
     </div>
-
-    <!-- TABLE -->
-    <div class="admin-content">
-        <div class="admin-toolbar">
-            <h2>📋 Clientes Cadastrados</h2>
-            <div class="search-box">
-                <span>🔍</span>
-                <input type="text" id="searchInput" placeholder="Buscar por e-mail..." oninput="filtrarTabela()">
-            </div>
-        </div>
-        <div class="table-wrapper">
-            <div class="admin-loading" id="loadingState">
-                <div class="admin-spinner"></div>
-                <p>Carregando clientes...</p>
-            </div>
-            <table id="tabelaClientes" style="display:none;">
-                <thead>
-                    <tr>
-                        <th>E-mail</th>
-                        <th>Pizzaria</th>
-                        <th>Plano</th>
-                        <th>Último Pgto</th>
-                        <th>Vencimento</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="corpoTabela"></tbody>
-            </table>
-            <div class="empty-state" id="emptyState" style="display:none;">
-                <span>📭</span>
-                <p>Nenhum cliente encontrado.</p>
-            </div>
-        </div>
+    <div class="card">
+      <div class="tools">
+        <input id="busca" placeholder="Buscar por e-mail ou pedido">
+        <select id="filtro"><option value="">Todos os planos</option><option value="pro">PRO</option><option value="basico">Básico</option><option value="reembolsado">Reembolsados</option></select>
+        <button id="csv" class="ghost">Baixar CSV</button>
+        <button id="atualizar" class="ghost">Atualizar</button>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th data-k="email">E-mail</th><th data-k="plano">Plano</th><th data-k="cardapio">Cardápio Pronto</th><th data-k="pedidoCakto">Pedido Cakto</th><th data-k="criadoEm">Cadastro</th></tr></thead>
+        <tbody id="linhas"></tbody>
+      </table></div>
+      <p class="muted" id="rodape" style="margin-top:12px;font-size:13px"></p>
     </div>
+  </section>
+</main>
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyAzrYsr6S2hMkgeG9ZOJ0MnkuT0V81a3rc",
+  authDomain: "pizzacontrol-oficial.firebaseapp.com",
+  projectId: "pizzacontrol-oficial",
+  storageBucket: "pizzacontrol-oficial.firebasestorage.app",
+  messagingSenderId: "1066316732970",
+  appId: "1:1066316732970:web:617739279818c1ef698153"
+});
+const auth = firebase.auth(), db = firebase.firestore();
+const $ = id => document.getElementById(id);
+let dados = [], ordem = {k: 'email', asc: true};
 
-    <script>
-        const SESSION_KEY = 'pizzaControlSession';
-        const STORAGE_KEY = 'pizzaControlLocalDB_v1';
-        const LEGACY_KEYS = ['pizzaControlFinal', 'pizzaControlDados', 'pizzaControlV3', 'pizzaControlV2', 'pizzaControl'];
+$('entrar').onclick = async () => {
+  $('erroLogin').textContent = '';
+  try { await auth.signInWithEmailAndPassword($('email').value.trim(), $('senha').value); }
+  catch (e) { $('erroLogin').textContent = 'Não foi possível entrar: confira o e-mail e a senha.'; }
+};
+$('senha').addEventListener('keydown', e => { if (e.key === 'Enter') $('entrar').click(); });
+$('sair').onclick = () => auth.signOut();
+$('atualizar').onclick = carregar;
+$('busca').oninput = desenhar; $('filtro').onchange = desenhar;
+document.querySelectorAll('th').forEach(th => th.onclick = () => {
+  const k = th.dataset.k; ordem = {k, asc: ordem.k === k ? !ordem.asc : true}; desenhar();
+});
 
-        function obterSessao() {
-            const pin = localStorage.getItem('pizzaControlPinMaster');
-            if (!/^\d{4,6}$/.test(pin || '')) return null;
+auth.onAuthStateChanged(u => {
+  ['telaLogin', 'semPermissao', 'painel'].forEach(id => $(id).classList.add('hide'));
+  $('sair').classList.toggle('hide', !u);
+  if (!u) { $('telaLogin').classList.remove('hide'); return; }
+  carregar();
+});
 
-            const raw = localStorage.getItem(SESSION_KEY);
-            if (!raw) return null;
-            try {
-                const sessao = JSON.parse(raw);
-                return sessao && (sessao.authenticated === true || sessao.user) ? sessao : null;
-            } catch (err) {
-                localStorage.removeItem(SESSION_KEY);
-                return null;
-            }
-        }
+async function carregar() {
+  const u = auth.currentUser; if (!u) return;
+  try {
+    const [us, ex] = await Promise.all([db.collection('usuarios').get(), db.collection('extras').get()]);
+    const card = {};
+    ex.forEach(d => { const x = d.data(); card[(x.email || d.id).toLowerCase()] = x.cardapioPronto === true; });
+    dados = us.docs.map(d => {
+      const x = d.data(); const email = (x.email || '').toLowerCase();
+      return {uid: d.id, email, plano: x.plano || '', pedidoCakto: x.pedidoCakto || '', criadoEm: x.criadoEm || '', cardapio: !!card[email]};
+    });
+    $('painel').classList.remove('hide');
+    $('rodape').textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR') + ' · ' + dados.length + ' cadastros lidos.';
+    desenhar();
+  } catch (e) {
+    $('semPermissao').classList.remove('hide');
+    $('meuUid').textContent = u.uid;
+    $('erroPerm').textContent = e.code === 'permission-denied' ? '' : 'Erro: ' + (e.message || e);
+  }
+}
 
-        function obterDadosLocais() {
-            const keys = [STORAGE_KEY, ...LEGACY_KEYS];
-            for (const key of keys) {
-                const raw = localStorage.getItem(key);
-                if (!raw) continue;
-                try {
-                    return JSON.parse(raw);
-                } catch (err) {
-                    console.warn('Falha ao ler key local:', key, err);
-                }
-            }
-            return null;
-        }
+function desenhar() {
+  const q = $('busca').value.trim().toLowerCase(), f = $('filtro').value;
+  $('sTotal').textContent = dados.length;
+  $('sPro').textContent = dados.filter(d => d.plano === 'pro').length;
+  $('sBasico').textContent = dados.filter(d => d.plano === 'basico').length;
+  $('sReemb').textContent = dados.filter(d => d.plano === 'reembolsado').length;
+  $('sCard').textContent = dados.filter(d => d.cardapio).length;
+  let l = dados.filter(d => (!f || d.plano === f) && (!q || d.email.includes(q) || String(d.pedidoCakto).toLowerCase().includes(q)));
+  l.sort((a, b) => { const x = String(a[ordem.k]), y = String(b[ordem.k]); return (x < y ? -1 : x > y ? 1 : 0) * (ordem.asc ? 1 : -1); });
+  $('linhas').innerHTML = '';
+  for (const d of l) {
+    const tr = document.createElement('tr');
+    const cls = ['pro', 'basico', 'reembolsado'].includes(d.plano) ? d.plano : 'outro';
+    const nome = {pro: 'PRO', basico: 'Básico', reembolsado: 'Reembolsado'}[d.plano] || (d.plano || 'sem plano');
+    [d.email, null, d.cardapio ? 'Sim' : '—', d.pedidoCakto || '—', d.criadoEm || '—'].forEach((v, i) => {
+      const td = document.createElement('td');
+      if (i === 1) { const s = document.createElement('span'); s.className = 'tag ' + cls; s.textContent = nome; td.appendChild(s); }
+      else { td.textContent = v; if (i === 2 && d.cardapio) td.className = 'sim'; if (v === '—') td.classList.add('muted'); }
+      tr.appendChild(td);
+    });
+    $('linhas').appendChild(tr);
+  }
+}
 
-        function montarLinhaLocal(sessao, dados) {
-            const config = dados && dados.config ? dados.config : {};
-            const nomePizzaria = (config.nomePizzaria || '').trim() || 'Não informada';
-
-            return {
-                email: sessao.user || 'acesso-local',
-                nome_pizzaria: nomePizzaria,
-                plano: 'offline',
-                ultimoPagamento: null,
-                data_vencimento: null,
-                status: 'Ativo'
-            };
-        }
-
-        function formatarData(campo) {
-            if (!campo) return '—';
-            const data = new Date(campo);
-            if (isNaN(data.getTime())) return '—';
-            const dia = String(data.getDate()).padStart(2, '0');
-            const mes = String(data.getMonth() + 1).padStart(2, '0');
-            const ano = data.getFullYear();
-            return `${dia}/${mes}/${ano}`;
-        }
-
-        function calcularStatus(cliente) {
-            return cliente.status || 'Ativo';
-        }
-
-        window._todosClientes = [];
-
-        function renderizarTabela(clientes) {
-            window._todosClientes = clientes;
-            const corpo = document.getElementById('corpoTabela');
-            const loading = document.getElementById('loadingState');
-            const tabela = document.getElementById('tabelaClientes');
-            const empty = document.getElementById('emptyState');
-
-            loading.style.display = 'none';
-
-            if (!clientes.length) {
-                empty.style.display = 'block';
-                tabela.style.display = 'none';
-                corpo.innerHTML = '';
-                return;
-            }
-
-            empty.style.display = 'none';
-            tabela.style.display = 'table';
-            corpo.innerHTML = '';
-
-            clientes.forEach((cliente) => {
-                const tr = document.createElement('tr');
-                const email = cliente.email || '—';
-                const pizzaria = cliente.nome_pizzaria || '—';
-                const plano = cliente.plano || '—';
-                const ultimoPgto = cliente.ultimoPagamento ? `R$ ${Number(cliente.ultimoPagamento).toFixed(2)}` : '—';
-                const vencimento = formatarData(cliente.data_vencimento);
-                const status = calcularStatus(cliente);
-
-                tr.innerHTML = `
-                    <td style="font-weight:600; color:#fff;">${email}</td>
-                    <td>${pizzaria}</td>
-                    <td><span class="badge badge-plano">${plano}</span></td>
-                    <td>${ultimoPgto}</td>
-                    <td>${vencimento}</td>
-                    <td><span class="badge ${status === 'Ativo' ? 'badge-ativo' : 'badge-vencido'}">${status}</span></td>
-                `;
-                corpo.appendChild(tr);
-            });
-        }
-
-        function atualizarStats(clientes) {
-            const total = clientes.length;
-            const ativos = clientes.filter((c) => calcularStatus(c) === 'Ativo').length;
-            const vencidos = total - ativos;
-
-            document.getElementById('statTotal').textContent = total;
-            document.getElementById('statAtivos').textContent = ativos;
-            document.getElementById('statVencidos').textContent = vencidos;
-            document.getElementById('statReceita').textContent = 'R$ 0';
-        }
-
-        function carregarVisaoLocal(sessao) {
-            const dados = obterDadosLocais();
-            const clientes = [montarLinhaLocal(sessao, dados)];
-            renderizarTabela(clientes);
-            atualizarStats(clientes);
-        }
-
-        window.filtrarTabela = function() {
-            const termo = document.getElementById('searchInput').value.toLowerCase();
-            const filtrados = window._todosClientes.filter(
-                (c) =>
-                    (c.email && c.email.toLowerCase().includes(termo)) ||
-                    (c.nome_pizzaria && c.nome_pizzaria.toLowerCase().includes(termo))
-            );
-            renderizarTabela(filtrados);
-        };
-
-        const sessao = obterSessao();
-        if (!sessao) {
-            window.location.replace('index.html');
-        } else {
-            document.getElementById('adminEmail').textContent = sessao.user || 'Acesso local';
-            document.getElementById('btnSair').addEventListener('click', () => {
-                localStorage.removeItem(SESSION_KEY);
-                window.location.href = 'index.html';
-            });
-            document.body.style.display = 'block';
-            carregarVisaoLocal(sessao);
-        }
-    </script>
+$('csv').onclick = () => {
+  const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
+  const rows = [['email', 'plano', 'cardapio_pronto', 'pedido_cakto', 'cadastro']].concat(dados.map(d => [d.email, d.plano, d.cardapio ? 'sim' : 'nao', d.pedidoCakto, d.criadoEm]));
+  const blob = new Blob(['﻿' + rows.map(r => r.map(esc).join(';')).join('\n')], {type: 'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'clientes-pizzacontrol.csv'; a.click();
+};
+</script>
 </body>
 </html>
