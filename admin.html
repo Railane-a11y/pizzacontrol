@@ -65,6 +65,7 @@ th{color:var(--sub);font-size:12px;text-transform:uppercase;letter-spacing:.06em
       <div class="card stat"><div class="n" id="sBasico">0</div><div class="l">Plano Básico</div></div>
       <div class="card stat"><div class="n" id="sReemb">0</div><div class="l">Reembolsados</div></div>
       <div class="card stat"><div class="n" id="sCard">0</div><div class="l">Com Cardápio Pronto</div></div>
+      <div class="card stat"><div class="n" id="sVip">0</div><div class="l">Implantação VIP</div></div>
     </div>
     <div class="card">
       <div class="tools">
@@ -74,7 +75,7 @@ th{color:var(--sub);font-size:12px;text-transform:uppercase;letter-spacing:.06em
         <button id="atualizar" class="ghost">Atualizar</button>
       </div>
       <div class="tw"><table>
-        <thead><tr><th data-k="email">E-mail</th><th data-k="plano">Plano</th><th data-k="cardapio">Cardápio Pronto</th><th data-k="pedidoCakto">Pedido Cakto</th><th data-k="criadoEm">Cadastro</th></tr></thead>
+        <thead><tr><th data-k="email">E-mail</th><th data-k="plano">Plano</th><th data-k="cardapio">Cardápio Pronto</th><th data-k="vip">Implantação VIP</th><th data-k="pedidoCakto">Pedido Cakto</th><th data-k="criadoEm">Cadastro</th></tr></thead>
         <tbody id="linhas"></tbody>
       </table></div>
       <p class="muted" id="rodape" style="margin-top:12px;font-size:13px"></p>
@@ -118,11 +119,11 @@ async function carregar() {
   const u = auth.currentUser; if (!u) return;
   try {
     const [us, ex] = await Promise.all([db.collection('usuarios').get(), db.collection('extras').get()]);
-    const card = {};
-    ex.forEach(d => { const x = d.data(); card[(x.email || d.id).toLowerCase()] = x.cardapioPronto === true; });
+    const card = {}, vip = {};
+    ex.forEach(d => { const x = d.data(); const k = (x.email || d.id).toLowerCase(); card[k] = x.cardapioPronto === true; vip[k] = x.implantacaoVip === true ? (x.implantacaoCompradaEm || 'Sim') : ''; });
     dados = us.docs.map(d => {
       const x = d.data(); const email = (x.email || '').toLowerCase();
-      return {uid: d.id, email, plano: x.plano || '', pedidoCakto: x.pedidoCakto || '', criadoEm: x.criadoEm || '', cardapio: !!card[email]};
+      return {uid: d.id, email, plano: x.plano || '', pedidoCakto: x.pedidoCakto || '', criadoEm: x.criadoEm || '', cardapio: !!card[email], vip: vip[email] || ''};
     });
     $('painel').classList.remove('hide');
     $('rodape').textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR') + ' · ' + dados.length + ' cadastros lidos.';
@@ -141,6 +142,7 @@ function desenhar() {
   $('sBasico').textContent = dados.filter(d => d.plano === 'basico').length;
   $('sReemb').textContent = dados.filter(d => d.plano === 'reembolsado').length;
   $('sCard').textContent = dados.filter(d => d.cardapio).length;
+  $('sVip').textContent = dados.filter(d => d.vip).length;
   let l = dados.filter(d => (!f || d.plano === f) && (!q || d.email.includes(q) || String(d.pedidoCakto).toLowerCase().includes(q)));
   l.sort((a, b) => { const x = String(a[ordem.k]), y = String(b[ordem.k]); return (x < y ? -1 : x > y ? 1 : 0) * (ordem.asc ? 1 : -1); });
   $('linhas').innerHTML = '';
@@ -148,10 +150,10 @@ function desenhar() {
     const tr = document.createElement('tr');
     const cls = ['pro', 'basico', 'reembolsado'].includes(d.plano) ? d.plano : 'outro';
     const nome = {pro: 'PRO', basico: 'Básico', reembolsado: 'Reembolsado'}[d.plano] || (d.plano || 'sem plano');
-    [d.email, null, d.cardapio ? 'Sim' : '—', d.pedidoCakto || '—', d.criadoEm || '—'].forEach((v, i) => {
+    [d.email, null, d.cardapio ? 'Sim' : '—', d.vip ? 'Sim · ' + d.vip : '—', d.pedidoCakto || '—', d.criadoEm || '—'].forEach((v, i) => {
       const td = document.createElement('td');
       if (i === 1) { const s = document.createElement('span'); s.className = 'tag ' + cls; s.textContent = nome; td.appendChild(s); }
-      else { td.textContent = v; if (i === 2 && d.cardapio) td.className = 'sim'; if (v === '—') td.classList.add('muted'); }
+      else { td.textContent = v; if ((i === 2 && d.cardapio) || (i === 3 && d.vip)) td.className = 'sim'; if (v === '—') td.classList.add('muted'); }
       tr.appendChild(td);
     });
     $('linhas').appendChild(tr);
@@ -160,7 +162,7 @@ function desenhar() {
 
 $('csv').onclick = () => {
   const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
-  const rows = [['email', 'plano', 'cardapio_pronto', 'pedido_cakto', 'cadastro']].concat(dados.map(d => [d.email, d.plano, d.cardapio ? 'sim' : 'nao', d.pedidoCakto, d.criadoEm]));
+  const rows = [['email', 'plano', 'cardapio_pronto', 'implantacao_vip', 'pedido_cakto', 'cadastro']].concat(dados.map(d => [d.email, d.plano, d.cardapio ? 'sim' : 'nao', d.vip ? 'sim' : 'nao', d.pedidoCakto, d.criadoEm]));
   const blob = new Blob(['﻿' + rows.map(r => r.map(esc).join(';')).join('\n')], {type: 'text/csv;charset=utf-8'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'clientes-pizzacontrol.csv'; a.click();
 };
