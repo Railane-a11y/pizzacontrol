@@ -31,7 +31,14 @@
   .btn { display:block; text-align:center; text-decoration:none; font-weight:800; padding:15px; border-radius:10px; margin-bottom:10px; }
   .btn-principal { background:linear-gradient(135deg,#e53935,#c62828); color:#fff; box-shadow:0 6px 18px rgba(198,40,40,.3); }
   .btn-zap { background:#25d366; color:#fff; }
-  .rodape { text-align:center; font-size:.8rem; color:#a0aec0; margin-top:6px; }
+  .reenvio { border:2px dashed #e2e8f0; border-radius:12px; padding:14px; margin:0 0 18px; }
+ .reenvio p { margin:0 0 10px; }
+ .reenvio input { width:100%; padding:13px 12px; border:2px solid #cbd5e0; border-radius:10px; font-size:1rem; font-family:inherit; margin-bottom:10px; }
+ .reenvio .btn { width:100%; border:0; cursor:pointer; font-size:1rem; font-family:inherit; margin-bottom:0; }
+ .reenvio .msg { margin:10px 0 0; font-size:.92rem; }
+ .reenvio .ok { color:#2f855a; font-weight:700; }
+ .reenvio .erro { color:#c53030; font-weight:700; }
+ .rodape { text-align:center; font-size:.8rem; color:#a0aec0; margin-top:6px; }
   .rodape a { color:#a0aec0; }
 </style>
 </head>
@@ -56,7 +63,13 @@
       <div class="passo"><div class="num">1</div><p><strong>Abra seu e-mail.</strong> Em até 5 minutos chega uma mensagem para você criar sua senha.</p></div>
       <div class="passo"><div class="num">2</div><p><strong>Clique no link do e-mail</strong> e crie sua senha.</p></div>
       <div class="passo"><div class="num">3</div><p><strong>Entre no sistema</strong> com o e-mail usado na compra e a senha que você criou.</p></div>
-      <div class="dica">📭 <strong>Não achou o e-mail?</strong> Procure no <strong>Spam</strong> e em <strong>Promoções</strong>. Se mesmo assim não aparecer, abra o sistema, clique em <strong>"Esqueci minha senha"</strong> e digite o e-mail da compra para receber o link de novo.</div>
+      <div class="dica">📭 <strong>O e-mail pode vir escrito "redefinir senha".</strong> É assim mesmo: é por ele que você cria a sua senha. Se não estiver na caixa de entrada, procure no <strong>Spam</strong>, em <strong>Promoções</strong> e em <strong>Lixeira</strong>.</div>
+      <div class="reenvio">
+        <p><strong>Não chegou? Peça de novo aqui:</strong></p>
+        <input type="email" id="emailReenvio" placeholder="Digite o e-mail que você usou na compra" autocomplete="email" inputmode="email">
+        <button type="button" class="btn btn-principal" id="btnReenvio">REENVIAR MEU E-MAIL DE ACESSO</button>
+        <p class="msg" id="msgReenvio" role="status"></p>
+      </div>
     </div>
 
     <div class="painel" id="upgrade">
@@ -88,6 +101,30 @@
       document.getElementById(aba.dataset.painel).classList.add('ativo');
     });
   });
+
+  // Reenvio do e-mail de criação de senha (mesmo envio que o Make faz depois da compra).
+  (function () {
+    var KEY = 'AIzaSyAzrYsr6S2hMkgeG9ZOJ0MnkuT0V81a3rc';
+    var btn = document.getElementById('btnReenvio'), inp = document.getElementById('emailReenvio'), msg = document.getElementById('msgReenvio');
+    function aviso(txt, cls) { msg.textContent = txt; msg.className = 'msg ' + cls; }
+    btn.addEventListener('click', function () {
+      var email = (inp.value || '').trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { aviso('Digite o e-mail completo, por exemplo: seunome@gmail.com', 'erro'); return; }
+      btn.disabled = true; btn.textContent = 'ENVIANDO...';
+      fetch('https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=' + KEY, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestType: 'PASSWORD_RESET', email: email })
+      }).then(function (r) { return r.json(); }).then(function (d) {
+        var e = d && d.error && d.error.message || '';
+        if (!e) aviso('Pronto! Se esse for o e-mail da compra, o link chega em até 5 minutos. Olhe também no Spam e em Promoções.', 'ok');
+        else if (e.indexOf('EMAIL_NOT_FOUND') === 0) aviso('Esse e-mail não está cadastrado. Confira se é exatamente o mesmo que você usou na compra. Se tiver dúvida, chame no WhatsApp aqui embaixo.', 'erro');
+        else if (e.indexOf('TOO_MANY') === 0 || e.indexOf('RESET_PASSWORD_EXCEED_LIMIT') === 0) aviso('Já enviamos vários e-mails para esse endereço. Espere alguns minutos e olhe no Spam, ou chame no WhatsApp.', 'erro');
+        else aviso('Não consegui enviar agora. Chame no WhatsApp aqui embaixo que eu libero seu acesso.', 'erro');
+      }).catch(function () {
+        aviso('Sem conexão. Tente de novo ou chame no WhatsApp aqui embaixo.', 'erro');
+      }).then(function () { btn.disabled = false; btn.textContent = 'REENVIAR MEU E-MAIL DE ACESSO'; });
+    });
+  })();
   if (location.hash === '#upgrade') document.querySelector('[data-painel="upgrade"]').click();
 </script>
 </body>
