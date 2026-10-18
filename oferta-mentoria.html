@@ -50,6 +50,7 @@ cakto-upsell-reject:hover::part(button){color:#fff}
 .depoimento{font-style:italic}
 .video-wrap{position:relative;width:100%;max-width:290px;margin:0 auto 6px;aspect-ratio:9/16;border-radius:18px;overflow:hidden;background:#000;box-shadow:0 12px 34px rgba(0,0,0,.5);border:2px solid #2d3748}
 .video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.video-wrap video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
 .video-dica{text-align:center;color:var(--cinza);font-size:.82rem;margin-bottom:6px}
 
 @media (prefers-reduced-motion:no-preference){.oferta-box{animation:brilho 2.4s ease-in-out infinite}
@@ -62,6 +63,9 @@ cakto-upsell-reject:hover::part(button){color:#fff}
 <main>
   <h1>Quer que eu olhe <span>a sua pizzaria</span> junto com você por 30 dias?</h1>
   <p class="sub">A Implantação deixa o sistema pronto. Na Mentoria, eu entro nos números da sua pizzaria e te mostro, um por um, os ajustes para sobrar mais dinheiro.</p>
+
+  <div class="video-wrap"><video src="mentoria.mp4" poster="mentoria-capa.jpg" controls playsinline preload="metadata"></video></div>
+  <p class="video-dica">🔊 Toque no vídeo e ligue o som</p>
 
   <div class="card">
     <h2>O que você recebe</h2>
