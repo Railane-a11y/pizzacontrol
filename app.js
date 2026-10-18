@@ -1806,6 +1806,12 @@ function atualizarCustosDaFicha(f) {
     f.cmv = f.precoVenda > 0 ? (((f.custoIng || 0) + f.custoMassa) / f.precoVenda) * 100 : 0;
 }
 
+// Cor da margem: verde na meta ou acima, laranja abaixo da meta, vermelho no prejuízo.
+function corMargem(m) {
+    const meta = metaLucroFracao() * 100;
+    return m < 0 ? 'var(--danger)' : (m >= meta - 0.05 ? 'var(--success)' : '#dd6b20');
+}
+
 function renderFichas() {
     DB.fichas.forEach((f) => atualizarCustosDaFicha(f));
     const cnt = { P: 0, M: 0, G: 0, GG: 0 };
@@ -1836,7 +1842,7 @@ function renderFichas() {
     grid.innerHTML = fichas
         .map(
             (f) =>
-                `<div class="ficha-card ${f.tamanho}"><div class="ficha-header"><div><h3>${esc(f.nome)}</h3><small>${esc(f.categoria)}</small></div><span class="badge-size ${f.tamanho}">${f.tamanho}</span></div><div class="ficha-body"><div class="ficha-stats"><div class="ficha-stat"><small>Custo</small><div class="val red">${brl(f.custoTotal)}</div></div><div class="ficha-stat"><small>Venda</small><div class="val blue">${f.precoVenda > 0 ? brl(f.precoVenda) : '<span class="sem-preco">definir</span>'}</div></div><div class="ficha-stat"><small>Lucro real</small><div class="val ${f.lucro >= 0 ? 'green' : 'red'}">${f.precoVenda > 0 ? brl(f.lucro) : '-'}</div></div></div>${!(f.precoVenda > 0) && isPro && f.precoIdeal ? `<div class="ficha-meta-sug">🎯 Para bater sua meta: <b>${brl(f.precoIdeal)}</b></div>` : ''}<div class="ficha-details">Ing: ${brl((f.custoIng || 0))} | Massa: ${brl(f.custoMassa)} | Fixo: ${brl(f.custoFixo)}${f.taxas > 0 ? ' | Taxas: ' + brl(f.taxas) : ''} | CMV: ${pct(f.cmv)}</div><div class="ficha-actions"><button class="btn btn-warning btn-sm" onclick="editarFicha('${f.id}')">✏️</button><button class="btn btn-purple btn-sm" onclick="duplicarFicha('${f.id}')">📋</button><button class="btn btn-danger btn-sm" onclick="excluirFicha('${f.id}')">🗑️</button></div></div></div>`
+                `<div class="ficha-card ${f.tamanho}"><div class="ficha-header"><div><h3>${esc(f.nome)}</h3><small>${esc(f.categoria)}</small></div><span class="badge-size ${f.tamanho}">${f.tamanho}</span></div><div class="ficha-body"><div class="ficha-stats"><div class="ficha-stat"><small>Custo</small><div class="val red">${brl(f.custoTotal)}</div></div><div class="ficha-stat"><small>Venda</small><div class="val blue">${f.precoVenda > 0 ? brl(f.precoVenda) : '<span class="sem-preco">definir</span>'}</div></div><div class="ficha-stat"><small>Lucro real</small><div class="val ${f.lucro >= 0 ? 'green' : 'red'}">${f.precoVenda > 0 ? brl(f.lucro) : '-'}</div>${f.precoVenda > 0 ? `<div class="ficha-margem" style="color:${corMargem(f.margemReal)}">${pct(f.margemReal)} de margem</div>` : ''}</div></div>${!(f.precoVenda > 0) && isPro && f.precoIdeal ? `<div class="ficha-meta-sug">🎯 Para bater sua meta: <b>${brl(f.precoIdeal)}</b></div>` : ''}<div class="ficha-details">Ing: ${brl((f.custoIng || 0))} | Massa: ${brl(f.custoMassa)} | Fixo: ${brl(f.custoFixo)}${f.taxas > 0 ? ' | Taxas: ' + brl(f.taxas) : ''} | CMV: ${pct(f.cmv)}</div><div class="ficha-actions"><button class="btn btn-warning btn-sm" onclick="editarFicha('${f.id}')">✏️</button><button class="btn btn-purple btn-sm" onclick="duplicarFicha('${f.id}')">📋</button><button class="btn btn-danger btn-sm" onclick="excluirFicha('${f.id}')">🗑️</button></div></div></div>`
         )
         .join('');
 }
@@ -1908,16 +1914,16 @@ function renderDashboard() {
     if (DB.fichas.length > 0) {
         const top = DB.fichas.filter((f) => f.precoVenda > 0).sort((a, b) => b.lucro - a.lucro).slice(0, 5);
 
-        const htmlTable = `<table class="top5-desktop"><thead><tr><th>🍕 Pizza</th><th>$$ Venda</th><th>📈 Lucro</th></tr></thead><tbody>${top
+        const htmlTable = `<table class="top5-desktop"><thead><tr><th>🍕 Pizza</th><th>$$ Venda</th><th>📈 Lucro</th><th>📊 Margem</th></tr></thead><tbody>${top
             .map(
                 (f) =>
-                    `<tr><td><strong>${esc(f.nome)}</strong><br><small style="color:#777">Custo: ${brl(f.custoTotal)}</small></td><td>${brl(f.precoVenda)}</td><td style="color:var(--success);font-weight:bold">${brl(f.lucro)}</td></tr>`
+                    `<tr><td><strong>${esc(f.nome)}</strong><br><small style="color:#777">Custo: ${brl(f.custoTotal)}</small></td><td>${brl(f.precoVenda)}</td><td style="color:var(--success);font-weight:bold">${brl(f.lucro)}</td><td style="color:${corMargem(f.margemReal)};font-weight:bold">${pct(f.margemReal)}</td></tr>`
             )
             .join('')}</tbody></table>`;
         const htmlCards = `<div class="top5-mobile"><div class="top5-list">${top
             .map(
                 (f) =>
-                    `<div class="top5-mobile-card"><div class="t-title">${esc(f.nome)}</div><div class="t-row"><span>Custo: ${brl(f.custoTotal)}</span></div><div class="t-row"><span>$$ Venda: ${brl(f.precoVenda)}</span></div><div class="t-profit">💰 Lucro: ${brl(f.lucro)}</div></div>`
+                    `<div class="top5-mobile-card"><div class="t-title">${esc(f.nome)}</div><div class="t-row"><span>Custo: ${brl(f.custoTotal)}</span></div><div class="t-row"><span>$$ Venda: ${brl(f.precoVenda)}</span></div><div class="t-profit">💰 Lucro: ${brl(f.lucro)} | Margem: <span style="color:${corMargem(f.margemReal)}">${pct(f.margemReal)}</span></div></div>`
             )
             .join('')}</div></div>`;
 
