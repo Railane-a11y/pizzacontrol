@@ -37,6 +37,15 @@ th{color:var(--sub);font-size:12px;text-transform:uppercase;letter-spacing:.06em
 .muted{color:var(--sub)}
 .uid{font-family:ui-monospace,monospace;background:#11141b;border:1px solid var(--line);padding:10px;border-radius:8px;word-break:break-all;margin:10px 0;user-select:all}
 .hide{display:none}
+.acoes{display:flex;gap:6px}
+.acoes button{padding:6px 10px;font-size:12px;border-radius:8px}
+.acoes .b2{background:#334155}.acoes .b3{background:#b45309}
+.alerta{color:#fbbf24;font-size:12px;margin-left:6px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.msg{background:#11141b;border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:10px;white-space:pre-wrap;font-size:14px}
+.ok{color:#86efac}
+h2{font-size:17px;margin-bottom:4px}
+.sub2{color:var(--sub);font-size:13px;margin-bottom:12px}
 </style>
 </head>
 <body>
@@ -66,16 +75,29 @@ th{color:var(--sub);font-size:12px;text-transform:uppercase;letter-spacing:.06em
       <div class="card stat"><div class="n" id="sReemb">0</div><div class="l">Reembolsados</div></div>
       <div class="card stat"><div class="n" id="sCard">0</div><div class="l">Com Cardápio Pronto</div></div>
       <div class="card stat"><div class="n" id="sVip">0</div><div class="l">Implantação VIP</div></div>
+      <div class="card stat"><div class="n" id="sMent">0</div><div class="l">Mentoria Individual</div></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <h2>Liberar acesso manual</h2>
+      <p class="sub2">Para cliente que pagou e não recebeu acesso, ou comprou com e-mail errado. Cria o login com uma senha provisória e já libera o plano.</p>
+      <div class="grid2">
+        <input id="nEmail" type="email" placeholder="E-mail certo do cliente" autocapitalize="none" autocorrect="off" spellcheck="false">
+        <select id="nPlano"><option value="pro">PRO</option><option value="basico">Básico</option></select>
+        <input id="nSenha" type="text" value="pizza2026" placeholder="Senha provisória (mín. 6)" autocapitalize="none" autocorrect="off" spellcheck="false">
+        <input id="nPedido" type="text" placeholder="Pedido Cakto (opcional)">
+      </div>
+      <button id="nCriar">Criar acesso</button>
+      <div id="nMsg"></div>
     </div>
     <div class="card">
       <div class="tools">
         <input id="busca" placeholder="Buscar por e-mail ou pedido">
-        <select id="filtro"><option value="">Todos os planos</option><option value="pro">PRO</option><option value="basico">Básico</option><option value="reembolsado">Reembolsados</option></select>
+        <select id="filtro"><option value="">Todos os planos</option><option value="pro">PRO</option><option value="basico">Básico</option><option value="reembolsado">Reembolsados</option><option value="migrado">Trocaram de e-mail</option><option value="problema">⚠ Com problema no cadastro</option></select>
         <button id="csv" class="ghost">Baixar CSV</button>
         <button id="atualizar" class="ghost">Atualizar</button>
       </div>
       <div class="tw"><table>
-        <thead><tr><th data-k="email">E-mail</th><th data-k="plano">Plano</th><th data-k="cardapio">Cardápio Pronto</th><th data-k="vip">Implantação VIP</th><th data-k="pedidoCakto">Pedido Cakto</th><th data-k="criadoEm">Cadastro</th></tr></thead>
+        <thead><tr><th data-k="email">E-mail</th><th>Ações</th><th data-k="plano">Plano</th><th data-k="cardapio">Cardápio Pronto</th><th data-k="vip">Implantação VIP</th><th data-k="ment">Mentoria</th><th data-k="pedidoCakto">Pedido Cakto</th><th data-k="criadoEm">Cadastro</th></tr></thead>
         <tbody id="linhas"></tbody>
       </table></div>
       <p class="muted" id="rodape" style="margin-top:12px;font-size:13px"></p>
@@ -83,16 +105,22 @@ th{color:var(--sub);font-size:12px;text-transform:uppercase;letter-spacing:.06em
   </section>
 </main>
 <script>
-firebase.initializeApp({
+const CFG = {
   apiKey: "AIzaSyAzrYsr6S2hMkgeG9ZOJ0MnkuT0V81a3rc",
   authDomain: "pizzacontrol-oficial.firebaseapp.com",
   projectId: "pizzacontrol-oficial",
   storageBucket: "pizzacontrol-oficial.firebasestorage.app",
   messagingSenderId: "1066316732970",
   appId: "1:1066316732970:web:617739279818c1ef698153"
-});
+};
+firebase.initializeApp(CFG);
+// Segundo "app" só para criar logins de clientes sem derrubar a sua sessão de admin.
+const appCriador = firebase.initializeApp(CFG, 'criador');
+const authCriador = appCriador.auth();
+authCriador.setPersistence(firebase.auth.Auth.Persistence.NONE);
 const auth = firebase.auth(), db = firebase.firestore();
 const $ = id => document.getElementById(id);
+const PLANOS = ['pro', 'basico', 'reembolsado', 'migrado'];
 let dados = [], ordem = {k: 'email', asc: true};
 
 $('entrar').onclick = async () => {
@@ -104,7 +132,7 @@ $('senha').addEventListener('keydown', e => { if (e.key === 'Enter') $('entrar')
 $('sair').onclick = () => auth.signOut();
 $('atualizar').onclick = carregar;
 $('busca').oninput = desenhar; $('filtro').onchange = desenhar;
-document.querySelectorAll('th').forEach(th => th.onclick = () => {
+document.querySelectorAll('th[data-k]').forEach(th => th.onclick = () => {
   const k = th.dataset.k; ordem = {k, asc: ordem.k === k ? !ordem.asc : true}; desenhar();
 });
 
@@ -115,15 +143,33 @@ auth.onAuthStateChanged(u => {
   carregar();
 });
 
+const agora = () => { const d = new Date(), z = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()) + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()); };
+const emailValido = e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+
+// Procura problemas de digitação no cadastro (espaço no nome do campo ou no valor, maiúscula, plano estranho).
+function problemas(x) {
+  const p = [];
+  Object.keys(x).forEach(k => { if (k !== k.trim()) p.push('campo "' + k + '" com espaço'); });
+  if (typeof x.email === 'string' && x.email !== x.email.trim().toLowerCase()) p.push('e-mail com espaço ou maiúscula');
+  const plano = planoDe(x);
+  if (!PLANOS.includes(plano)) p.push('plano inválido');
+  else if (x.plano !== plano) p.push('plano digitado errado');
+  return p;
+}
+function planoDe(x) {
+  for (const k of Object.keys(x)) if (k.trim().toLowerCase() === 'plano') return String(x[k]).trim().toLowerCase();
+  return '';
+}
+
 async function carregar() {
   const u = auth.currentUser; if (!u) return;
   try {
     const [us, ex] = await Promise.all([db.collection('usuarios').get(), db.collection('extras').get()]);
-    const card = {}, vip = {};
-    ex.forEach(d => { const x = d.data(); const k = (x.email || d.id).toLowerCase(); card[k] = x.cardapioPronto === true; vip[k] = x.implantacaoVip === true ? (x.implantacaoCompradaEm || 'Sim') : ''; });
+    const card = {}, vip = {}, ment = {};
+    ex.forEach(d => { const x = d.data(); const k = (x.email || d.id).toLowerCase(); card[k] = x.cardapioPronto === true; vip[k] = x.implantacaoVip === true ? (x.implantacaoCompradaEm || 'Sim') : ''; ment[k] = x.mentoriaIndividual === true ? (x.mentoriaCompradaEm || 'Sim') : ''; });
     dados = us.docs.map(d => {
-      const x = d.data(); const email = (x.email || '').toLowerCase();
-      return {uid: d.id, email, plano: x.plano || '', pedidoCakto: x.pedidoCakto || '', criadoEm: x.criadoEm || '', cardapio: !!card[email], vip: vip[email] || ''};
+      const x = d.data(); const email = String(x.email || '').trim().toLowerCase();
+      return {uid: d.id, raw: x, email, plano: planoDe(x), pedidoCakto: x.pedidoCakto || '', criadoEm: x.criadoEm || '', cardapio: !!card[email], vip: vip[email] || '', ment: ment[email] || '', prob: problemas(x)};
     });
     $('painel').classList.remove('hide');
     $('rodape').textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR') + ' · ' + dados.length + ' cadastros lidos.';
@@ -137,32 +183,119 @@ async function carregar() {
 
 function desenhar() {
   const q = $('busca').value.trim().toLowerCase(), f = $('filtro').value;
-  $('sTotal').textContent = dados.length;
+  $('sTotal').textContent = dados.filter(d => d.plano !== 'migrado').length;
   $('sPro').textContent = dados.filter(d => d.plano === 'pro').length;
   $('sBasico').textContent = dados.filter(d => d.plano === 'basico').length;
   $('sReemb').textContent = dados.filter(d => d.plano === 'reembolsado').length;
   $('sCard').textContent = dados.filter(d => d.cardapio).length;
   $('sVip').textContent = dados.filter(d => d.vip).length;
-  let l = dados.filter(d => (!f || d.plano === f) && (!q || d.email.includes(q) || String(d.pedidoCakto).toLowerCase().includes(q)));
+  $('sMent').textContent = dados.filter(d => d.ment).length;
+  let l = dados.filter(d => (!f || d.plano === f || (f === 'problema' && d.prob.length)) && (!q || d.email.includes(q) || String(d.pedidoCakto).toLowerCase().includes(q)));
   l.sort((a, b) => { const x = String(a[ordem.k]), y = String(b[ordem.k]); return (x < y ? -1 : x > y ? 1 : 0) * (ordem.asc ? 1 : -1); });
   $('linhas').innerHTML = '';
   for (const d of l) {
     const tr = document.createElement('tr');
     const cls = ['pro', 'basico', 'reembolsado'].includes(d.plano) ? d.plano : 'outro';
-    const nome = {pro: 'PRO', basico: 'Básico', reembolsado: 'Reembolsado'}[d.plano] || (d.plano || 'sem plano');
-    [d.email, null, d.cardapio ? 'Sim' : '—', d.vip ? 'Sim · ' + d.vip : '—', d.pedidoCakto || '—', d.criadoEm || '—'].forEach((v, i) => {
+    const nome = {pro: 'PRO', basico: 'Básico', reembolsado: 'Reembolsado', migrado: 'Trocou de e-mail'}[d.plano] || (d.plano || 'sem plano');
+    [d.email, null, d.cardapio ? 'Sim' : '—', d.vip ? 'Sim · ' + d.vip : '—', d.ment ? 'Sim · ' + d.ment : '—', d.pedidoCakto || '—', d.criadoEm || '—'].forEach((v, i) => {
       const td = document.createElement('td');
-      if (i === 1) { const s = document.createElement('span'); s.className = 'tag ' + cls; s.textContent = nome; td.appendChild(s); }
-      else { td.textContent = v; if ((i === 2 && d.cardapio) || (i === 3 && d.vip)) td.className = 'sim'; if (v === '—') td.classList.add('muted'); }
+      if (i === 1) {
+        const s = document.createElement('span'); s.className = 'tag ' + cls; s.textContent = nome; td.appendChild(s);
+        if (d.prob.length) { const a = document.createElement('span'); a.className = 'alerta'; a.textContent = '⚠ ' + d.prob.join(', '); td.appendChild(a); }
+      } else { td.textContent = v; if ((i === 2 && d.cardapio) || (i === 3 && d.vip) || (i === 4 && d.ment)) td.className = 'sim'; if (v === '—') td.classList.add('muted'); }
       tr.appendChild(td);
     });
+    const ta = document.createElement('td'); const box = document.createElement('div'); box.className = 'acoes';
+    const bt = (txt, cls, fn) => { const b = document.createElement('button'); b.textContent = txt; if (cls) b.className = cls; b.onclick = () => fn(d, b); box.appendChild(b); };
+    if (d.plano !== 'migrado') {
+      bt('Reenviar acesso', 'b2', reenviar);
+      bt('Trocar e-mail', '', trocarEmail);
+    }
+    if (d.prob.length) bt('Corrigir', 'b3', corrigir);
+    ta.appendChild(box); tr.insertBefore(ta, tr.children[1]);
     $('linhas').appendChild(tr);
   }
 }
 
+function textoAcesso(email, senha) {
+  return 'Liberei seu acesso ao PizzaControl!\n1. Abra app.pizzacontrol.com.br\n2. E-mail: ' + email + '\n3. Senha: ' + senha + ' (tudo minúsculo, sem espaço)\nSe quiser, depois troque a senha em "Esqueci minha senha".';
+}
+
+async function criarLogin(email, senha) {
+  const c = await authCriador.createUserWithEmailAndPassword(email, senha);
+  const uid = c.user.uid; await authCriador.signOut(); return uid;
+}
+function erroCriacao(e) {
+  if (e.code === 'auth/email-already-in-use') return 'Esse e-mail já tem login. Use "Reenviar acesso" na lista. Se o e-mail não chega para o cliente, apague esse usuário no Firebase (Authentication › ⋮ › Excluir conta) e crie de novo aqui.';
+  if (e.code === 'auth/weak-password') return 'Senha fraca: use pelo menos 6 caracteres.';
+  if (e.code === 'auth/invalid-email') return 'E-mail inválido.';
+  if (e.code === 'permission-denied') return 'O login foi criado, mas as regras do Firebase não deixaram gravar o plano. Publique as regras novas do Firestore e tente "Corrigir".';
+  return 'Erro: ' + (e.message || e);
+}
+
+$('nCriar').onclick = async () => {
+  const email = $('nEmail').value.trim().toLowerCase(), plano = $('nPlano').value, senha = $('nSenha').value.trim(), pedido = $('nPedido').value.trim();
+  const out = $('nMsg'); out.className = 'msg'; out.textContent = '';
+  if (!emailValido(email)) { out.textContent = 'Digite um e-mail válido.'; return; }
+  if (senha.length < 6) { out.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
+  $('nCriar').disabled = true; $('nCriar').textContent = 'Criando...';
+  try {
+    const uid = await criarLogin(email, senha);
+    await db.collection('usuarios').doc(uid).set({email, plano, origem: 'manual', pedidoCakto: pedido, criadoEm: agora()});
+    out.classList.add('ok');
+    out.textContent = '✅ Acesso criado. Mande para o cliente:\n\n' + textoAcesso(email, senha);
+    $('nEmail').value = ''; $('nPedido').value = '';
+    carregar();
+  } catch (e) { out.textContent = erroCriacao(e); }
+  $('nCriar').disabled = false; $('nCriar').textContent = 'Criar acesso';
+};
+
+async function reenviar(d, b) {
+  if (!confirm('Enviar de novo o e-mail para criar a senha para ' + d.email + '?')) return;
+  try { await auth.sendPasswordResetEmail(d.email); alert('E-mail enviado para ' + d.email + '. Peça para olhar também no Spam e em Promoções.\nSe não chegar (comum no Outlook/Hotmail): apague o login dele no Firebase (Authentication › ⋮ › Excluir conta) e use "Criar acesso" aqui no topo com uma senha provisória.'); }
+  catch (e) { alert('Não consegui enviar: ' + (e.code === 'auth/user-not-found' ? 'esse e-mail não tem login. Use "Criar acesso" no topo.' : (e.message || e))); }
+}
+
+async function trocarEmail(d) {
+  const novo = (prompt('E-mail CERTO do cliente (o atual é ' + d.email + '):') || '').trim().toLowerCase();
+  if (!novo) return;
+  if (!emailValido(novo)) { alert('E-mail inválido.'); return; }
+  if (novo === d.email) { alert('É o mesmo e-mail. Para quem não consegue entrar, use "Reenviar acesso".'); return; }
+  const senha = (prompt('Senha provisória para o cliente (mínimo 6):', 'pizza2026') || '').trim();
+  if (senha.length < 6) { alert('A senha precisa ter pelo menos 6 caracteres.'); return; }
+  if (!confirm('Vou criar o acesso em ' + novo + ' com o plano ' + (d.plano || '?') + ' e desativar o cadastro antigo (' + d.email + '). Continuar?')) return;
+  try {
+    const uid = await criarLogin(novo, senha);
+    const x = d.raw;
+    await db.collection('usuarios').doc(uid).set({email: novo, plano: d.plano, origem: 'troca', pedidoCakto: x.pedidoCakto || '', trocadoDe: d.email, criadoEm: agora()});
+    // Compras extras (Cardápio, VIP, Mentoria) passam para o e-mail novo.
+    const ex = await db.collection('extras').doc(d.email).get();
+    if (ex.exists) await db.collection('extras').doc(novo).set(Object.assign({}, ex.data(), {email: novo}));
+    // Dados da pizzaria (insumos, fichas) passam para a conta nova.
+    try { const dc = await db.collection('dadosClientes').doc(d.uid).get(); if (dc.exists) await db.collection('dadosClientes').doc(uid).set(dc.data()); } catch (e) { /* sem dados ou sem permissão: segue */ }
+    await db.collection('usuarios').doc(d.uid).update({plano: 'migrado', migradoPara: novo});
+    prompt('✅ Pronto! Copie e mande para o cliente:', textoAcesso(novo, senha).replace(/\n/g, ' '));
+    carregar();
+  } catch (e) { alert(erroCriacao(e)); }
+}
+
+async function corrigir(d) {
+  const plano = planoDe(d.raw);
+  const final = PLANOS.includes(plano) ? plano : (prompt('Qual o plano certo? Digite pro ou basico:', 'pro') || '').trim().toLowerCase();
+  if (!PLANOS.includes(final)) { alert('Plano inválido.'); return; }
+  try {
+    const ref = db.collection('usuarios').doc(d.uid);
+    const args = ['email', d.email, 'plano', final];
+    Object.keys(d.raw).forEach(k => { if (k !== k.trim()) args.push(new firebase.firestore.FieldPath(k), firebase.firestore.FieldValue.delete()); });
+    await ref.update(...args);
+    alert('Cadastro corrigido: ' + d.email + ' · plano ' + final);
+    carregar();
+  } catch (e) { alert(e.code === 'permission-denied' ? 'Sem permissão para gravar. Publique as regras novas do Firestore.' : 'Erro: ' + (e.message || e)); }
+}
+
 $('csv').onclick = () => {
   const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
-  const rows = [['email', 'plano', 'cardapio_pronto', 'implantacao_vip', 'pedido_cakto', 'cadastro']].concat(dados.map(d => [d.email, d.plano, d.cardapio ? 'sim' : 'nao', d.vip ? 'sim' : 'nao', d.pedidoCakto, d.criadoEm]));
+  const rows = [['email', 'plano', 'cardapio_pronto', 'implantacao_vip', 'mentoria', 'pedido_cakto', 'cadastro']].concat(dados.map(d => [d.email, d.plano, d.cardapio ? 'sim' : 'nao', d.vip ? 'sim' : 'nao', d.ment ? 'sim' : 'nao', d.pedidoCakto, d.criadoEm]));
   const blob = new Blob(['﻿' + rows.map(r => r.map(esc).join(';')).join('\n')], {type: 'text/csv;charset=utf-8'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'clientes-pizzacontrol.csv'; a.click();
 };
