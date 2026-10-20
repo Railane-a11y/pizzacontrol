@@ -2021,6 +2021,29 @@
                     <button class="btn btn-success btn-block" style="margin-top:20px" onclick="salvarTaxas()">💾 Salvar taxas e meta</button>
                 </div>
             </div>
+            <div class="card" id="cardEquilibrio">
+                <div class="card-header" style="background:linear-gradient(135deg,#2e7d32,#43a047)">⚖️ Ponto de Equilíbrio</div>
+                <div class="card-body">
+                    <p style="color:#555;margin:0 0 16px">Quantas pizzas você precisa vender no mês <strong>só para pagar os custos fixos</strong>. Daí pra cima, é lucro.</p>
+                    <div class="custo-item"><div class="icon">🍕</div><div class="info"><strong>Preço médio da pizza</strong><small id="eqPrecoInfo">Vazio = média das suas fichas</small></div><input type="number" class="form-control" id="eqPreco" placeholder="0" step="0.01" inputmode="decimal" oninput="calcEquilibrio()"></div>
+                    <div class="custo-item"><div class="icon">🧀</div><div class="info"><strong>Custo médio dos ingredientes + massa</strong><small id="eqCustoInfo">Vazio = média das suas fichas</small></div><input type="number" class="form-control" id="eqCusto" placeholder="0" step="0.01" inputmode="decimal" oninput="calcEquilibrio()"></div>
+                    <div class="custo-item"><div class="icon">📅</div><div class="info"><strong>Dias que abre no mês</strong><small>Ex.: 26 (fecha 1 dia por semana)</small></div><input type="number" class="form-control" id="eqDias" value="26" step="1" inputmode="numeric" oninput="calcEquilibrio()"></div>
+                    <div class="total-box">
+                        <div class="total-grid">
+                            <div class="total-item"><div class="label">Sobra por pizza (paga o fixo)</div><div class="value" id="eqMC">R$ 0</div></div>
+                            <div class="total-item"><div class="label">Ponto de equilíbrio</div><div class="value highlight" id="eqPE">0 pizzas/mês</div></div>
+                            <div class="total-item"><div class="label">Por dia aberto</div><div class="value" id="eqDia">0 pizzas</div></div>
+                            <div class="total-item"><div class="label">Faturamento mínimo</div><div class="value" id="eqFat">R$ 0</div></div>
+                        </div>
+                        <p id="eqAviso" style="text-align:center;margin:12px 0 0;font-size:0.9em"></p>
+                    </div>
+                    <hr style="margin:20px 0">
+                    <div class="form-group"><label style="font-size:1.05em">🔮 Simular: se eu vender quantas pizzas no mês?</label><input type="number" class="form-control large" id="eqSim" placeholder="300" inputmode="numeric" oninput="calcEquilibrio()"></div>
+                    <div id="eqBarra" style="background:#eee;border-radius:10px;height:22px;overflow:hidden;margin:8px 0"><div id="eqBarraFill" style="height:100%;width:0;background:#43a047;transition:width .3s"></div></div>
+                    <div id="eqSimRes" style="text-align:center;font-size:1.1em;margin:10px 0"></div>
+                    <div style="overflow-x:auto"><table class="table" id="eqTabela" style="width:100%;margin-top:10px"></table></div>
+                </div>
+            </div>
         </div>
         <!-- BEBIDAS E ADICIONAIS -->
         <div class="page" id="page-produtos">
@@ -2292,7 +2315,7 @@
 
     </div><!-- /appContent -->
 
-    <script src="app.js?v=3.6.4"></script>
+    <script src="app.js?v=3.6.5"></script>
     
     <!-- Botão Suporte WhatsApp -->
     <a href="https://wa.me/5598970260090?text=Fala%20Marllon!%20Preciso%20de%20uma%20ajuda%20aqui%20no%20PizzaControl." class="btn-whatsapp-flutuante" target="_blank">
