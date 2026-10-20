@@ -1263,6 +1263,74 @@ function calcCustos() {
 
     renderFichas();
     renderDashboard();
+    calcEquilibrio();
+}
+
+// ===== PONTO DE EQUILÍBRIO =====
+// Pizzas/mês para pagar os custos fixos = custos fixos ÷ (preço − taxas − ingredientes − massa).
+function totalCustosFixosMes() {
+    const c = DB.custos || {};
+    return ['aluguel', 'energia', 'gas', 'agua', 'internet', 'func', 'gasolina', 'emb', 'mkt', 'contador', 'outros']
+        .reduce((s, k) => s + (numero(c[k]) || 0), 0);
+}
+
+function mediasDasFichas() {
+    const fs = (DB.fichas || []).filter((f) => numero(f.precoVenda) > 0);
+    if (!fs.length) return { n: 0, preco: 0, custo: 0 };
+    const soma = fs.reduce((a, f) => {
+        a.preco += numero(f.precoVenda);
+        a.custo += numero(f.custoIng) + numero(f.custoMassa);
+        return a;
+    }, { preco: 0, custo: 0 });
+    return { n: fs.length, preco: soma.preco / fs.length, custo: soma.custo / fs.length };
+}
+
+function calcEquilibrio() {
+    const el = (id) => document.getElementById(id);
+    if (!el('eqPE')) return;
+    const med = mediasDasFichas();
+    const vPreco = parseFloat(el('eqPreco').value), vCusto = parseFloat(el('eqCusto').value);
+    const preco = vPreco > 0 ? vPreco : med.preco;
+    const custo = vCusto >= 0 && el('eqCusto').value !== '' ? vCusto : med.custo;
+    el('eqPreco').placeholder = med.preco ? med.preco.toFixed(2).replace('.', ',') : '0';
+    el('eqCusto').placeholder = med.custo ? med.custo.toFixed(2).replace('.', ',') : '0';
+    el('eqPrecoInfo').textContent = med.n ? 'Vazio = média de ' + med.n + ' ficha(s): ' + brl(med.preco) : 'Cadastre fichas com preço ou digite aqui';
+    el('eqCustoInfo').textContent = med.n ? 'Vazio = média das fichas: ' + brl(med.custo) : 'Ingredientes + massa de uma pizza média';
+
+    const taxa = taxaMediaVenda(el('txImposto') ? lerTaxasUI() : DB.taxas);
+    const fixos = totalCustosFixosMes();
+    const mc = preco * (1 - taxa) - custo;
+    const dias = Math.max(1, parseFloat(el('eqDias').value) || 26);
+    const sim = parseFloat(el('eqSim').value) || numero(DB.custos && DB.custos.pizzas) || 0;
+    if (!el('eqSim').value) el('eqSim').placeholder = String(sim || 300);
+    const aviso = el('eqAviso'), tab = el('eqTabela'), res = el('eqSimRes'), fill = el('eqBarraFill');
+
+    el('eqMC').textContent = brl(mc);
+    if (!(preco > 0) || fixos <= 0 || mc <= 0) {
+        el('eqPE').textContent = '-'; el('eqDia').textContent = '-'; el('eqFat').textContent = '-';
+        aviso.innerHTML = !(preco > 0) ? '💡 Informe o preço médio da pizza (ou cadastre fichas com preço de venda).'
+            : fixos <= 0 ? '💡 Preencha os custos fixos acima para calcular.'
+            : '⚠️ Com esse preço, cada pizza <strong>não paga nem os ingredientes e as taxas</strong>. Revise o preço.';
+        res.innerHTML = ''; tab.innerHTML = ''; fill.style.width = '0';
+        return;
+    }
+    const pe = Math.ceil(fixos / mc);
+    el('eqPE').textContent = pe.toLocaleString('pt-BR') + ' pizzas/mês';
+    el('eqDia').textContent = Math.ceil(pe / dias) + ' pizzas';
+    el('eqFat').textContent = brl(pe * preco);
+    aviso.innerHTML = 'Cada pizza deixa ' + brl(mc) + ' para pagar ' + brl(fixos) + ' de custos fixos. A pizza nº <strong>' + (pe + 1) + '</strong> já é lucro.';
+
+    const lucro = (q) => q * mc - fixos;
+    const L = lucro(sim);
+    fill.style.width = Math.min(100, (sim / pe) * 100) + '%';
+    fill.style.background = sim >= pe ? '#43a047' : '#e53935';
+    res.innerHTML = sim >= pe
+        ? '✅ Vendendo <strong>' + sim + '</strong> pizzas você passa o equilíbrio em <strong>' + (sim - pe) + '</strong> e sobra <strong style="color:#2e7d32">' + brl(L) + '</strong> de lucro no mês.'
+        : '❌ Vendendo <strong>' + sim + '</strong> pizzas faltam <strong>' + (pe - sim) + '</strong> para empatar. Prejuízo de <strong style="color:#c62828">' + brl(-L) + '</strong> no mês.';
+
+    const qs = [...new Set([Math.round(pe * 0.5), pe, Math.round(pe * 1.25), Math.round(pe * 1.5), pe * 2, sim].filter((q) => q > 0))].sort((a, b) => a - b);
+    tab.innerHTML = '<tr><th style="text-align:left">Pizzas/mês</th><th>Por dia</th><th style="text-align:right">Resultado no mês</th></tr>' +
+        qs.map((q) => { const r = lucro(q); return '<tr' + (q === sim ? ' style="background:#fff8e1;font-weight:bold"' : '') + '><td>' + q + (q === pe ? ' ⚖️' : '') + '</td><td style="text-align:center">' + Math.ceil(q / dias) + '</td><td style="text-align:right;color:' + (r >= 0 ? '#2e7d32' : '#c62828') + '">' + (r >= 0 ? '+' : '−') + brl(Math.abs(r)) + '</td></tr>'; }).join('');
 }
 
 function salvarCustos() {
@@ -1352,6 +1420,7 @@ function calcTaxasPreview() {
     const t = lerTaxasUI();
     const media = taxaMediaVenda(t) * 100;
     el.textContent = pct(media);
+    if (typeof calcEquilibrio === 'function') calcEquilibrio();
     const aviso = document.getElementById('txAviso');
     if (aviso) {
         const sobra = 100 - media - t.metaLucro;
