@@ -255,7 +255,7 @@ function mensagemErroAuth(err, contexto) {
 }
 
 async function fazerLoginFirebase() {
-    const email = document.getElementById('loginEmail').value.trim();
+    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
     const senha = document.getElementById('loginSenha').value;
     const btnLogin = document.getElementById('btnLogin');
     const erroDiv = document.getElementById('loginErro');
@@ -271,7 +271,14 @@ async function fazerLoginFirebase() {
     erroDiv.style.display = 'none';
 
     try {
-        await auth.signInWithEmailAndPassword(email, senha);
+        try {
+            await auth.signInWithEmailAndPassword(email, senha);
+        } catch (e1) {
+            // O teclado do celular às vezes coloca um espaço no fim da senha: tenta de novo sem ele.
+            const semEspaco = senha.trim();
+            if (semEspaco && semEspaco !== senha) await auth.signInWithEmailAndPassword(email, semEspaco);
+            else throw e1;
+        }
         // onAuthStateChanged cuida do resto
     } catch (err) {
         btnLogin.disabled = false;
