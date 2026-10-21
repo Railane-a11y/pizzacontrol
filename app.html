@@ -2151,6 +2151,16 @@
                     </div>
                 </div>
             </div>
+            <!-- TABELA DE PREÇOS: CARDÁPIO x IFOOD -->
+            <div class="card" style="margin-top:20px" id="cardTabelaPrecos">
+                <div class="card-header" style="background:linear-gradient(135deg,#2e7d32,#c62828)">📋 Tabela de preços: Cardápio x iFood <button class="btn btn-warning btn-sm" onclick="copiarTabelaPrecos()">📋 Copiar</button></div>
+                <div class="card-body">
+                    <p style="color:#555;margin:0 0 12px">Todas as suas pizzas de uma vez, com o preço para bater a sua meta de lucro em cada canal.</p>
+                    <div class="size-tabs" id="tpTamanhos"></div>
+                    <div id="tabelaPrecos"></div>
+                    <p id="tpAviso" style="font-size:0.85em;color:#555;margin:10px 0 0"></p>
+                </div>
+            </div>
             <!-- SIMULADOR MEIO A MEIO -->
             <div class="card" style="margin-top:20px">
                 <div class="card-header" style="background:linear-gradient(135deg, #e65100, #ff9800)">🍕 Simulador Meio a Meio (2 Sabores)</div>
@@ -2315,7 +2325,7 @@
 
     </div><!-- /appContent -->
 
-    <script src="app.js?v=3.6.6"></script>
+    <script src="app.js?v=3.6.7"></script>
     
     <!-- Botão Suporte WhatsApp -->
     <a href="https://wa.me/5598970260090?text=Fala%20Marllon!%20Preciso%20de%20uma%20ajuda%20aqui%20no%20PizzaControl." class="btn-whatsapp-flutuante" target="_blank">
