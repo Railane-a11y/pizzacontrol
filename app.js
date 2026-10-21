@@ -1394,6 +1394,26 @@ function metaLucroFracao() {
 }
 
 // Preço que cobre todos os custos, as taxas e ainda deixa a meta de lucro real.
+// Preço para a meta por canal: cardápio próprio (imposto + maquininha) e app de delivery (imposto + comissão do app).
+function precosPorCanal(custoTotal, t = DB.taxas) {
+    t = t || {};
+    const meta = metaLucroFracao();
+    const imp = numero(t.imposto) / 100, cart = numero(t.cartao) / 100, app = numero(t.app) / 100;
+    const div = (x) => (x > 0.05 ? custoTotal / x : null);
+    return {
+        cardapio: div(1 - imp - cart - meta),
+        app: app > 0 ? div(1 - imp - app - meta) : null,
+        taxaCardapio: imp + cart,
+        taxaApp: imp + app
+    };
+}
+
+function linhaPrecosCanal(custoTotal) {
+    const pc = precosPorCanal(custoTotal);
+    if (!pc.cardapio) return '';
+    return '🎯 Preço para a meta: <b>Cardápio ' + brl(pc.cardapio) + '</b>' + (pc.app ? ' · <b>iFood/app ' + brl(pc.app) + '</b>' : '');
+}
+
 function calcPrecoIdeal(custoTotal) {
     const divisor = 1 - taxaMediaVenda() - metaLucroFracao();
     return divisor > 0.05 ? custoTotal / divisor : null;
@@ -1918,7 +1938,7 @@ function renderFichas() {
     grid.innerHTML = fichas
         .map(
             (f) =>
-                `<div class="ficha-card ${f.tamanho}"><div class="ficha-header"><div><h3>${esc(f.nome)}</h3><small>${esc(f.categoria)}</small></div><span class="badge-size ${f.tamanho}">${f.tamanho}</span></div><div class="ficha-body"><div class="ficha-stats"><div class="ficha-stat"><small>Custo</small><div class="val red">${brl(f.custoTotal)}</div></div><div class="ficha-stat"><small>Venda</small><div class="val blue">${f.precoVenda > 0 ? brl(f.precoVenda) : '<span class="sem-preco">definir</span>'}</div></div><div class="ficha-stat"><small>Lucro real</small><div class="val ${f.lucro >= 0 ? 'green' : 'red'}">${f.precoVenda > 0 ? brl(f.lucro) : '-'}</div>${f.precoVenda > 0 ? `<div class="ficha-margem" style="color:${corMargem(f.margemReal)}">${pct(f.margemReal)} de margem</div>` : ''}</div></div>${!(f.precoVenda > 0) && isPro && f.precoIdeal ? `<div class="ficha-meta-sug">🎯 Para bater sua meta: <b>${brl(f.precoIdeal)}</b></div>` : ''}<div class="ficha-details">Ing: ${brl((f.custoIng || 0))} | Massa: ${brl(f.custoMassa)} | Fixo: ${brl(f.custoFixo)}${f.taxas > 0 ? ' | Taxas: ' + brl(f.taxas) : ''} | CMV: ${pct(f.cmv)}</div><div class="ficha-actions"><button class="btn btn-warning btn-sm" onclick="editarFicha('${f.id}')">✏️</button><button class="btn btn-purple btn-sm" onclick="duplicarFicha('${f.id}')">📋</button><button class="btn btn-danger btn-sm" onclick="excluirFicha('${f.id}')">🗑️</button></div></div></div>`
+                `<div class="ficha-card ${f.tamanho}"><div class="ficha-header"><div><h3>${esc(f.nome)}</h3><small>${esc(f.categoria)}</small></div><span class="badge-size ${f.tamanho}">${f.tamanho}</span></div><div class="ficha-body"><div class="ficha-stats"><div class="ficha-stat"><small>Custo</small><div class="val red">${brl(f.custoTotal)}</div></div><div class="ficha-stat"><small>Venda</small><div class="val blue">${f.precoVenda > 0 ? brl(f.precoVenda) : '<span class="sem-preco">definir</span>'}</div></div><div class="ficha-stat"><small>Lucro real</small><div class="val ${f.lucro >= 0 ? 'green' : 'red'}">${f.precoVenda > 0 ? brl(f.lucro) : '-'}</div>${f.precoVenda > 0 ? `<div class="ficha-margem" style="color:${corMargem(f.margemReal)}">${pct(f.margemReal)} de margem</div>` : ''}</div></div>${isPro && linhaPrecosCanal(f.custoTotal) ? `<div class="ficha-meta-sug">${linhaPrecosCanal(f.custoTotal)}</div>` : ''}<div class="ficha-details">Ing: ${brl((f.custoIng || 0))} | Massa: ${brl(f.custoMassa)} | Fixo: ${brl(f.custoFixo)}${f.taxas > 0 ? ' | Taxas: ' + brl(f.taxas) : ''} | CMV: ${pct(f.cmv)}</div><div class="ficha-actions"><button class="btn btn-warning btn-sm" onclick="editarFicha('${f.id}')">✏️</button><button class="btn btn-purple btn-sm" onclick="duplicarFicha('${f.id}')">📋</button><button class="btn btn-danger btn-sm" onclick="excluirFicha('${f.id}')">🗑️</button></div></div></div>`
         )
         .join('');
 }
@@ -2117,6 +2137,26 @@ function calcPorCMV() {
     }
 }
 
+// Dois preços lado a lado (cardápio próprio x iFood/app) e o lucro de vender no app pelo preço do cardápio.
+function blocoCanais(f, custoTotal) {
+    const pc = precosPorCanal(custoTotal);
+    if (!pc.cardapio) return '';
+    const caixa = (titulo, preco, taxa, cor) => '<div style="flex:1;min-width:130px;background:#fff;border:2px solid ' + cor + ';border-radius:10px;padding:8px;text-align:center">' +
+        '<small style="display:block;color:#555">' + titulo + '</small><strong style="font-size:1.25em;color:' + cor + '">' + brl(preco) + '</strong>' +
+        '<small style="display:block;color:#777">taxas ' + pct(taxa * 100) + '</small></div>';
+    let html = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">' + caixa('🍕 Cardápio próprio', pc.cardapio, pc.taxaCardapio, '#2e7d32');
+    if (pc.app) {
+        html += caixa('🛵 iFood / app', pc.app, pc.taxaApp, '#c62828') + '</div>';
+        if (f.precoVenda > 0) {
+            const lucroApp = f.precoVenda - custoTotal - f.precoVenda * pc.taxaApp;
+            html += '<small style="display:block;margin-top:6px">Se vender no app pelo mesmo preço do cardápio (' + brl(f.precoVenda) + '), o lucro real cai para <b style="color:' + (lucroApp >= 0 ? '#e65100' : '#c62828') + '">' + brl(lucroApp) + '</b>.</small>';
+        }
+    } else {
+        html += '</div><small style="display:block;margin-top:6px">💡 Vende no iFood? Coloque a comissão do app em <b>Custos Fixos → Taxas</b> para ver o preço do iFood também.</small>';
+    }
+    return html;
+}
+
 function calcComFicha() {
     const id = document.getElementById('calcFicha').value;
     const res = document.getElementById('calcFichaRes');
@@ -2148,8 +2188,9 @@ function calcComFicha() {
         const ideal = calcPrecoIdeal(custoTotal);
         if (ideal) {
             const dif = ideal - f.precoVenda;
-            metaBox.innerHTML = '🎯 <strong>Preço para sua meta de ' + pct(metaLucroFracao() * 100, 0) + ' de lucro real: ' + brl(ideal) + '</strong><br><small>Hoje você cobra ' + brl(f.precoVenda) +
-                (Math.abs(dif) < 0.5 ? ' e já está na meta. ✅' : dif > 0 ? ': faltam ' + brl(dif) + ' por pizza.' : ': ' + brl(-dif) + ' acima da meta. ✅') + '</small>';
+            metaBox.innerHTML = '🎯 <strong>' + (numero(DB.taxas && DB.taxas.app) > 0 ? 'Preço médio para sua meta' : 'Preço para sua meta') + ' de ' + pct(metaLucroFracao() * 100, 0) + ' de lucro real: ' + brl(ideal) + '</strong>' + (numero(DB.taxas && DB.taxas.app) > 0 ? '<br><small>(mistura cardápio e app pelo seu % de vendas no app)</small>' : '') + '<br><small>Hoje você cobra ' + brl(f.precoVenda) +
+                (Math.abs(dif) < 0.5 ? ' e já está na meta. ✅' : dif > 0 ? ': faltam ' + brl(dif) + ' por pizza.' : ': ' + brl(-dif) + ' acima da meta. ✅') + '</small>' +
+                blocoCanais(f, custoTotal);
             metaBox.className = 'alert ' + (dif > 0.5 ? 'alert-warning' : 'alert-success');
         } else {
             metaBox.innerHTML = '⚠️ Taxas + meta de lucro passam de 95% do preço. Revise em Custos Fixos.';
