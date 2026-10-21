@@ -993,6 +993,7 @@ function setupNav() {
             }
             if (tab.dataset.page === 'precificar') {
                 loadFichasSelect();
+                renderTabelaPrecos();
                 loadFichasSelectMeioAMeio();
                 loadComboSelects();
                 calcMeioAMeio();
@@ -2207,6 +2208,49 @@ function calcComFicha() {
 }
 
 // ===== MEIO A MEIO =====
+// ===== TABELA DE PREÇOS (todas as fichas: cardápio x iFood) =====
+let tpFiltro = 'all';
+function renderTabelaPrecos(filtro) {
+    const tab = document.getElementById('tabelaPrecos');
+    if (!tab) return;
+    if (filtro) tpFiltro = filtro;
+    DB.fichas.forEach((f) => atualizarCustosDaFicha(f));
+    const ordem = { P: 1, M: 2, G: 3, GG: 4 };
+    const tams = [...new Set(DB.fichas.map((f) => f.tamanho))].sort((a, b) => (ordem[a] || 9) - (ordem[b] || 9));
+    const tabs = document.getElementById('tpTamanhos');
+    if (tabs) tabs.innerHTML = ['all'].concat(tams).map((t) => '<button class="size-tab ' + (t === 'all' ? 'all ' : '') + (tpFiltro === t ? 'active' : '') + '" onclick="renderTabelaPrecos(\'' + t + '\')">' + (t === 'all' ? 'Todas' : t) + '</button>').join('');
+    const fs = DB.fichas.filter((f) => tpFiltro === 'all' || f.tamanho === tpFiltro)
+        .sort((a, b) => (ordem[a.tamanho] || 9) - (ordem[b.tamanho] || 9) || String(a.nome).localeCompare(String(b.nome)));
+    const temApp = numero(DB.taxas && DB.taxas.app) > 0;
+    const aviso = document.getElementById('tpAviso');
+    if (!fs.length) { tab.innerHTML = '<div style="padding:12px;color:#777">Cadastre fichas para ver a tabela.</div>'; if (aviso) aviso.textContent = ''; return; }
+    tab.innerHTML = fs.map((f) => {
+            const pc = precosPorCanal(f.custoTotal);
+            const hoje = f.precoVenda > 0 ? f.precoVenda : 0;
+            const corHoje = !hoje ? '#999' : (pc.cardapio && hoje + 0.005 < pc.cardapio ? '#c62828' : '#2e7d32');
+            return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid #eee">' +
+                '<div style="min-width:0"><strong>' + esc(f.nome) + '</strong> <span class="badge-size ' + f.tamanho + '">' + f.tamanho + '</span>' +
+                '<br><small style="color:#777">custo ' + brl(f.custoTotal) + ' · cobra hoje <b style="white-space:nowrap;color:' + corHoje + '">' + (hoje ? brl(hoje) : '-') + '</b></small></div>' +
+                '<div style="text-align:right;white-space:nowrap;line-height:1.5;flex-shrink:0">' +
+                '<span style="font-weight:bold;color:#2e7d32">🍕 ' + (pc.cardapio ? brl(pc.cardapio) : '-') + '</span>' +
+                (temApp ? '<br><span style="font-weight:bold;color:#c62828">🛵 ' + (pc.app ? brl(pc.app) : '-') + '</span>' : '') + '</div></div>';
+        }).join('');
+    if (aviso) aviso.innerHTML = '🍕 = cardápio próprio' + (temApp ? ' · 🛵 = iFood/app' : '') + '. Meta de ' + pct(metaLucroFracao() * 100, 0) + ' de lucro real, já com custo fixo, massa e taxas. "Cobra hoje" em vermelho = abaixo do preço da meta no cardápio.' +
+        (temApp ? '' : '<br>💡 Vende no iFood? Coloque a comissão do app em <b>Custos Fixos → Taxas</b> para aparecer a coluna do iFood.');
+}
+
+function copiarTabelaPrecos() {
+    const temApp = numero(DB.taxas && DB.taxas.app) > 0;
+    const ordem = { P: 1, M: 2, G: 3, GG: 4 };
+    const fs = DB.fichas.filter((f) => tpFiltro === 'all' || f.tamanho === tpFiltro)
+        .sort((a, b) => (ordem[a.tamanho] || 9) - (ordem[b.tamanho] || 9) || String(a.nome).localeCompare(String(b.nome)));
+    const linhas = fs.map((f) => { const pc = precosPorCanal(f.custoTotal); return f.nome + ' (' + f.tamanho + '): Cardápio ' + (pc.cardapio ? brl(pc.cardapio) : '-') + (temApp ? ' | iFood ' + (pc.app ? brl(pc.app) : '-') : ''); });
+    const txt = '📋 Tabela de preços - PizzaControl\n' + linhas.join('\n');
+    const ok = () => status('📋 Tabela copiada! É só colar no WhatsApp ou nas suas anotações.');
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, () => prompt('Copie a tabela:', txt));
+    else prompt('Copie a tabela:', txt);
+}
+
 function loadFichasSelectMeioAMeio() {
     const selA = document.getElementById('maMSaborA');
     const selB = document.getElementById('maMSaborB');
