@@ -2006,7 +2006,7 @@
                     <div class="custo-item"><div class="icon">🏛️</div><div class="info"><strong>Imposto sobre a venda (%)</strong><small>Ex.: Simples Nacional. Se é MEI com DAS fixo, deixe 0</small></div><input type="number" class="form-control" id="txImposto" placeholder="0" step="0.1" inputmode="decimal" oninput="calcTaxasPreview()"></div>
                     <div class="custo-item"><div class="icon">💳</div><div class="info"><strong>Taxa da maquininha (%)</strong><small>Média entre débito, crédito e Pix</small></div><input type="number" class="form-control" id="txCartao" placeholder="0" step="0.1" inputmode="decimal" oninput="calcTaxasPreview()"></div>
                     <div class="custo-item"><div class="icon">🛵</div><div class="info"><strong>Comissão do app de delivery (%)</strong><small>Ex.: iFood, somando comissão e pagamento online</small></div><input type="number" class="form-control" id="txApp" placeholder="0" step="0.1" inputmode="decimal" oninput="calcTaxasPreview()"></div>
-                    <div class="custo-item"><div class="icon">📲</div><div class="info"><strong>Vendas pelo app (% do total)</strong><small>Quanto dos seus pedidos vem do app</small></div><input type="number" class="form-control" id="txVendasApp" placeholder="0" step="1" inputmode="decimal" oninput="calcTaxasPreview()"></div>
+                    <div class="custo-item"><div class="icon">📲</div><div class="info"><strong>Vendas pelo app (% do total)</strong><small>Quanto dos seus pedidos vem do app. Usado no lucro médio; os preços do cardápio e do iFood aparecem separados em cada ficha</small></div><input type="number" class="form-control" id="txVendasApp" placeholder="0" step="1" inputmode="decimal" oninput="calcTaxasPreview()"></div>
                     <hr style="margin:20px 0">
                     <div class="custo-item"><div class="icon">🎯</div><div class="info"><strong>Meta de lucro real (%)</strong><small>Quanto quer que sobre limpo de cada pizza</small></div><input type="number" class="form-control" id="txMeta" value="15" step="1" inputmode="decimal" oninput="calcTaxasPreview()"></div>
                     <div class="total-box">
@@ -2315,7 +2315,7 @@
 
     </div><!-- /appContent -->
 
-    <script src="app.js?v=3.6.5"></script>
+    <script src="app.js?v=3.6.6"></script>
     
     <!-- Botão Suporte WhatsApp -->
     <a href="https://wa.me/5598970260090?text=Fala%20Marllon!%20Preciso%20de%20uma%20ajuda%20aqui%20no%20PizzaControl." class="btn-whatsapp-flutuante" target="_blank">
