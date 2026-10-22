@@ -2365,16 +2365,22 @@ function fcFiltrar(t) {
     document.querySelectorAll('#fcTamanhos .size-tab').forEach((b) => b.classList.toggle('active', b.textContent === (t === 'all' ? 'Todas' : t)));
 }
 
+// Dia de hoje: usa os custos e preços atuais. Dia passado: usa os valores guardados naquele dia
+// (assim o histórico não muda só porque um ingrediente subiu depois).
 function lerFechamentoUI() {
     const tx = taxasCanal();
     const itens = [];
+    const passado = fcData && fcData < hojeISO();
+    const salvo = {};
+    if (passado && caixaDB().dias[fcData]) caixaDB().dias[fcData].itens.forEach((i) => { salvo[i.id] = i; });
     document.querySelectorAll('#fcLista .fc-linha').forEach((el) => {
         const f = DB.fichas.find((x) => x.id === el.dataset.id);
         if (!f) return;
         const b = Math.max(0, Math.round(parseFloat(el.querySelector('.fc-b').value) || 0));
         const a = Math.max(0, Math.round(parseFloat(el.querySelector('.fc-a').value) || 0));
-        const merc = numero(f.custoIng) + numero(f.custoMassa);
-        const preco = numero(f.precoVenda), precoApp = precoAppFicha(f);
+        const sv = salvo[f.id];
+        const merc = sv ? numero(sv.merc) : numero(f.custoIng) + numero(f.custoMassa);
+        const preco = sv ? numero(sv.preco) : numero(f.precoVenda), precoApp = sv ? (numero(sv.precoApp) || numero(sv.preco)) : precoAppFicha(f);
         const fat = b * preco + a * precoApp;
         const sobra = b * (preco * (1 - tx.balcao) - merc) + a * (precoApp * (1 - tx.app) - merc);
         const res = el.querySelector('.fc-res');
@@ -2389,7 +2395,8 @@ function resumoFechamento(itens) {
     const pizzas = itens.reduce((s, i) => s + i.b + i.a, 0);
     const fat = itens.reduce((s, i) => s + i.fat, 0);
     const sobra = itens.reduce((s, i) => s + i.sobra, 0);
-    const fixoDia = totalCustosFixosMes() / (cx.diasAbertos || 26);
+    const sv = cx.dias[fcData];
+    const fixoDia = fcData && fcData < hojeISO() && sv && sv.resumo.fixoDia > 0 ? sv.resumo.fixoDia : totalCustosFixosMes() / (cx.diasAbertos || 26);
     return { pizzas, fat, sobra, fixoDia, lucro: sobra - fixoDia };
 }
 
@@ -2409,6 +2416,12 @@ function calcFechamento() {
         '</div><p style="text-align:center;margin:12px 0 0;font-size:0.9em">' +
         (r.pizzas === 0 ? 'Digite as quantidades acima.' : r.lucro >= 0 ? '✅ O dia pagou o custo fixo (' + brl(r.fixoDia) + ') e ainda sobrou ' + brl(r.lucro) + '.' : '❌ Faltaram ' + brl(-r.lucro) + ' para pagar o custo fixo do dia (' + brl(r.fixoDia) + ').') +
         (totalCustosFixosMes() <= 0 ? '<br>💡 Preencha os <b>Custos Fixos</b> para o lucro real descontar aluguel, luz e funcionários.' : '') + '</p>';
+    // Mantém o histórico igual ao que aparece na tela (ex.: o custo de um ingrediente mudou depois de salvar o dia)
+    const sv = caixaDB().dias[fcData];
+    if (sv && itens.length && (Math.abs(sv.resumo.lucro - r.lucro) > 0.009 || Math.abs(sv.resumo.fat - r.fat) > 0.009 || sv.resumo.pizzas !== r.pizzas)) {
+        clearTimeout(fcTimer);
+        fcTimer = setTimeout(() => salvarFechamento(itens), 300);
+    }
     return itens;
 }
 
