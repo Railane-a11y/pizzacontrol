@@ -60,7 +60,9 @@ const DB_PADRAO = {
     },
     produtosProntos: [],
     // Taxas cobradas sobre o valor de cada venda (%) e meta de lucro real (%)
-    taxas: { imposto: 0, cartao: 0, app: 0, vendasApp: 0, metaLucro: 15 }
+    taxas: { imposto: 0, cartao: 0, app: 0, vendasApp: 0, metaLucro: 15 },
+    // Fechamento de caixa: dias abertos no mês, preço no iFood por ficha e os fechamentos salvos por data
+    caixa: { diasAbertos: 26, precosApp: {}, dias: {} }
 };
 
 let DB = clonar(DB_PADRAO);
@@ -799,7 +801,29 @@ function normalizarDados(raw) {
         metaLucro: tx.metaLucro === undefined ? 15 : limitar(tx.metaLucro, 80)
     };
 
-    return { versao: VERSAO_DADOS, atualizadoEm: Math.round(numero(origem.atualizadoEm)), insumos, fichas, custos, massa, config, produtosProntos, taxas };
+    const cx = origem.caixa || {};
+    const precosApp = {};
+    Object.entries(cx.precosApp || {}).forEach(([k, v]) => { if (numero(v) > 0) precosApp[String(k)] = numero(v); });
+    const dias = {};
+    Object.entries(cx.dias || {}).forEach(([data, d]) => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(data) || !d || !Array.isArray(d.itens)) return;
+        dias[data] = {
+            itens: d.itens.map((i) => ({
+                id: String(i.id || ''), nome: String(i.nome || ''), tam: String(i.tam || ''),
+                b: Math.max(0, Math.round(numero(i.b))), a: Math.max(0, Math.round(numero(i.a))),
+                preco: numero(i.preco), precoApp: numero(i.precoApp), merc: numero(i.merc)
+            })).filter((i) => i.b > 0 || i.a > 0),
+            resumo: {
+                pizzas: numero(d.resumo && d.resumo.pizzas), fat: numero(d.resumo && d.resumo.fat),
+                sobra: numero(d.resumo && d.resumo.sobra), fixoDia: numero(d.resumo && d.resumo.fixoDia),
+                lucro: numero(d.resumo && d.resumo.lucro)
+            },
+            salvoEm: numero(d.salvoEm)
+        };
+    });
+    const caixa = { diasAbertos: Math.min(Math.max(Math.round(numero(cx.diasAbertos, 26)), 1), 31) || 26, precosApp, dias };
+
+    return { versao: VERSAO_DADOS, atualizadoEm: Math.round(numero(origem.atualizadoEm)), insumos, fichas, custos, massa, config, produtosProntos, taxas, caixa };
 }
 
 function obterPrimeiroValor(keys) {
@@ -1000,6 +1024,7 @@ function setupNav() {
                 calcCombo();
             }
             if (tab.dataset.page === 'produtos') renderProdutosProntos();
+            if (tab.dataset.page === 'fechamento') renderFechamento();
             if (tab.dataset.page === 'fichas') renderFichas();
             if (tab.dataset.page === 'dashboard') renderDashboard();
 
@@ -2251,6 +2276,248 @@ function copiarTabelaPrecos() {
     else prompt('Copie a tabela:', txt);
 }
 
+// ===== FECHAMENTO DE CAIXA DO DIA =====
+// O cliente digita quantas pizzas vendeu de cada ficha (balcão e iFood) e vê faturamento,
+// o que sobra depois de ingredientes, massa e taxas, o custo fixo do dia e o lucro real.
+// Cada dia é salvo em DB.caixa.dias['AAAA-MM-DD'] com os preços daquele dia (o histórico não muda se o preço mudar).
+let fcData = null;
+let fcFiltro = 'all';
+
+function hojeISO() {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 10);
+}
+
+function caixaDB() {
+    if (!DB.caixa) DB.caixa = { diasAbertos: 26, precosApp: {}, dias: {} };
+    if (!DB.caixa.precosApp) DB.caixa.precosApp = {};
+    if (!DB.caixa.dias) DB.caixa.dias = {};
+    return DB.caixa;
+}
+
+function taxasCanal() {
+    const t = DB.taxas || {};
+    const imp = numero(t.imposto) / 100, cart = numero(t.cartao) / 100, app = numero(t.app) / 100;
+    return { balcao: imp + cart, app: imp + (app > 0 ? app : cart) };
+}
+
+function precoAppFicha(f) {
+    return numero(caixaDB().precosApp[f.id]) || numero(f.precoVenda);
+}
+
+function dataBR(iso) {
+    const [a, m, d] = iso.split('-');
+    const sem = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'].at(new Date(Number(a), Number(m) - 1, Number(d)).getDay());
+    return d + '/' + m + ' (' + sem + ')';
+}
+
+function renderFechamento() {
+    const lista = document.getElementById('fcLista');
+    if (!lista) return;
+    const cx = caixaDB();
+    if (!fcData) fcData = hojeISO();
+    const inp = document.getElementById('fcDataInput');
+    if (inp) inp.value = fcData;
+    const dias = document.getElementById('fcDias');
+    if (dias) dias.value = cx.diasAbertos || 26;
+    DB.fichas.forEach((f) => atualizarCustosDaFicha(f));
+    const salvo = cx.dias[fcData];
+    const qtd = {};
+    if (salvo) salvo.itens.forEach((i) => { qtd[i.id] = i; });
+
+    const ordem = { P: 1, M: 2, G: 3, GG: 4 };
+    const tams = [...new Set(DB.fichas.map((f) => f.tamanho))].sort((a, b) => (ordem[a] || 9) - (ordem[b] || 9));
+    const tabs = document.getElementById('fcTamanhos');
+    if (tabs) tabs.innerHTML = ['all'].concat(tams).map((t) => '<button class="size-tab ' + (t === 'all' ? 'all ' : '') + (fcFiltro === t ? 'active' : '') + '" onclick="fcFiltrar(\'' + t + '\')">' + (t === 'all' ? 'Todas' : t) + '</button>').join('');
+
+    if (!DB.fichas.length) {
+        lista.innerHTML = '<div class="empty">Cadastre suas pizzas na aba <b>Criar Ficha</b> para fechar o caixa.</div>';
+    } else {
+        const fs = DB.fichas.slice().sort((a, b) => (ordem[a.tamanho] || 9) - (ordem[b.tamanho] || 9) || String(a.nome).localeCompare(String(b.nome)));
+        const inputStyle = 'width:58px;padding:8px 4px;text-align:center;font-size:1em;border:2px solid #ddd;border-radius:8px';
+        lista.innerHTML = fs.map((f) => {
+            const q = qtd[f.id] || {};
+            const semPreco = !(f.precoVenda > 0);
+            const vis = fcFiltro === 'all' || f.tamanho === fcFiltro;
+            return '<div class="fc-linha" data-id="' + esc(f.id) + '" style="display:' + (vis ? 'flex' : 'none') + ';align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid #eee">' +
+                '<div style="flex:1;min-width:0"><strong>' + esc(f.nome) + '</strong> <span class="badge-size ' + f.tamanho + '">' + f.tamanho + '</span><br>' +
+                '<small style="color:#777">' + (semPreco ? '<span style="color:#c62828">sem preço de venda</span>' : '🍕 ' + brl(f.precoVenda)) +
+                ' · <a href="#" onclick="fcPrecoApp(\'' + esc(f.id) + '\');return false" style="color:#c62828;white-space:nowrap">🛵 ' + brl(precoAppFicha(f)) + ' ✏️</a></small>' +
+                '<div class="fc-res" style="font-size:0.82em;color:#555"></div></div>' +
+                '<label style="text-align:center;font-size:0.75em;color:#2e7d32">🍕 Balcão<br><input type="number" min="0" step="1" inputmode="numeric" class="fc-b" value="' + (q.b || '') + '" placeholder="0" oninput="fcAlterou()" style="' + inputStyle + '"></label>' +
+                '<label style="text-align:center;font-size:0.75em;color:#c62828">🛵 iFood<br><input type="number" min="0" step="1" inputmode="numeric" class="fc-a" value="' + (q.a || '') + '" placeholder="0" oninput="fcAlterou()" style="' + inputStyle + '"></label>' +
+                '</div>';
+        }).join('');
+    }
+    const aviso = document.getElementById('fcAviso');
+    if (aviso) aviso.innerHTML = salvo ? '💾 Fechamento de ' + dataBR(fcData) + ' salvo. Pode corrigir à vontade: salva sozinho.' : 'Digite quantas pizzas vendeu de cada sabor. Salva sozinho.';
+    calcFechamento();
+    renderHistoricoCaixa();
+}
+
+function fcFiltrar(t) {
+    fcFiltro = t;
+    document.querySelectorAll('#fcLista .fc-linha').forEach((el) => {
+        const f = DB.fichas.find((x) => x.id === el.dataset.id);
+        el.style.display = t === 'all' || (f && f.tamanho === t) ? 'flex' : 'none';
+    });
+    document.querySelectorAll('#fcTamanhos .size-tab').forEach((b) => b.classList.toggle('active', b.textContent === (t === 'all' ? 'Todas' : t)));
+}
+
+function lerFechamentoUI() {
+    const tx = taxasCanal();
+    const itens = [];
+    document.querySelectorAll('#fcLista .fc-linha').forEach((el) => {
+        const f = DB.fichas.find((x) => x.id === el.dataset.id);
+        if (!f) return;
+        const b = Math.max(0, Math.round(parseFloat(el.querySelector('.fc-b').value) || 0));
+        const a = Math.max(0, Math.round(parseFloat(el.querySelector('.fc-a').value) || 0));
+        const merc = numero(f.custoIng) + numero(f.custoMassa);
+        const preco = numero(f.precoVenda), precoApp = precoAppFicha(f);
+        const fat = b * preco + a * precoApp;
+        const sobra = b * (preco * (1 - tx.balcao) - merc) + a * (precoApp * (1 - tx.app) - merc);
+        const res = el.querySelector('.fc-res');
+        if (res) res.innerHTML = (b + a) > 0 ? (b + a) + ' vendida' + ((b + a) > 1 ? 's' : '') + ' · ' + brl(fat) + ' · sobra <b style="color:' + (sobra >= 0 ? '#2e7d32' : '#c62828') + '">' + brl(sobra) + '</b>' : '';
+        if (b > 0 || a > 0) itens.push({ id: f.id, nome: f.nome, tam: f.tamanho, b, a, preco, precoApp, merc, fat, sobra });
+    });
+    return itens;
+}
+
+function resumoFechamento(itens) {
+    const cx = caixaDB();
+    const pizzas = itens.reduce((s, i) => s + i.b + i.a, 0);
+    const fat = itens.reduce((s, i) => s + i.fat, 0);
+    const sobra = itens.reduce((s, i) => s + i.sobra, 0);
+    const fixoDia = totalCustosFixosMes() / (cx.diasAbertos || 26);
+    return { pizzas, fat, sobra, fixoDia, lucro: sobra - fixoDia };
+}
+
+function calcFechamento() {
+    const box = document.getElementById('fcTotais');
+    if (!box) return [];
+    const itens = lerFechamentoUI();
+    const r = resumoFechamento(itens);
+    const b = itens.reduce((s, i) => s + i.b, 0), a = itens.reduce((s, i) => s + i.a, 0);
+    const item = (label, val, cor) => '<div class="total-item"><div class="label">' + label + '</div><div class="value"' + (cor ? ' style="color:' + cor + '"' : '') + '>' + val + '</div></div>';
+    box.innerHTML = '<h4 style="text-align:center;margin-bottom:16px">🧾 Fechamento de ' + dataBR(fcData) + '</h4><div class="total-grid">' +
+        item('Pizzas vendidas', r.pizzas + '<small style="display:block;font-size:0.45em;opacity:.8">🍕 ' + b + ' balcão · 🛵 ' + a + ' iFood</small>') +
+        item('Faturamento', brl(r.fat)) +
+        item('Sobra (tirando ingredientes, massa e taxas)', brl(r.sobra)) +
+        item('Custo fixo do dia', brl(r.fixoDia)) +
+        item('Lucro real do dia', brl(r.lucro), r.lucro >= 0 ? '#69f0ae' : '#ff8a80') +
+        '</div><p style="text-align:center;margin:12px 0 0;font-size:0.9em">' +
+        (r.pizzas === 0 ? 'Digite as quantidades acima.' : r.lucro >= 0 ? '✅ O dia pagou o custo fixo (' + brl(r.fixoDia) + ') e ainda sobrou ' + brl(r.lucro) + '.' : '❌ Faltaram ' + brl(-r.lucro) + ' para pagar o custo fixo do dia (' + brl(r.fixoDia) + ').') +
+        (totalCustosFixosMes() <= 0 ? '<br>💡 Preencha os <b>Custos Fixos</b> para o lucro real descontar aluguel, luz e funcionários.' : '') + '</p>';
+    return itens;
+}
+
+let fcTimer = null;
+function fcAlterou() {
+    const itens = calcFechamento();
+    clearTimeout(fcTimer);
+    fcTimer = setTimeout(() => salvarFechamento(itens), 800);
+}
+
+function salvarFechamento(itens) {
+    const cx = caixaDB();
+    itens = itens || lerFechamentoUI();
+    if (!itens.length) {
+        if (cx.dias[fcData]) delete cx.dias[fcData];
+    } else {
+        const r = resumoFechamento(itens);
+        cx.dias[fcData] = {
+            itens: itens.map((i) => ({ id: i.id, nome: i.nome, tam: i.tam, b: i.b, a: i.a, preco: i.preco, precoApp: i.precoApp, merc: i.merc })),
+            resumo: { pizzas: r.pizzas, fat: r.fat, sobra: r.sobra, fixoDia: r.fixoDia, lucro: r.lucro },
+            salvoEm: Date.now()
+        };
+    }
+    // Mantém os dados leves para a nuvem: dias com mais de 120 dias guardam só o resumo (sem a lista de sabores).
+    const [ya, ym, yd] = hojeISO().split('-').map(Number);
+    const corte = new Date(Date.UTC(ya, ym - 1, yd - 120)).toISOString().slice(0, 10);
+    Object.keys(cx.dias).forEach((d) => { if (d < corte && cx.dias[d].itens.length) cx.dias[d].itens = []; });
+    persistirDados(false);
+    const aviso = document.getElementById('fcAviso');
+    if (aviso) aviso.innerHTML = itens.length ? '💾 Salvo às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + '. Pode corrigir à vontade.' : 'Digite quantas pizzas vendeu de cada sabor. Salva sozinho.';
+    renderHistoricoCaixa();
+}
+
+function fcMudarData(v) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v || '')) return;
+    clearTimeout(fcTimer);
+    fcData = v;
+    renderFechamento();
+}
+
+function fcMoverDia(n) {
+    const [a, m, d] = (fcData || hojeISO()).split('-').map(Number);
+    const dt = new Date(Date.UTC(a, m - 1, d + n));
+    fcMudarData(dt.toISOString().slice(0, 10));
+}
+
+function fcSalvarDias(v) {
+    const n = Math.min(Math.max(Math.round(parseFloat(v) || 26), 1), 31);
+    caixaDB().diasAbertos = n;
+    persistirDados(false);
+    calcFechamento();
+    renderHistoricoCaixa();
+}
+
+function fcPrecoApp(id) {
+    const f = DB.fichas.find((x) => x.id === id);
+    if (!f) return;
+    const sug = precosPorCanal(f.custoTotal).app;
+    const atual = precoAppFicha(f);
+    const v = prompt('Preço de ' + f.nome + ' (' + f.tamanho + ') no iFood/app:' + (sug ? '\n(Preço para a sua meta no iFood: ' + brl(sug) + ')' : '') + '\n\nDeixe vazio para usar o mesmo preço do cardápio.', atual ? String(atual.toFixed(2)).replace('.', ',') : '');
+    if (v === null) return;
+    const n = parseFloat(String(v).replace(/\./g, '').replace(',', '.'));
+    if (n > 0) caixaDB().precosApp[id] = n; else delete caixaDB().precosApp[id];
+    persistirDados(false);
+    const itens = calcFechamento();
+    if (caixaDB().dias[fcData]) salvarFechamento(itens);
+    renderFechamento();
+}
+
+function fcLimparDia() {
+    if (!confirm('Apagar o fechamento de ' + dataBR(fcData) + '?')) return;
+    delete caixaDB().dias[fcData];
+    persistirDados(true, '🗑️ Fechamento apagado.');
+    renderFechamento();
+}
+
+function renderHistoricoCaixa() {
+    const box = document.getElementById('fcHist');
+    if (!box) return;
+    const dias = caixaDB().dias;
+    const datas = Object.keys(dias).sort().reverse();
+    if (!datas.length) { box.innerHTML = '<div class="empty">Seus fechamentos aparecem aqui, com o total da semana e do mês.</div>'; return; }
+    const hoje = hojeISO();
+    const [ha, hm, hd] = hoje.split('-').map(Number);
+    const semIni = new Date(Date.UTC(ha, hm - 1, hd - 6)).toISOString().slice(0, 10);
+    const mesIni = hoje.slice(0, 8) + '01';
+    const soma = (ini) => datas.filter((d) => d >= ini && d <= hoje).reduce((s, d) => {
+        const r = dias[d].resumo; s.dias++; s.pizzas += r.pizzas; s.fat += r.fat; s.lucro += r.lucro; return s;
+    }, { dias: 0, pizzas: 0, fat: 0, lucro: 0 });
+    const sem = soma(semIni), mes = soma(mesIni);
+    const cartao = (titulo, s) => '<div style="flex:1;min-width:150px;background:#f7f7f7;border-radius:10px;padding:12px"><small style="color:#555">' + titulo + '</small>' +
+        '<div style="font-size:1.3em;font-weight:bold">' + brl(s.fat) + '</div><small>' + s.pizzas + ' pizzas em ' + s.dias + ' dia' + (s.dias === 1 ? '' : 's') + '</small><br>' +
+        '<small>Lucro real: <b style="color:' + (s.lucro >= 0 ? '#2e7d32' : '#c62828') + '">' + brl(s.lucro) + '</b></small></div>';
+    const ranking = {};
+    datas.filter((d) => d >= mesIni && d <= hoje).forEach((d) => dias[d].itens.forEach((i) => {
+        const k = i.nome + ' (' + i.tam + ')';
+        ranking[k] = (ranking[k] || 0) + i.b + i.a;
+    }));
+    const top = Object.entries(ranking).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    box.innerHTML = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">' + cartao('📅 Últimos 7 dias', sem) + cartao('🗓️ Este mês', mes) + '</div>' +
+        (top.length ? '<p style="margin:0 0 6px"><strong>🏆 Mais vendidas no mês</strong></p><ol style="margin:0 0 14px;padding-left:22px">' + top.map(([n, q]) => '<li>' + esc(n) + ': <b>' + q + '</b></li>').join('') + '</ol>' : '') +
+        '<p style="margin:0 0 6px"><strong>Dias fechados</strong> <small style="color:#777">(toque para abrir)</small></p>' +
+        datas.slice(0, 31).map((d) => {
+            const r = dias[d].resumo;
+            return '<div onclick="fcMudarData(\'' + d + '\');window.scrollTo({top:0,behavior:\'smooth\'})" style="cursor:pointer;display:flex;justify-content:space-between;gap:8px;padding:8px 4px;border-bottom:1px solid #eee' + (d === fcData ? ';background:#fff8e1' : '') + '">' +
+                '<span>' + dataBR(d) + ' · ' + r.pizzas + ' pizzas</span><span style="white-space:nowrap">' + brl(r.fat) + ' · <b style="color:' + (r.lucro >= 0 ? '#2e7d32' : '#c62828') + '">' + brl(r.lucro) + '</b></span></div>';
+        }).join('');
+}
+
 function loadFichasSelectMeioAMeio() {
     const selA = document.getElementById('maMSaborA');
     const selB = document.getElementById('maMSaborB');
@@ -2816,7 +3083,7 @@ function calcPorMarkup() {
 
 // ===== TRAVA DE PLANOS (BÁSICO vs PRO) =====
 // Abas exclusivas do plano PRO. O plano Básico mantém: dashboard, insumos, fichas, nova-ficha, config.
-const ABAS_EXCLUSIVAS_PRO = ['massa', 'custos', 'produtos', 'precificar'];
+const ABAS_EXCLUSIVAS_PRO = ['massa', 'custos', 'produtos', 'precificar', 'fechamento'];
 
 const NOMES_RECURSOS_PRO = {
     'bonus': 'Suporte VIP e Grupo de Pizzaiolos',
@@ -2824,7 +3091,8 @@ const NOMES_RECURSOS_PRO = {
     custos: '💼 Rateio de Custo Fixo (o que faz você parar de pagar pra trabalhar)',
     produtos: '🥤 Cadastro de Bebidas',
     precificar: '💰 Gerador de Preço, Combos e Meio a Meio',
-    backup: '💾 Backup (Exportar/Importar Dados)'
+    backup: '💾 Backup (Exportar/Importar Dados)',
+    fechamento: '🧾 Fechamento de Caixa do dia (quanto vendeu e quanto lucrou)'
 };
 
 function aplicarTravaPlanos() {
@@ -2925,6 +3193,7 @@ function mostrarModalUpgrade(origem) {
                     <li>✅ Rateio de Custo Fixo (aluguel, luz, funcionários)</li>
                     <li>✅ Custo real da Massa por tamanho</li>
                     <li>✅ Gerador de Preço, Combos e Meio a Meio</li>
+                    <li>✅ Fechamento de caixa do dia (vendas e lucro real)</li>
                     <li>✅ Bebidas, adicionais e Backup</li>
                     <li>🎁 Suporte VIP no WhatsApp e Grupo de Pizzaiolos</li>
                 </ul>
