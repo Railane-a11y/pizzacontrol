@@ -1645,6 +1645,7 @@
         <button class="nav-tab" data-page="custos">💼 Custos Fixos</button>
         <button class="nav-tab" data-page="produtos">🥤 Bebidas</button>
         <button class="nav-tab" data-page="precificar">💰 Gerar Preço</button>
+        <button class="nav-tab" data-page="fechamento">🧾 Fechamento</button>
         <button class="nav-tab" data-page="config">⚙️ Configurações</button>
         
         <!-- Link Instagram do PizzaControl -->
@@ -2223,6 +2224,34 @@
             </div>
         </div>
         <!-- CONFIG -->
+        <!-- FECHAMENTO DE CAIXA -->
+        <div class="page" id="page-fechamento">
+            <div class="alert alert-info">🧾 No fim do dia, digite quantas pizzas vendeu de cada sabor. O sistema mostra quanto faturou e quanto <strong>lucrou de verdade</strong>.</div>
+            <div class="card">
+                <div class="card-header" style="background:linear-gradient(135deg,#37474f,#263238)">🧾 Fechamento do dia</div>
+                <div class="card-body">
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:nowrap;margin-bottom:12px">
+                        <button class="btn btn-secondary btn-sm" style="width:auto;flex:0 0 auto;margin:0" onclick="fcMoverDia(-1)">◀</button>
+                        <input type="date" class="form-control" id="fcDataInput" onchange="fcMudarData(this.value)" style="flex:1;min-width:0;max-width:180px;margin:0">
+                        <button class="btn btn-secondary btn-sm" style="width:auto;flex:0 0 auto;margin:0" onclick="fcMoverDia(1)">▶</button>
+                        <button class="btn btn-primary btn-sm" style="width:auto;flex:0 0 auto;margin:0" onclick="fcMudarData(hojeISO())">Hoje</button>
+                    </div>
+                    <div class="size-tabs" id="fcTamanhos"></div>
+                    <div id="fcLista"></div>
+                    <p id="fcAviso" style="font-size:0.85em;color:#555;margin:10px 0"></p>
+                    <div class="total-box" id="fcTotais"></div>
+                    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px;font-size:0.9em">
+                        <label for="fcDias">📅 Dias que abre no mês (divide o custo fixo):</label>
+                        <input type="number" class="form-control" id="fcDias" min="1" max="31" style="max-width:80px" onchange="fcSalvarDias(this.value)">
+                        <button class="btn btn-danger btn-sm" style="margin-left:auto" onclick="fcLimparDia()">🗑️ Apagar este dia</button>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header" style="background:linear-gradient(135deg,#00796b,#26a69a)">📅 Histórico</div>
+                <div class="card-body"><div id="fcHist"></div></div>
+            </div>
+        </div>
         <div class="page" id="page-config">
             <div class="card">
                 <div class="card-header purple">⚙️ Configurações Gerais da Pizzaria</div>
@@ -2325,7 +2354,7 @@
 
     </div><!-- /appContent -->
 
-    <script src="app.js?v=3.6.7"></script>
+    <script src="app.js?v=3.7.0"></script>
     
     <!-- Botão Suporte WhatsApp -->
     <a href="https://wa.me/5598970260090?text=Fala%20Marllon!%20Preciso%20de%20uma%20ajuda%20aqui%20no%20PizzaControl." class="btn-whatsapp-flutuante" target="_blank">
