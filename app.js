@@ -59,6 +59,8 @@ const DB_PADRAO = {
         meta: 15000
     },
     produtosProntos: [],
+    // Adicionais (borda recheada, mais calabresa...): ingredientes por tamanho e preço de venda por tamanho
+    adicionais: [],
     // Taxas cobradas sobre o valor de cada venda (%) e meta de lucro real (%)
     taxas: { imposto: 0, cartao: 0, app: 0, vendasApp: 0, metaLucro: 15 },
     // Fechamento de caixa: dias abertos no mês, preço no iFood por ficha e os fechamentos salvos por data
@@ -823,7 +825,19 @@ function normalizarDados(raw) {
     });
     const caixa = { diasAbertos: Math.min(Math.max(Math.round(numero(cx.diasAbertos, 26)), 1), 31) || 26, precosApp, dias };
 
-    return { versao: VERSAO_DADOS, atualizadoEm: Math.round(numero(origem.atualizadoEm)), insumos, fichas, custos, massa, config, produtosProntos, taxas, caixa };
+    const TAMS_AD = ['P', 'M', 'G', 'GG'];
+    const adicionais = Array.isArray(origem.adicionais) ? origem.adicionais.map((a) => {
+        const q0 = (q) => { const o = {}; TAMS_AD.forEach((t) => { if (numero(q && q[t]) > 0) o[t] = numero(q[t]); }); return o; };
+        return {
+            id: String(a.id || gerarId()),
+            nome: String(a.nome || '').trim(),
+            tams: (Array.isArray(a.tams) ? a.tams : ['M', 'G']).filter((t) => TAMS_AD.includes(t)),
+            itens: (Array.isArray(a.itens) ? a.itens : []).map((i) => ({ insumoId: String(i.insumoId || ''), q: q0(i.q) })).filter((i) => i.insumoId),
+            preco: q0(a.preco)
+        };
+    }).filter((a) => a.nome) : [];
+
+    return { versao: VERSAO_DADOS, atualizadoEm: Math.round(numero(origem.atualizadoEm)), insumos, fichas, custos, massa, config, produtosProntos, taxas, caixa, adicionais };
 }
 
 function obterPrimeiroValor(keys) {
@@ -1025,6 +1039,7 @@ function setupNav() {
             }
             if (tab.dataset.page === 'produtos') renderProdutosProntos();
             if (tab.dataset.page === 'fechamento') renderFechamento();
+            if (tab.dataset.page === 'adicionais') renderAdicionais();
             if (tab.dataset.page === 'fichas') renderFichas();
             if (tab.dataset.page === 'dashboard') renderDashboard();
 
@@ -1233,9 +1248,12 @@ function previewInsumo() {
     const qtd = parseFloat(document.getElementById('insQtd').value) || 0;
     const preco = parseFloat(document.getElementById('insPreco').value) || 0;
     const un = document.getElementById('insUn').value;
+    let alerta = '';
+    if ((un === 'g' || un === 'ml') && qtd >= 10000) alerta = '<br>⚠️ <b>' + qtd.toLocaleString('pt-BR') + ' ' + un + ' = ' + (qtd / 1000).toLocaleString('pt-BR') + (un === 'g' ? ' kg' : ' L') + '</b>. Confere se a embalagem é desse tamanho.';
+    if ((un === 'kg' || un === 'L') && qtd >= 100) alerta = '<br>⚠️ <b>' + qtd.toLocaleString('pt-BR') + ' ' + un + '</b> é muito. Se a embalagem é de ' + qtd.toLocaleString('pt-BR') + (un === 'kg' ? ' gramas, escolha "Gramas (g)"' : ' ml, escolha "Mililitros (ml)"') + '.';
     document.getElementById('insPreview').innerHTML =
         qtd > 0 && preco > 0
-            ? '💡 Custo: <strong>' + brl(preco / qtd) + '</strong>/' + un + (fatorUnidade(un) > 1 ? ' (nas fichas você digita em ' + unidadeBase(un) + ')' : '')
+            ? '💡 Custo: <strong>' + brl(preco / qtd) + '</strong>/' + un + (fatorUnidade(un) > 1 ? ' (nas fichas você digita em ' + unidadeBase(un) + ')' : '') + alerta
             : '💡 Preencha para ver';
 }
 
@@ -1545,6 +1563,7 @@ function calcMassa() {
 
     const pesoTotal = parseFloat(document.getElementById('massaPesoTotal').value) || 1;
     const cpg = custoTotal / Math.max(pesoTotal, 1);
+    avisoPesoMassa(pesoTotal);
     const pesoP = parseFloat(document.getElementById('pesoP').value) || 0;
     const pesoM = parseFloat(document.getElementById('pesoM').value) || 0;
     const pesoG = parseFloat(document.getElementById('pesoG').value) || 0;
@@ -1561,6 +1580,25 @@ function calcMassa() {
     document.getElementById('massaInfoM').textContent = pesoM + 'g × R$ ' + cpg.toFixed(4).replace('.', ',');
     document.getElementById('massaInfoG').textContent = pesoG + 'g × R$ ' + cpg.toFixed(4).replace('.', ',');
     document.getElementById('massaInfoGG').textContent = pesoGG + 'g × R$ ' + cpg.toFixed(4).replace('.', ',');
+}
+
+// Avisa quando o peso total parece estar em kg ou é menor que a soma dos ingredientes
+function avisoPesoMassa(pesoTotal) {
+    const inp = document.getElementById('massaPesoTotal');
+    if (!inp) return;
+    let av = document.getElementById('massaPesoAviso');
+    if (!av) { av = document.createElement('div'); av.id = 'massaPesoAviso'; av.className = 'alert alert-warning'; av.style.marginTop = '8px'; inp.parentElement.appendChild(av); }
+    let soma = 0;
+    document.querySelectorAll('#massaIngLista .massa-item').forEach((item) => {
+        const ins = DB.insumos.find((i) => i.id == item.querySelector('select').value);
+        const q = parseFloat(item.querySelector('input').value) || 0;
+        if (ins && unidadeBase(ins.unidade) !== 'un') soma += q;
+    });
+    let msg = '';
+    if (pesoTotal > 0 && pesoTotal < 100 && soma >= 500) msg = '⚠️ O peso total está em <b>gramas</b>. Você quis dizer <b>' + Math.round(pesoTotal * 1000).toLocaleString('pt-BR') + ' g</b>?';
+    else if (soma > 0 && pesoTotal < soma * 0.8) msg = '⚠️ O peso total (' + pesoTotal.toLocaleString('pt-BR') + ' g) é menor que a soma dos ingredientes (' + Math.round(soma).toLocaleString('pt-BR') + ' g). Use o peso da massa <b>pronta</b>, já com a água.';
+    av.innerHTML = msg;
+    av.style.display = msg ? 'block' : 'none';
 }
 
 function salvarMassa() {
@@ -2302,6 +2340,20 @@ function taxasCanal() {
     return { balcao: imp + cart, app: imp + (app > 0 ? app : cart) };
 }
 
+// Linhas do fechamento: pizzas (fichas) + adicionais (um item por tamanho, id 'ad:<id>:<tam>')
+function fcItensAdicionais() {
+    const out = [];
+    (DB.adicionais || []).forEach((a) => a.tams.forEach((t) => {
+        const custo = custoAdicional(a, t);
+        out.push({ id: 'ad:' + a.id + ':' + t, nome: a.nome, tamanho: t, precoVenda: numero(a.preco[t]), custoIng: custo, custoMassa: 0, custoTotal: custo, adicional: true });
+    }));
+    return out;
+}
+function fcAcharItem(id) {
+    if (String(id).startsWith('ad:')) return fcItensAdicionais().find((x) => x.id === id);
+    return DB.fichas.find((x) => x.id === id);
+}
+
 function precoAppFicha(f) {
     return numero(caixaDB().precosApp[f.id]) || numero(f.precoVenda);
 }
@@ -2335,8 +2387,9 @@ function renderFechamento() {
         lista.innerHTML = '<div class="empty">Cadastre suas pizzas na aba <b>Criar Ficha</b> para fechar o caixa.</div>';
     } else {
         const fs = DB.fichas.slice().sort((a, b) => (ordem[a.tamanho] || 9) - (ordem[b.tamanho] || 9) || String(a.nome).localeCompare(String(b.nome)));
+        const ads = fcItensAdicionais().sort((a, b) => String(a.nome).localeCompare(String(b.nome)) || (ordem[a.tamanho] || 9) - (ordem[b.tamanho] || 9));
         const inputStyle = 'width:58px;padding:8px 4px;text-align:center;font-size:1em;border:2px solid #ddd;border-radius:8px';
-        lista.innerHTML = fs.map((f) => {
+        const linha = (f) => {
             const q = qtd[f.id] || {};
             const semPreco = !(f.precoVenda > 0);
             const vis = fcFiltro === 'all' || f.tamanho === fcFiltro;
@@ -2348,7 +2401,9 @@ function renderFechamento() {
                 '<label style="text-align:center;font-size:0.75em;color:#2e7d32">🍕 Balcão<br><input type="number" min="0" step="1" inputmode="numeric" class="fc-b" value="' + (q.b || '') + '" placeholder="0" oninput="fcAlterou()" style="' + inputStyle + '"></label>' +
                 '<label style="text-align:center;font-size:0.75em;color:#c62828">🛵 iFood<br><input type="number" min="0" step="1" inputmode="numeric" class="fc-a" value="' + (q.a || '') + '" placeholder="0" oninput="fcAlterou()" style="' + inputStyle + '"></label>' +
                 '</div>';
-        }).join('');
+        };
+        lista.innerHTML = fs.map(linha).join('') +
+            (ads.length ? '<div style="margin:16px 0 4px;font-weight:700;color:#6a1b9a">➕ Adicionais vendidos</div>' + ads.map(linha).join('') : '');
     }
     const aviso = document.getElementById('fcAviso');
     if (aviso) aviso.innerHTML = salvo ? '💾 Fechamento de ' + dataBR(fcData) + ' salvo. Pode corrigir à vontade: salva sozinho.' : 'Digite quantas pizzas vendeu de cada sabor. Salva sozinho.';
@@ -2359,7 +2414,7 @@ function renderFechamento() {
 function fcFiltrar(t) {
     fcFiltro = t;
     document.querySelectorAll('#fcLista .fc-linha').forEach((el) => {
-        const f = DB.fichas.find((x) => x.id === el.dataset.id);
+        const f = fcAcharItem(el.dataset.id);
         el.style.display = t === 'all' || (f && f.tamanho === t) ? 'flex' : 'none';
     });
     document.querySelectorAll('#fcTamanhos .size-tab').forEach((b) => b.classList.toggle('active', b.textContent === (t === 'all' ? 'Todas' : t)));
@@ -2374,7 +2429,7 @@ function lerFechamentoUI() {
     const salvo = {};
     if (passado && caixaDB().dias[fcData]) caixaDB().dias[fcData].itens.forEach((i) => { salvo[i.id] = i; });
     document.querySelectorAll('#fcLista .fc-linha').forEach((el) => {
-        const f = DB.fichas.find((x) => x.id === el.dataset.id);
+        const f = fcAcharItem(el.dataset.id);
         if (!f) return;
         const b = Math.max(0, Math.round(parseFloat(el.querySelector('.fc-b').value) || 0));
         const a = Math.max(0, Math.round(parseFloat(el.querySelector('.fc-a').value) || 0));
@@ -2384,15 +2439,15 @@ function lerFechamentoUI() {
         const fat = b * preco + a * precoApp;
         const sobra = b * (preco * (1 - tx.balcao) - merc) + a * (precoApp * (1 - tx.app) - merc);
         const res = el.querySelector('.fc-res');
-        if (res) res.innerHTML = (b + a) > 0 ? (b + a) + ' vendida' + ((b + a) > 1 ? 's' : '') + ' · ' + brl(fat) + ' · sobra <b style="color:' + (sobra >= 0 ? '#2e7d32' : '#c62828') + '">' + brl(sobra) + '</b>' : '';
-        if (b > 0 || a > 0) itens.push({ id: f.id, nome: f.nome, tam: f.tamanho, b, a, preco, precoApp, merc, fat, sobra });
+        if (res) res.innerHTML = (b + a) > 0 ? (b + a) + (f.adicional ? 'x' : ' vendida' + ((b + a) > 1 ? 's' : '')) + ' · ' + brl(fat) + ' · sobra <b style="color:' + (sobra >= 0 ? '#2e7d32' : '#c62828') + '">' + brl(sobra) + '</b>' : '';
+        if (b > 0 || a > 0) itens.push({ id: f.id, nome: f.nome, tam: f.tamanho, b, a, preco, precoApp, merc, fat, sobra, ad: !!f.adicional });
     });
     return itens;
 }
 
 function resumoFechamento(itens) {
     const cx = caixaDB();
-    const pizzas = itens.reduce((s, i) => s + i.b + i.a, 0);
+    const pizzas = itens.filter((i) => !String(i.id).startsWith('ad:')).reduce((s, i) => s + i.b + i.a, 0);
     const fat = itens.reduce((s, i) => s + i.fat, 0);
     const sobra = itens.reduce((s, i) => s + i.sobra, 0);
     const sv = cx.dias[fcData];
@@ -2405,16 +2460,18 @@ function calcFechamento() {
     if (!box) return [];
     const itens = lerFechamentoUI();
     const r = resumoFechamento(itens);
-    const b = itens.reduce((s, i) => s + i.b, 0), a = itens.reduce((s, i) => s + i.a, 0);
+    const soPizza = itens.filter((i) => !String(i.id).startsWith('ad:'));
+    const b = soPizza.reduce((s, i) => s + i.b, 0), a = soPizza.reduce((s, i) => s + i.a, 0);
+    const nAd = itens.length - soPizza.length ? itens.filter((i) => String(i.id).startsWith('ad:')).reduce((s, i) => s + i.b + i.a, 0) : 0;
     const item = (label, val, cor) => '<div class="total-item"><div class="label">' + label + '</div><div class="value"' + (cor ? ' style="color:' + cor + '"' : '') + '>' + val + '</div></div>';
     box.innerHTML = '<h4 style="text-align:center;margin-bottom:16px">🧾 Fechamento de ' + dataBR(fcData) + '</h4><div class="total-grid">' +
-        item('Pizzas vendidas', r.pizzas + '<small style="display:block;font-size:0.45em;opacity:.8">🍕 ' + b + ' balcão · 🛵 ' + a + ' iFood</small>') +
+        item('Pizzas vendidas', r.pizzas + '<small style="display:block;font-size:0.45em;opacity:.8">🍕 ' + b + ' balcão · 🛵 ' + a + ' iFood' + (nAd ? ' · ➕ ' + nAd + ' adicionais' : '') + '</small>') +
         item('Faturamento', brl(r.fat)) +
         item('Sobra (tirando ingredientes, massa e taxas)', brl(r.sobra)) +
         item('Custo fixo do dia', brl(r.fixoDia)) +
         item('Lucro real do dia', brl(r.lucro), r.lucro >= 0 ? '#69f0ae' : '#ff8a80') +
         '</div><p style="text-align:center;margin:12px 0 0;font-size:0.9em">' +
-        (r.pizzas === 0 ? 'Digite as quantidades acima.' : r.lucro >= 0 ? '✅ O dia pagou o custo fixo (' + brl(r.fixoDia) + ') e ainda sobrou ' + brl(r.lucro) + '.' : '❌ Faltaram ' + brl(-r.lucro) + ' para pagar o custo fixo do dia (' + brl(r.fixoDia) + ').') +
+        (r.pizzas === 0 && !itens.length ? 'Digite as quantidades acima.' : r.lucro >= 0 ? '✅ O dia pagou o custo fixo (' + brl(r.fixoDia) + ') e ainda sobrou ' + brl(r.lucro) + '.' : '❌ Faltaram ' + brl(-r.lucro) + ' para pagar o custo fixo do dia (' + brl(r.fixoDia) + ').') +
         (totalCustosFixosMes() <= 0 ? '<br>💡 Preencha os <b>Custos Fixos</b> para o lucro real descontar aluguel, luz e funcionários.' : '') + '</p>';
     // Mantém o histórico igual ao que aparece na tela (ex.: o custo de um ingrediente mudou depois de salvar o dia)
     const sv = caixaDB().dias[fcData];
@@ -2477,9 +2534,10 @@ function fcSalvarDias(v) {
 }
 
 function fcPrecoApp(id) {
-    const f = DB.fichas.find((x) => x.id === id);
+    const f = fcAcharItem(id);
     if (!f) return;
-    const sug = precosPorCanal(f.custoTotal).app;
+    if (!f.adicional) atualizarCustosDaFicha(f);
+    const sug = f.adicional ? precosPorCanal(f.custoTotal).app : precosPorCanal(f.custoTotal).app;
     const atual = precoAppFicha(f);
     const v = prompt('Preço de ' + f.nome + ' (' + f.tamanho + ') no iFood/app:' + (sug ? '\n(Preço para a sua meta no iFood: ' + brl(sug) + ')' : '') + '\n\nDeixe vazio para usar o mesmo preço do cardápio.', atual ? String(atual.toFixed(2)).replace('.', ',') : '');
     if (v === null) return;
@@ -2517,6 +2575,7 @@ function renderHistoricoCaixa() {
         '<small>Lucro real: <b style="color:' + (s.lucro >= 0 ? '#2e7d32' : '#c62828') + '">' + brl(s.lucro) + '</b></small></div>';
     const ranking = {};
     datas.filter((d) => d >= mesIni && d <= hoje).forEach((d) => dias[d].itens.forEach((i) => {
+        if (String(i.id).startsWith('ad:')) return;
         const k = i.nome + ' (' + i.tam + ')';
         ranking[k] = (ranking[k] || 0) + i.b + i.a;
     }));
@@ -2529,6 +2588,137 @@ function renderHistoricoCaixa() {
             return '<div onclick="fcMudarData(\'' + d + '\');window.scrollTo({top:0,behavior:\'smooth\'})" style="cursor:pointer;display:flex;justify-content:space-between;gap:8px;padding:8px 4px;border-bottom:1px solid #eee' + (d === fcData ? ';background:#fff8e1' : '') + '">' +
                 '<span>' + dataBR(d) + ' · ' + r.pizzas + ' pizzas</span><span style="white-space:nowrap">' + brl(r.fat) + ' · <b style="color:' + (r.lucro >= 0 ? '#2e7d32' : '#c62828') + '">' + brl(r.lucro) + '</b></span></div>';
         }).join('');
+}
+
+// ===== ADICIONAIS (borda recheada, mais calabresa, mais mussarela...) =====
+// Custo = soma dos insumos por tamanho. Preço sugerido = custo ÷ (1 − taxas − meta), SEM custo fixo
+// (o adicional vai junto de uma pizza, que já paga o custo fixo).
+const TAMS_AD = ['P', 'M', 'G', 'GG'];
+let adForm = null;
+
+function novoAdForm(a) {
+    return a ? JSON.parse(JSON.stringify(a)) : { id: null, nome: '', tams: ['M', 'G'], itens: [{ insumoId: '', q: {} }], preco: {} };
+}
+
+function custoAdicional(a, t) {
+    return (a.itens || []).reduce((s, i) => {
+        const ins = DB.insumos.find((x) => x.id == i.insumoId);
+        return s + (ins ? (ins.custoUn || 0) * numero(i.q && i.q[t]) : 0);
+    }, 0);
+}
+
+function resultadoAdicional(a, t) {
+    const custo = custoAdicional(a, t);
+    const pc = precosPorCanal(custo);
+    const preco = numero(a.preco[t]);
+    const tx = taxasCanal();
+    const lucro = preco > 0 ? preco * (1 - tx.balcao) - custo : null;
+    return { custo, sugCard: pc.cardapio, sugApp: pc.app, preco, lucro, margem: preco > 0 ? (lucro / preco) * 100 : 0 };
+}
+
+function renderAdicionais() {
+    if (!document.getElementById('adForm')) return;
+    if (!adForm) adForm = novoAdForm();
+    if (!DB.adicionais) DB.adicionais = [];
+    renderAdForm();
+    renderAdLista();
+}
+
+function renderAdForm() {
+    const box = document.getElementById('adForm');
+    const f = adForm;
+    const opts = '<option value="">Selecione o insumo...</option>' + DB.insumos.map((i) => '<option value="' + esc(i.id) + '">' + esc(i.nome) + '</option>').join('');
+    const inp = 'width:78px;padding:8px 4px;text-align:center;border:2px solid #ddd;border-radius:8px';
+    box.innerHTML =
+        '<div class="form-group"><label>Nome do adicional <span class="required">*</span></label><input type="text" class="form-control" id="adNome" placeholder="Ex.: Borda de catupiry, Mais calabresa" value="' + esc(f.nome) + '" oninput="adForm.nome=this.value"></div>' +
+        '<div class="form-group"><label>Tamanhos em que você vende</label><div style="display:flex;gap:8px;flex-wrap:wrap">' +
+        TAMS_AD.map((t) => '<label style="display:flex;align-items:center;gap:6px;padding:8px 14px;border:2px solid ' + (f.tams.includes(t) ? '#e53935' : '#ddd') + ';border-radius:20px;cursor:pointer;font-weight:600"><input type="checkbox" ' + (f.tams.includes(t) ? 'checked' : '') + ' onchange="adToggleTam(\'' + t + '\',this.checked)"> ' + NOMES_TAMANHO[t] + '</label>').join('') + '</div></div>' +
+        '<label style="font-weight:600">Ingredientes (quanto vai em cada tamanho)</label>' +
+        f.itens.map((it, idx) => {
+            const ins = DB.insumos.find((x) => x.id == it.insumoId);
+            const un = ins ? unidadeBase(ins.unidade) : '';
+            return '<div style="background:#f7f7f7;border-radius:10px;padding:10px;margin:8px 0"><div style="display:flex;gap:8px"><select class="form-control" onchange="adForm.itens[' + idx + '].insumoId=this.value;renderAdForm()">' + opts.replace('value="' + esc(it.insumoId) + '"', 'value="' + esc(it.insumoId) + '" selected') + '</select>' +
+                '<button class="btn btn-danger btn-sm" style="width:auto;flex:0 0 auto;margin:0" onclick="adForm.itens.splice(' + idx + ',1);if(!adForm.itens.length)adForm.itens.push({insumoId:\'\',q:{}});renderAdForm()">✕</button></div>' +
+                '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">' + f.tams.map((t) => '<label style="font-size:0.8em;text-align:center">' + t + '<br><input type="number" inputmode="decimal" min="0" style="' + inp + '" value="' + (it.q[t] || '') + '" placeholder="0" oninput="adForm.itens[' + idx + '].q[\'' + t + '\']=parseFloat(this.value)||0;calcAdForm()"> <small>' + un + '</small></label>').join('') + '</div></div>';
+        }).join('') +
+        '<button class="btn btn-info btn-sm" onclick="adForm.itens.push({insumoId:\'\',q:{}});renderAdForm()">+ Ingrediente</button>' +
+        '<div class="form-group" style="margin-top:16px"><label>Seu preço de venda (balcão)</label><div style="display:flex;gap:10px;flex-wrap:wrap">' +
+        f.tams.map((t) => '<label style="font-size:0.8em;text-align:center">' + t + '<br><input type="number" inputmode="decimal" min="0" step="0.5" style="' + inp + '" value="' + (f.preco[t] || '') + '" placeholder="R$" oninput="adForm.preco[\'' + t + '\']=parseFloat(this.value)||0;calcAdForm()"></label>').join('') + '</div></div>' +
+        '<div id="adRes"></div>' +
+        '<div style="display:flex;gap:10px;margin-top:14px"><button class="btn btn-success" style="flex:1" onclick="salvarAdicional()">💾 ' + (f.id ? 'Salvar alterações' : 'Salvar adicional') + '</button><button class="btn btn-secondary" onclick="adForm=novoAdForm();renderAdForm()">Limpar</button></div>';
+    calcAdForm();
+}
+
+function adToggleTam(t, on) {
+    const s = new Set(adForm.tams);
+    if (on) s.add(t); else s.delete(t);
+    adForm.tams = TAMS_AD.filter((x) => s.has(x));
+    renderAdForm();
+}
+
+function calcAdForm() {
+    const box = document.getElementById('adRes');
+    if (!box) return;
+    const f = adForm;
+    if (!f.tams.length) { box.innerHTML = '<p style="color:#c62828">Escolha pelo menos um tamanho.</p>'; return; }
+    const temApp = numero(DB.taxas && DB.taxas.app) > 0;
+    box.innerHTML = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">' + f.tams.map((t) => {
+        const r = resultadoAdicional(f, t);
+        return '<div style="flex:1;min-width:150px;background:#fff;border:2px solid #eee;border-radius:12px;padding:10px">' +
+            '<div style="font-weight:700">' + NOMES_TAMANHO[t] + '</div>' +
+            '<div style="font-size:0.9em">Custo: <b style="color:#c62828">' + brl(r.custo) + '</b></div>' +
+            (r.sugCard ? '<div style="font-size:0.9em">🎯 Preço p/ meta: <b style="color:#2e7d32">' + brl(r.sugCard) + '</b>' + (temApp && r.sugApp ? ' · 🛵 <b style="color:#c62828">' + brl(r.sugApp) + '</b>' : '') + '</div>' : '') +
+            (r.lucro !== null ? '<div style="font-size:0.9em">Vendendo a ' + brl(r.preco) + ': lucro <b style="color:' + (r.lucro >= 0 ? '#2e7d32' : '#c62828') + '">' + brl(r.lucro) + '</b> (' + pct(r.margem) + ')</div>' : '') +
+            '</div>';
+    }).join('') + '</div><small style="color:#777;display:block;margin-top:6px">O preço sugerido usa as suas taxas e a meta de lucro (Custos Fixos), sem somar custo fixo: o adicional vai junto de uma pizza, que já paga o fixo.</small>';
+}
+
+function salvarAdicional() {
+    const f = adForm;
+    f.nome = (document.getElementById('adNome').value || '').trim();
+    if (!f.nome) { alert('Dê um nome para o adicional.'); return; }
+    if (!f.tams.length) { alert('Escolha pelo menos um tamanho.'); return; }
+    const itens = f.itens.filter((i) => i.insumoId && f.tams.some((t) => numero(i.q[t]) > 0));
+    if (!itens.length) { alert('Coloque pelo menos um ingrediente com quantidade.'); return; }
+    const reg = { id: f.id || gerarId(), nome: f.nome, tams: f.tams.slice(), itens: itens.map((i) => ({ insumoId: i.insumoId, q: Object.fromEntries(f.tams.filter((t) => numero(i.q[t]) > 0).map((t) => [t, numero(i.q[t])])) })), preco: Object.fromEntries(f.tams.filter((t) => numero(f.preco[t]) > 0).map((t) => [t, numero(f.preco[t])])) };
+    if (!DB.adicionais) DB.adicionais = [];
+    const k = DB.adicionais.findIndex((a) => a.id === reg.id);
+    if (k >= 0) DB.adicionais[k] = reg; else DB.adicionais.push(reg);
+    persistirDados(true, '✅ Adicional salvo!');
+    adForm = novoAdForm();
+    renderAdicionais();
+}
+
+function editarAdicional(id) {
+    const a = DB.adicionais.find((x) => x.id === id);
+    if (!a) return;
+    adForm = novoAdForm(a);
+    if (!adForm.itens.length) adForm.itens.push({ insumoId: '', q: {} });
+    renderAdForm();
+    document.getElementById('adForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function excluirAdicional(id) {
+    const a = DB.adicionais.find((x) => x.id === id);
+    if (!a || !confirm('Excluir o adicional "' + a.nome + '"?')) return;
+    DB.adicionais = DB.adicionais.filter((x) => x.id !== id);
+    persistirDados(true, '🗑️ Adicional excluído.');
+    renderAdLista();
+}
+
+function renderAdLista() {
+    const box = document.getElementById('adLista');
+    if (!box) return;
+    const lst = DB.adicionais || [];
+    if (!lst.length) { box.innerHTML = '<div class="empty">Nenhum adicional ainda. Cadastre a sua borda recheada ou o "mais queijo" acima.</div>'; return; }
+    const temApp = numero(DB.taxas && DB.taxas.app) > 0;
+    box.innerHTML = lst.map((a) => '<div style="border:1px solid #eee;border-radius:12px;padding:12px;margin-bottom:10px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><strong>➕ ' + esc(a.nome) + '</strong><span style="white-space:nowrap"><button class="btn btn-warning btn-sm" onclick="editarAdicional(\'' + a.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirAdicional(\'' + a.id + '\')">🗑️</button></span></div>' +
+        a.tams.map((t) => {
+            const r = resultadoAdicional(a, t);
+            return '<div style="font-size:0.88em;padding:4px 0;border-top:1px dashed #eee"><span class="badge-size ' + t + '">' + t + '</span> custo <b>' + brl(r.custo) + '</b> · cobre <b style="color:#2e7d32">' + (r.sugCard ? brl(r.sugCard) : '-') + '</b>' + (temApp && r.sugApp ? ' · 🛵 <b style="color:#c62828">' + brl(r.sugApp) + '</b>' : '') +
+                (r.preco > 0 ? ' · você cobra ' + brl(r.preco) + ' → lucro <b style="color:' + (r.lucro >= 0 ? '#2e7d32' : '#c62828') + '">' + brl(r.lucro) + '</b>' : ' · <span style="color:#c62828">sem preço</span>') + '</div>';
+        }).join('') + '</div>').join('');
 }
 
 function loadFichasSelectMeioAMeio() {
@@ -3096,7 +3286,7 @@ function calcPorMarkup() {
 
 // ===== TRAVA DE PLANOS (BÁSICO vs PRO) =====
 // Abas exclusivas do plano PRO. O plano Básico mantém: dashboard, insumos, fichas, nova-ficha, config.
-const ABAS_EXCLUSIVAS_PRO = ['massa', 'custos', 'produtos', 'precificar', 'fechamento'];
+const ABAS_EXCLUSIVAS_PRO = ['massa', 'custos', 'produtos', 'precificar', 'fechamento', 'adicionais'];
 
 const NOMES_RECURSOS_PRO = {
     'bonus': 'Suporte VIP e Grupo de Pizzaiolos',
@@ -3105,7 +3295,8 @@ const NOMES_RECURSOS_PRO = {
     produtos: '🥤 Cadastro de Bebidas',
     precificar: '💰 Gerador de Preço, Combos e Meio a Meio',
     backup: '💾 Backup (Exportar/Importar Dados)',
-    fechamento: '🧾 Fechamento de Caixa do dia (quanto vendeu e quanto lucrou)'
+    fechamento: '🧾 Fechamento de Caixa do dia (quanto vendeu e quanto lucrou)',
+    adicionais: '➕ Adicionais com custo e preço certo (borda recheada, mais queijo...)'
 };
 
 function aplicarTravaPlanos() {
