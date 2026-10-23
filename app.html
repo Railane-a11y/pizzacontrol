@@ -1644,6 +1644,7 @@
         <button class="nav-tab" data-page="massa">🥖 Massa</button>
         <button class="nav-tab" data-page="custos">💼 Custos Fixos</button>
         <button class="nav-tab" data-page="produtos">🥤 Bebidas</button>
+        <button class="nav-tab" data-page="adicionais">➕ Adicionais</button>
         <button class="nav-tab" data-page="precificar">💰 Gerar Preço</button>
         <button class="nav-tab" data-page="fechamento">🧾 Fechamento</button>
         <button class="nav-tab" data-page="config">⚙️ Configurações</button>
@@ -2046,6 +2047,18 @@
                 </div>
             </div>
         </div>
+        <!-- ADICIONAIS -->
+        <div class="page" id="page-adicionais">
+            <div class="alert alert-info">➕ Cadastre o que você vende a mais: <b>borda recheada</b>, <b>mais calabresa</b>, <b>mais mussarela</b>... O sistema puxa o custo dos seus insumos e mostra o preço certo de cada tamanho.</div>
+            <div class="card">
+                <div class="card-header" style="background:linear-gradient(135deg,#6a1b9a,#ab47bc)">➕ Novo adicional</div>
+                <div class="card-body"><div id="adForm"></div></div>
+            </div>
+            <div class="card">
+                <div class="card-header" style="background:linear-gradient(135deg,#4a148c,#7b1fa2)">📋 Seus adicionais</div>
+                <div class="card-body"><div id="adLista"></div></div>
+            </div>
+        </div>
         <!-- BEBIDAS E ADICIONAIS -->
         <div class="page" id="page-produtos">
             <div class="alert alert-info">🥤 Cadastre bebidas, cervejas, doces e adicionais. Esses itens serão usados no <strong>Simulador de Combos</strong>.</div>
@@ -2354,7 +2367,7 @@
 
     </div><!-- /appContent -->
 
-    <script src="app.js?v=3.7.1"></script>
+    <script src="app.js?v=3.8.0"></script>
     
     <!-- Botão Suporte WhatsApp -->
     <a href="https://wa.me/5598970260090?text=Fala%20Marllon!%20Preciso%20de%20uma%20ajuda%20aqui%20no%20PizzaControl." class="btn-whatsapp-flutuante" target="_blank">
